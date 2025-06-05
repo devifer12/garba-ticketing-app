@@ -7,7 +7,7 @@ const TEST_PASSWORD = "heet1234";
 (async () => {
   try {
     // 1. Get Firebase project API key
-    const apiKey = "AIzaSyDDzpayQb4DLgu_80eaUQclF_mXDHep6DI"; // From Firebase Console > Project Settings
+    const apiKey = process.env.VITE_FIREBASE_API_KEY; // From Firebase Console > Project Settings
 
     // 2. Sign in to get ID token (simulates client login)
     const { data } = await axios.post(
