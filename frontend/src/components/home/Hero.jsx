@@ -1,10 +1,14 @@
+// frontend/src/components/home/Hero.jsx
 import React from 'react';
 import { motion } from 'framer-motion';
-import { PrimaryButton, SecondaryButton } from '../ui/Button';
+import { PrimaryButton ,GoogleSignInButton } from '../ui/Button';
+import { useAuth } from '../../context/AuthContext';
 import hero1 from '../../assets/hero1.png';
 import Dandiya from '../../assets/dandiya.png';
 
 const Hero = () => {
+  const { user } = useAuth();
+  
   const navratriColors = [
     "navratri-red",
     "navratri-orange", 
@@ -141,13 +145,22 @@ const Hero = () => {
               variants={itemVariants}
               className="flex flex-col sm:flex-row gap-4 pt-4"
             >
-              <PrimaryButton>
+              <PrimaryButton 
+                onClick={() => {
+                  if (user) {
+                    handleBookTicket();
+                  } else {
+                    
+
+                  }
+                }}
+              >
                 🎟️ Book Your Tickets Now
               </PrimaryButton>
 
-              <SecondaryButton>
+              <GoogleSignInButton>
                 📱 Sign In with Google
-              </SecondaryButton>
+              </GoogleSignInButton>
             </motion.div>
 
             {/* Limited Tickets Warning */}

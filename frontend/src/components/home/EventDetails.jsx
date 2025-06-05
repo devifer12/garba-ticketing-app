@@ -1,8 +1,11 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { PrimaryButton, SecondaryButton } from "../ui/Button";
+import { PrimaryButton, GoogleSignInButton } from "../ui/Button";
+import { useAuth } from "../../context/AuthContext";
 
 const EventDetails = () => {
+  const { user } = useAuth();
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -179,7 +182,7 @@ const EventDetails = () => {
           className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10">
           <PrimaryButton>🎟️ Book Your Tickets Now</PrimaryButton>
 
-          <SecondaryButton>📱 Sign In with Google</SecondaryButton>
+          <GoogleSignInButton>📱 Sign In with Google</GoogleSignInButton>
         </motion.div>
 
         {/* Limited Tickets Warning */}
