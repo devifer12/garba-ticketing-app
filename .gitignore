@@ -1,0 +1,15 @@
+# Firebase
+/backend/firebase/serviceAccountKey.json
+
+# Node
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
