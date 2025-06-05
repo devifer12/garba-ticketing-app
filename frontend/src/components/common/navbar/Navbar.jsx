@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
-import {GoogleSignInButton} from "../../ui/Button";
+import { GoogleSignInButton } from "../../ui/Button";
 import UserProfile from "../../auth/UserProfile";
 
 const Navbar = () => {
@@ -34,7 +34,6 @@ const Navbar = () => {
       initial={{ y: -50 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6 }}>
-      
       {/* Authentication Section - Top Right */}
       <div className="absolute top-4 right-4 z-60">
         {loading ? (
@@ -95,18 +94,37 @@ const Navbar = () => {
 
           {/* Welcome message for signed-in users */}
           {user && (
+            // <motion.p
+            //   className="text-navratri-yellow font-medium text-center text-sm mt-2"
+            //   style={{
+            //     opacity: subtitleOpacity,
+            //     transform: `translateY(${subtitleY}px)`,
+            //   }}
+            //   animate={{
+            //     opacity: [0.7, 1, 0.7],
+            //   }}
+            //   transition={{
+            //     duration: 2,
+            //     repeat: Infinity,
+            //   }}
+
+            // >
+            //   Welcome back, {user.displayName?.split(' ')[0] || 'Friend'}! 🎉
+            // </motion.p>
             <motion.p
-              className="text-navratri-yellow font-medium text-sm mt-2"
-              style={{ opacity: subtitleOpacity }}
-              animate={{
-                opacity: [0.7, 1, 0.7],
+              className="text-lg md:text-xl text-slate-300 font-light text-center mt-4"
+              style={{
+                opacity: subtitleOpacity,
+                transform: `translateY(${subtitleY}px)`,
               }}
+              // animate={{
+              //   opacity: [0.7, 1, 0.7],
+              // }}
               transition={{
                 duration: 2,
                 repeat: Infinity,
-              }}
-            >
-              Welcome back, {user.displayName?.split(' ')[0] || 'Friend'}! 🎉
+              }}>
+              Welcome back, {user.displayName?.split(" ")[0] || "Friend"}! 🎉
             </motion.p>
           )}
         </div>
