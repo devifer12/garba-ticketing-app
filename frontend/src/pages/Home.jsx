@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import Navbar from '../components/common/navbar/Navbar';
 import Hero from '../components/home/Hero';
 import AboutSection from '../components/home/AboutSection';
+import EventDetails from '../components/home/EventDetails';
 
 const Home = () => {
   const navratriColors = [
@@ -64,6 +65,9 @@ const Home = () => {
 
         {/* About Section */}
         <AboutSection />
+
+        {/* Event Details Section - moved after AboutSection */}
+        <EventDetails />
       </main>
     </div>
   );

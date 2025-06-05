@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { PrimaryButton, SecondaryButton } from '../ui/Button';
+import hero1 from '../../assets/hero1.png';
+import Dandiya from '../../assets/dandiya.png';
 
 const Hero = () => {
   const navratriColors = [
@@ -34,26 +36,18 @@ const Hero = () => {
     },
   };
 
-  const eventDetails = {
-    date: "August 15, 2025",
-    time: "6:00 PM - 10:00 PM",
-    venue: "Vrindavan hall, Kandivali",
-    price: "₹399",
-    capacity: "300 People Only",
-  };
-
   return (
-    <section className="min-h-screen pt-32 pb-16 relative">
+    <section className="min-h-screen pt-48 pb-16 relative">
       {/* Animated colorful dots */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="text-center mb-16"
+        className="text-center mb-12"
       >
         <motion.div 
           variants={itemVariants}
-          className="flex justify-center space-x-2 mb-12"
+          className="flex justify-center space-x-2 mb-8"
         >
           {navratriColors.map((color, index) => (
             <motion.div
@@ -73,108 +67,170 @@ const Hero = () => {
         </motion.div>
       </motion.div>
 
-      {/* Event Details Cards */}
+      {/* Hero Content with Image */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
         className="container mx-auto px-4"
       >
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 max-w-6xl mx-auto">
-          {/* Date & Time Card */}
-          <motion.div
+        <div className="grid lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
+          {/* Left Side - Text Content */}
+          <motion.div 
             variants={itemVariants}
-            className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 hover:border-navratri-orange/30 transition-all duration-300"
-            whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+            className="space-y-8"
           >
-            <motion.div
-              className="text-4xl mb-3"
-              animate={{ rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
-              📅
-            </motion.div>
-            <h3 className="text-xl font-bold text-white mb-2">Date & Time</h3>
-            <p className="text-slate-300">{eventDetails.date}</p>
-            <p className="text-slate-300">{eventDetails.time}</p>
-          </motion.div>
-
-          {/* Venue Card */}
-          <motion.div
-            variants={itemVariants}
-            className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 hover:border-navratri-pink/30 transition-all duration-300"
-            whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-          >
-            <motion.div
-              className="text-4xl mb-3"
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              📍
-            </motion.div>
-            <h3 className="text-xl font-bold text-white mb-2">Venue</h3>
-            <p className="text-slate-300">{eventDetails.venue}</p>
-          </motion.div>
-
-          {/* Ticket Price Card */}
-          <motion.div
-            variants={itemVariants}
-            className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl p-6 border border-navratri-yellow/20 md:col-span-2 lg:col-span-1 relative overflow-hidden"
-            whileHover={{
-              y: -5,
-              boxShadow: "0 20px 40px rgba(255,215,0,0.1)",
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-navratri-yellow/5 to-transparent"></div>
-            <motion.div
-              className="text-4xl mb-3 relative z-10"
+            <motion.h2 
+              className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight"
               animate={{
-                scale: [1, 1.1, 1],
-                rotate: [0, 3, -3, 0],
+                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
               }}
-              transition={{ duration: 2.5, repeat: Infinity }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                repeatType: "loop",
+              }}
             >
-              🎫
+              Dance to the
+              <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
+                Rhythm of Joy
+              </span>
+            </motion.h2>
+
+            <motion.p 
+              className="text-xl text-slate-300 leading-relaxed max-w-md"
+              variants={itemVariants}
+            >
+              Join us for an unforgettable evening of traditional Garba and Raas, 
+              celebrating the vibrant colors and culture of Navratri.
+            </motion.p>
+
+            {/* Feature Highlights */}
+            <motion.div 
+              variants={itemVariants}
+              className="space-y-3"
+            >
+              <div className="flex items-center gap-3">
+                <motion.div 
+                  className="w-2 h-2 bg-navratri-orange rounded-full"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+                <span className="text-slate-300">Traditional Gujarati Music & Dance</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <motion.div 
+                  className="w-2 h-2 bg-navratri-pink rounded-full"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                />
+                <span className="text-slate-300">Professional Dance Instructors</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <motion.div 
+                  className="w-2 h-2 bg-navratri-yellow rounded-full"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                />
+                <span className="text-slate-300">Authentic Gujarati Snacks & Refreshments</span>
+              </div>
             </motion.div>
-            <h3 className="text-xl font-bold text-white mb-2 relative z-10">
-              Ticket Price
-            </h3>
-            <p className="text-3xl font-bold text-navratri-yellow relative z-10">
-              {eventDetails.price}
-            </p>
-            <p className="text-sm text-slate-400 relative z-10">
-              {eventDetails.capacity}
-            </p>
+
+            {/* CTA Buttons */}
+            <motion.div
+              variants={itemVariants}
+              className="flex flex-col sm:flex-row gap-4 pt-4"
+            >
+              <PrimaryButton>
+                🎟️ Book Your Tickets Now
+              </PrimaryButton>
+
+              <SecondaryButton>
+                📱 Sign In with Google
+              </SecondaryButton>
+            </motion.div>
+
+            {/* Limited Tickets Warning */}
+            <motion.div variants={itemVariants}>
+              <motion.p
+                className="cursor-default text-navratri-yellow font-bold text-lg"
+                animate={{
+                  opacity: [0.7, 1, 0.7],
+                  scale: [1, 1.02, 1],
+                }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                ⚡ Only 300 Tickets Available!
+              </motion.p>
+            </motion.div>
+          </motion.div>
+
+          {/* Right Side - Hero Image */}
+          <motion.div 
+            variants={itemVariants}
+            className="relative"
+          >
+            <motion.div
+              className="relative rounded-3xl overflow-hidden "
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.3 }}
+            >
+              <img 
+                src={hero1} 
+                alt="Garba Dancers" 
+                className="w-full h-auto object-cover drop-shadow-xl drop-shadow-neutral-700"
+              />
+              
+              {/* Floating decorative elements around image */}
+              <motion.div
+                className="absolute -top-4 -right-4 w-8 h-8 bg-navratri-orange rounded-full opacity-60"
+                animate={{
+                  y: [0, -10, 0],
+                  scale: [1, 1.1, 1],
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+              <motion.div
+                className="absolute -bottom-4 -left-4 w-6 h-6 bg-navratri-pink rounded-full opacity-60"
+                animate={{
+                  y: [0, 10, 0],
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+              />
+              <motion.div
+                className="absolute top-1/2 -left-6 w-4 h-4 bg-navratri-yellow rounded-full opacity-50"
+                animate={{
+                  x: [0, -5, 0],
+                  scale: [1, 1.3, 1],
+                }}
+                transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
+              />
+            </motion.div>
+
+            {/* Decorative Dandiya elements */}
+            <motion.img
+              src={Dandiya}
+              alt="Dandiya"
+              className="absolute -top-8 left-8 w-12 h-12 opacity-40"
+              animate={{
+                rotate: [0, 15, -15, 0],
+                scale: [1, 1.1, 1],
+              }}
+              transition={{ duration: 4, repeat: Infinity }}
+            />
+            <motion.img
+              src={Dandiya}
+              alt="Dandiya"
+              className="absolute -bottom-6 right-12 w-10 h-10 opacity-40 rotate-45"
+              animate={{
+                rotate: [45, 60, 30, 45],
+                scale: [1, 1.2, 1],
+              }}
+              transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+            />
           </motion.div>
         </div>
-
-        {/* CTA Buttons */}
-        <motion.div
-          variants={itemVariants}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10"
-        >
-          <PrimaryButton>
-            🎟️ Book Your Tickets Now
-          </PrimaryButton>
-
-          <SecondaryButton>
-            📱 Sign In with Google
-          </SecondaryButton>
-        </motion.div>
-
-        {/* Limited Tickets Warning */}
-        <motion.div variants={itemVariants} className="text-center">
-          <motion.p
-            className="text-navratri-yellow font-bold text-lg"
-            animate={{
-              opacity: [0.7, 1, 0.7],
-              scale: [1, 1.02, 1],
-            }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >
-            ⚡ Only {eventDetails.capacity.split(" ")[0]} Tickets Available!
-          </motion.p>
-        </motion.div>
       </motion.div>
     </section>
   );

@@ -1,6 +1,6 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { PrimaryButton, SecondaryButton } from './Button';
+import React from "react";
+import { motion } from "framer-motion";
+import { PrimaryButton, SecondaryButton } from "../ui/Button";
 
 const EventDetails = () => {
   const containerVariants = {
@@ -31,7 +31,7 @@ const EventDetails = () => {
   };
 
   return (
-    <section className="py-20 relative">
+    <section className=" flex flex-col justify-center items-center py-20 relative">
       {/* Decorative Dandiya Sticks */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Left side decorative elements */}
@@ -88,30 +88,37 @@ const EventDetails = () => {
 
       {/* Event Details Cards */}
       <motion.div
+        variants={itemVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.3 }}
+        className=" mx-auto flex justify-center items-center h-50 w-100 bg-gray-700 rounded-xl mb-5">
+        <h1 className="text-3xl">Venue image</h1>
+      </motion.div>
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
-        className="container mx-auto px-4"
-      >
+        className="container mx-auto px-4">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 max-w-6xl mx-auto">
           {/* Date & Time Card */}
           <motion.div
             variants={itemVariants}
             className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 hover:border-navratri-orange/30 transition-all duration-300 relative overflow-hidden group"
-            whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-          >
+            whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}>
             {/* Decorative background glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-navratri-orange/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            
+
             <motion.div
               className="text-4xl mb-3 relative z-10"
               animate={{ rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
+              transition={{ duration: 3, repeat: Infinity }}>
               📅
             </motion.div>
-            <h3 className="text-xl font-bold text-white mb-2 relative z-10">Date & Time</h3>
+            <h3 className="text-xl font-bold text-white mb-2 relative z-10">
+              Date & Time
+            </h3>
             <p className="text-slate-300 relative z-10">{eventDetails.date}</p>
             <p className="text-slate-300 relative z-10">{eventDetails.time}</p>
           </motion.div>
@@ -120,19 +127,19 @@ const EventDetails = () => {
           <motion.div
             variants={itemVariants}
             className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 hover:border-navratri-pink/30 transition-all duration-300 relative overflow-hidden group"
-            whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-          >
+            whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}>
             {/* Decorative background glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-navratri-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            
+
             <motion.div
               className="text-4xl mb-3 relative z-10"
               animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
+              transition={{ duration: 2, repeat: Infinity }}>
               📍
             </motion.div>
-            <h3 className="text-xl font-bold text-white mb-2 relative z-10">Venue</h3>
+            <h3 className="text-xl font-bold text-white mb-2 relative z-10">
+              Venue
+            </h3>
             <p className="text-slate-300 relative z-10">{eventDetails.venue}</p>
           </motion.div>
 
@@ -143,8 +150,7 @@ const EventDetails = () => {
             whileHover={{
               y: -5,
               boxShadow: "0 20px 40px rgba(255,215,0,0.1)",
-            }}
-          >
+            }}>
             <div className="absolute inset-0 bg-gradient-to-r from-navratri-yellow/5 to-transparent"></div>
             <motion.div
               className="text-4xl mb-3 relative z-10"
@@ -152,8 +158,7 @@ const EventDetails = () => {
                 scale: [1, 1.1, 1],
                 rotate: [0, 3, -3, 0],
               }}
-              transition={{ duration: 2.5, repeat: Infinity }}
-            >
+              transition={{ duration: 2.5, repeat: Infinity }}>
               🎫
             </motion.div>
             <h3 className="text-xl font-bold text-white mb-2 relative z-10">
@@ -171,15 +176,10 @@ const EventDetails = () => {
         {/* CTA Buttons */}
         <motion.div
           variants={itemVariants}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10"
-        >
-          <PrimaryButton>
-            🎟️ Book Your Tickets Now
-          </PrimaryButton>
+          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10">
+          <PrimaryButton>🎟️ Book Your Tickets Now</PrimaryButton>
 
-          <SecondaryButton>
-            📱 Sign In with Google
-          </SecondaryButton>
+          <SecondaryButton>📱 Sign In with Google</SecondaryButton>
         </motion.div>
 
         {/* Limited Tickets Warning */}
@@ -190,29 +190,9 @@ const EventDetails = () => {
               opacity: [0.7, 1, 0.7],
               scale: [1, 1.02, 1],
             }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >
+            transition={{ duration: 1.5, repeat: Infinity }}>
             ⚡ Only {eventDetails.capacity.split(" ")[0]} Tickets Available!
           </motion.p>
-        </motion.div>
-
-        {/* Decorative wave at bottom */}
-        <motion.div 
-          className="mt-16 flex justify-center"
-          initial={{ opacity: 0, scale: 0.8 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1 }}
-        >
-          <svg 
-            width="400" 
-            height="60" 
-            viewBox="0 0 400 60" 
-            className="text-navratri-blue/30"
-            fill="currentColor"
-          >
-            <path d="M0,30 Q100,10 200,30 T400,30 L400,60 L0,60 Z" />
-          </svg>
         </motion.div>
       </motion.div>
     </section>

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 
-const PrimaryButton = ({ children, onClick, className = "", ...props }) => {
+const PrimaryButton = ({ children, onClick, className = "cursor-pointer", ...props }) => {
   return (
     <motion.button
       className={`bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 px-8 py-4 rounded-full text-xl font-bold shadow-xl border border-navratri-orange/20 ${className}`}
@@ -26,7 +26,7 @@ const PrimaryButton = ({ children, onClick, className = "", ...props }) => {
   );
 };
 
-const SecondaryButton = ({ children, onClick, className = "", ...props }) => {
+const SecondaryButton = ({ children, onClick, className = "cursor-pointer", ...props }) => {
   return (
     <motion.button
       className={`bg-slate-800/50 backdrop-blur-xl text-white px-6 py-3 rounded-full font-semibold border border-slate-600/50 hover:border-slate-500/50 transition-all duration-300 ${className}`}
