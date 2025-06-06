@@ -5,21 +5,37 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS configuration
+// Enhanced CORS configuration
 const corsOptions = {
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:5173',
-    'http://localhost:3000', // In case you use different dev port
-    'http://127.0.0.1:5173'
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://localhost:5174', // Alternative Vite port
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
+  exposedHeaders: ['Authorization'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 };
 
-// Middleware
+// Apply CORS middleware first
 app.use(cors(corsOptions));
+
+// Handle preflight requests for all routes
+app.options('*', cors(corsOptions));
+
+// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -27,6 +43,10 @@ app.use(express.urlencoded({ extended: true }));
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    console.log('Headers:', req.headers);
+    if (req.body && Object.keys(req.body).length > 0) {
+      console.log('Body:', req.body);
+    }
     next();
   });
 }
@@ -52,16 +72,18 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     features: ['Google Authentication', 'Ticket Booking', 'User Management'],
     endpoints: {
-      auth: '/api/google-auth',
+      auth: '/api/auth',
+      googleAuth: '/api/google-auth',
       tickets: '/api/tickets',
       users: '/api/users'
     }
   });
 });
 
-// API Routes
-app.use('/api/auth', authRoutes); // Traditional auth routes (backward compatibility)
-app.use('/api/google-auth', googleAuthRoutes); // Primary Google auth routes
+// API Routes - Fixed routing structure
+app.use('/api/auth', googleAuthRoutes); // Primary auth routes (Google + profile management)
+app.use('/api/google-auth', googleAuthRoutes); // Alternative endpoint for compatibility
+app.use('/api/traditional-auth', authRoutes); // Traditional auth routes (backward compatibility)
 app.use('/api/users', userRoutes); // User management routes
 app.use('/api/tickets', ticketRoutes); // Ticket routes (protected)
 
@@ -85,13 +107,19 @@ app.get('/api/status', (req, res) => {
     database: 'connected',
     firebase: 'initialized',
     environment: process.env.NODE_ENV || 'development',
+    cors: {
+      origins: corsOptions.origin,
+      methods: corsOptions.methods
+    },
     routes: {
-      googleAuth: {
-        signin: 'POST /api/google-auth/google-signin',
-        profile: 'GET /api/google-auth/profile',
-        updateProfile: 'PUT /api/google-auth/profile',
-        deleteAccount: 'DELETE /api/google-auth/account',
-        signout: 'POST /api/google-auth/signout'
+      auth: {
+        signin: 'POST /api/auth/google-signin',
+        profile: 'GET /api/auth/me',
+        profileAlt: 'GET /api/auth/profile',
+        updateProfile: 'PUT /api/auth/profile',
+        deleteAccount: 'DELETE /api/auth/account',
+        logout: 'POST /api/auth/logout',
+        signout: 'POST /api/auth/signout'
       },
       tickets: {
         create: 'POST /api/tickets',
@@ -107,9 +135,6 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// Preflight OPTIONS handler for complex CORS requests
-app.options('*', cors(corsOptions));
-
 // Handle 404 for API routes
 app.use('/api/*', (req, res) => {
   res.status(404).json({
@@ -118,13 +143,34 @@ app.use('/api/*', (req, res) => {
     method: req.method,
     availableEndpoints: [
       'GET /api/status',
-      'POST /api/google-auth/google-signin',
-      'GET /api/google-auth/profile',
-      'PUT /api/google-auth/profile',
+      'POST /api/auth/google-signin',
+      'GET /api/auth/me',
+      'GET /api/auth/profile',
+      'PUT /api/auth/profile',
+      'POST /api/auth/logout',
       'POST /api/tickets',
       'GET /api/tickets/my-tickets',
       'GET /api/protected'
     ]
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  
+  // Handle CORS errors
+  if (err.message && err.message.includes('CORS')) {
+    return res.status(403).json({
+      error: 'CORS policy violation',
+      message: 'Request blocked by CORS policy'
+    });
+  }
+  
+  // Handle other errors
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 
@@ -146,10 +192,10 @@ process.on('unhandledRejection', (err) => {
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running for garba-ticketing-app on http://localhost:${PORT}`);
-  console.log(`📱 Google Auth endpoints: http://localhost:${PORT}/api/google-auth`);
+  console.log(`📱 Auth endpoints: http://localhost:${PORT}/api/auth`);
   console.log(`🎫 Ticket endpoints: http://localhost:${PORT}/api/tickets`);
   console.log(`💡 API status: http://localhost:${PORT}/api/status`);
-  console.log(`🌐 CORS enabled for: ${corsOptions.origin}`);
+  console.log(`🌐 CORS enabled for: ${corsOptions.origin.join(', ')}`);
 });
 
 // Graceful shutdown

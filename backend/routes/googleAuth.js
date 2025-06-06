@@ -4,7 +4,7 @@ const admin = require("../firebase/admin");
 const User = require("../models/User");
 const verifyToken = require("../middlewares/authMiddleware");
 
-// Google Sign-In Route
+// Google Sign-In Route - Fixed endpoint
 router.post("/google-signin", async (req, res) => {
   try {
     const { idToken } = req.body;
@@ -69,7 +69,40 @@ router.post("/google-signin", async (req, res) => {
   }
 });
 
-// Get current user profile (protected route)
+// Get current user profile (protected route) - Fixed endpoint
+router.get("/me", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findOne({ firebaseUID: req.user.uid });
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        firebaseUID: user.firebaseUID,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        profilePicture: user.profilePicture,
+        role: user.role,
+        authMethod: user.authMethod,
+        isEmailVerified: user.isEmailVerified,
+        isPhoneVerified: user.isPhoneVerified,
+        createdAt: user.createdAt,
+        lastLogin: user.lastLogin
+      }
+    });
+
+  } catch (error) {
+    console.error("Profile fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch profile" });
+  }
+});
+
+// Get current user profile (protected route) - Alternative endpoint
 router.get("/profile", verifyToken, async (req, res) => {
   try {
     const user = await User.findOne({ firebaseUID: req.user.uid });
@@ -154,6 +187,27 @@ router.put("/profile", verifyToken, async (req, res) => {
   } catch (error) {
     console.error("Profile update error:", error);
     res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+// Logout endpoint
+router.post("/logout", verifyToken, async (req, res) => {
+  try {
+    // Update last activity or perform any cleanup
+    const user = await User.findOne({ firebaseUID: req.user.uid });
+    if (user) {
+      user.lastLogin = new Date();
+      await user.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Logged out successfully"
+    });
+
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({ error: "Logout failed" });
   }
 });
 
