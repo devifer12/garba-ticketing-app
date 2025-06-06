@@ -43,62 +43,89 @@ const GoogleSignInButton = ({
   ...props
 }) => {
   const { signInWithGoogle, loading, error } = useAuth();
-  const [isSigningIn, setIsSigningIn] = useState(false);
-  const [localError, setLocalError] = useState(null);
+  const [localLoading, setLocalLoading] = useState(false);
+  const [localError, setLocalError] = useState('');
+
+  // Clear local error when auth error changes
+  useState(() => {
+    if (error) {
+      setLocalError('');
+    }
+  }, [error]);
 
   const handleSignIn = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    // If there's a custom onClick, use that instead
-    if (onClick) {
-      try {
-        setIsSigningIn(true);
-        setLocalError(null);
-        await onClick();
-      } catch (error) {
-        console.error('Custom onClick failed:', error);
-        setLocalError(error.message || 'Sign-in failed. Please try again.');
-      } finally {
-        setIsSigningIn(false);
-      }
-      return;
-    }
-
-    // Default Google Sign-In behavior
+    // Clear previous errors
+    setLocalError('');
+    
     try {
-      setIsSigningIn(true);
-      setLocalError(null);
-      await signInWithGoogle();
-    } catch (error) {
-      console.error('Sign-in failed:', error);
+      setLocalLoading(true);
       
-      // Handle specific error cases
+      // If there's a custom onClick handler, use it
+      if (onClick) {
+        await onClick();
+        return;
+      }
+
+      // Default Google Sign-In behavior
+      console.log('Starting Google Sign-In from button...');
+      const result = await signInWithGoogle();
+      
+      if (result) {
+        console.log('Sign-in successful:', result);
+        // Success feedback could be added here
+      }
+      
+    } catch (error) {
+      console.error('Sign-in button error:', error);
+      
+      // Set user-friendly error message
       let errorMessage = 'Sign-in failed. Please try again.';
       
-      if (error.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'Sign-in was cancelled. Please try again.';
-      } else if (error.code === 'auth/popup-blocked') {
-        errorMessage = 'Popup was blocked. Please allow popups and try again.';
-      } else if (error.code === 'auth/network-request-failed') {
-        errorMessage = 'Network error. Please check your connection and try again.';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many attempts. Please wait a moment and try again.';
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.code) {
+        switch (error.code) {
+          case 'auth/popup-closed-by-user':
+            errorMessage = 'Sign-in cancelled. Please try again.';
+            break;
+          case 'auth/popup-blocked':
+            errorMessage = 'Pop-up blocked. Please allow pop-ups and try again.';
+            break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your connection.';
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = 'Too many attempts. Please wait and try again.';
+            break;
+          default:
+            errorMessage = 'Authentication failed. Please try again.';
+        }
       }
       
       setLocalError(errorMessage);
+      
+      // Auto-clear error after 5 seconds
+      setTimeout(() => {
+        setLocalError('');
+      }, 5000);
+      
     } finally {
-      setIsSigningIn(false);
+      setLocalLoading(false);
     }
   };
 
-  const baseClasses = "flex items-center justify-center gap-3 px-6 py-3 rounded-full font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed";
+  const baseClasses = "flex items-center justify-center gap-3 px-6 py-3 rounded-full font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]";
   
   const variants = {
     primary: "bg-white text-gray-800 hover:bg-gray-50 border border-gray-300 shadow-md hover:shadow-lg",
     secondary: "bg-slate-800/50 backdrop-blur-xl text-white border border-slate-600/50 hover:border-slate-500/50 hover:bg-slate-700/50"
   };
 
-  const isDisabled = disabled || loading || isSigningIn;
+  const isDisabled = disabled || loading || localLoading;
+  const isLoading = loading || localLoading;
   const displayError = localError || error;
 
   return (
@@ -111,7 +138,7 @@ const GoogleSignInButton = ({
         whileTap={!isDisabled ? { scale: 0.98 } : {}}
         {...props}
       >
-        {isSigningIn ? (
+        {isLoading ? (
           <>
             <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
             <span>Signing in...</span>
@@ -119,7 +146,7 @@ const GoogleSignInButton = ({
         ) : (
           <>
             {/* Google Icon */}
-            <svg width="20" height="20" viewBox="0 0 24 24">
+            <svg width="20" height="20" viewBox="0 0 24 24" className="flex-shrink-0">
               <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -137,7 +164,7 @@ const GoogleSignInButton = ({
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            <span>{children}</span>
+            <span className="truncate">{children}</span>
           </>
         )}
       </motion.button>
@@ -148,9 +175,20 @@ const GoogleSignInButton = ({
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="text-red-400 text-sm text-center max-w-xs px-2"
+          className="text-red-400 text-sm text-center max-w-xs px-2 py-1 bg-red-500/10 rounded-lg border border-red-500/20"
         >
           {displayError}
+        </motion.div>
+      )}
+      
+      {/* Success Message Display */}
+      {!displayError && !isLoading && !loading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.7 }}
+          className="text-slate-400 text-xs text-center"
+        >
+          Click to sign in with your Google account
         </motion.div>
       )}
     </div>
