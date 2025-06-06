@@ -23,9 +23,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [backendUser, setBackendUser] = useState(null); // Store backend user data
+  const [backendUser, setBackendUser] = useState(null);
 
-  // Google Sign-In with enhanced error handling
+  // Enhanced Google Sign-In with proper error handling
   const signInWithGoogle = async () => {
     try {
       setError(null);
@@ -35,81 +35,107 @@ export const AuthProvider = ({ children }) => {
       provider.addScope('profile');
       provider.addScope('email');
       
-      // Set custom parameters for better UX
+      // Configure provider for better UX
       provider.setCustomParameters({
-        prompt: 'select_account'
+        prompt: 'select_account',
+        hd: undefined // Remove domain restriction
       });
       
+      console.log('Starting Google sign-in...');
       const result = await signInWithPopup(auth, provider);
       const firebaseUser = result.user;
       
+      console.log('Firebase auth successful:', {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName
+      });
+
+      // Get Firebase ID token
+      const idToken = await firebaseUser.getIdToken();
+      
       // Prepare user data for backend
       const userData = {
-        name: firebaseUser.displayName,
+        name: firebaseUser.displayName || '',
         email: firebaseUser.email,
         phone: firebaseUser.phoneNumber || '',
         firebaseUID: firebaseUser.uid,
-        photoURL: firebaseUser.photoURL,
-        emailVerified: firebaseUser.emailVerified
+        photoURL: firebaseUser.photoURL || '',
+        emailVerified: firebaseUser.emailVerified,
+        idToken: idToken
       };
       
-      // Send user data to backend for registration/login
-      try {
-        const response = await api.post('/auth/google-signin', userData);
-        setBackendUser(response.data.user);
+      console.log('Sending user data to backend:', userData);
+      
+      // Send to backend with retry logic
+      let backendResponse = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries && !backendResponse) {
+        try {
+          backendResponse = await api.post('/auth/google-signin', userData);
+          console.log('Backend response:', backendResponse.data);
+          break;
+        } catch (backendError) {
+          retryCount++;
+          console.error(`Backend sync attempt ${retryCount} failed:`, backendError);
+          
+          if (retryCount >= maxRetries) {
+            // If backend sync fails completely, still allow Firebase auth
+            console.warn('Backend sync failed after all retries, proceeding with Firebase auth only');
+            setBackendUser({
+              name: firebaseUser.displayName,
+              email: firebaseUser.email,
+              phone: firebaseUser.phoneNumber || '',
+              firebaseUID: firebaseUser.uid,
+              photoURL: firebaseUser.photoURL,
+              emailVerified: firebaseUser.emailVerified,
+              _fromFirebase: true // Flag to indicate this is Firebase-only data
+            });
+            break;
+          }
+          
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
+      
+      if (backendResponse) {
+        setBackendUser(backendResponse.data.user);
         
-        console.log('User registered/logged in successfully:', response.data);
-        
-        // Show success message if needed
-        if (response.data.isNewUser) {
-          console.log('Welcome! Your account has been created.');
+        // Show appropriate welcome message
+        if (backendResponse.data.isNewUser) {
+          console.log('Welcome! Account created successfully.');
         } else {
           console.log('Welcome back!');
         }
-        
-        return {
-          firebaseUser,
-          backendUser: response.data.user,
-          isNewUser: response.data.isNewUser
-        };
-        
-      } catch (backendError) {
-        console.error('Backend registration failed:', backendError);
-        
-        // Handle different backend error scenarios
-        if (backendError.response?.status === 409) {
-          // User already exists, try to fetch user data
-          try {
-            const userResponse = await api.get('/auth/me');
-            setBackendUser(userResponse.data.user);
-            return {
-              firebaseUser,
-              backendUser: userResponse.data.user,
-              isNewUser: false
-            };
-          } catch (fetchError) {
-            console.error('Failed to fetch user data:', fetchError);
-            throw new Error('Authentication succeeded but failed to sync user data');
-          }
-        } else {
-          throw new Error(backendError.response?.data?.message || 'Failed to sync with backend');
-        }
       }
+      
+      return {
+        firebaseUser,
+        backendUser: backendResponse?.data?.user || backendUser,
+        isNewUser: backendResponse?.data?.isNewUser || false
+      };
       
     } catch (error) {
       console.error('Google sign-in error:', error);
       
-      // Handle different Firebase error codes
+      // Handle specific Firebase errors
       let errorMessage = 'Sign-in failed. Please try again.';
       
       if (error.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'Sign-in was cancelled. Please try again.';
+        errorMessage = 'Sign-in cancelled. Please try again.';
       } else if (error.code === 'auth/popup-blocked') {
-        errorMessage = 'Pop-up was blocked. Please allow pop-ups and try again.';
+        errorMessage = 'Pop-up blocked. Please allow pop-ups for this site.';
       } else if (error.code === 'auth/network-request-failed') {
-        errorMessage = 'Network error. Please check your connection and try again.';
-      } else if (error.message) {
-        errorMessage = error.message;
+        errorMessage = 'Network error. Check your connection.';
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = 'Sign-in cancelled. Please try again.';
+      } else if (error.code === 'auth/internal-error') {
+        errorMessage = 'Authentication service error. Please try again.';
+      } else if (error.message && error.message.includes('CORS')) {
+        errorMessage = 'Browser security error. Please try refreshing the page.';
       }
       
       setError(errorMessage);
@@ -119,32 +145,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Enhanced logout function
+  // Enhanced logout with proper cleanup
   const logout = async () => {
     try {
       setError(null);
       setLoading(true);
       
-      // Sign out from Firebase
-      await signOut(auth);
+      console.log('Starting logout process...');
       
-      // Clear local state
+      // Clear local state immediately
       setUser(null);
       setBackendUser(null);
       
-      // Optional: Notify backend about logout
-      try {
-        await api.post('/auth/logout');
-      } catch (logoutError) {
-        console.warn('Backend logout notification failed:', logoutError);
-        // Don't throw error here as Firebase logout was successful
-      }
+      // Sign out from Firebase
+      await signOut(auth);
       
-      console.log('Successfully logged out');
+      // Notify backend (don't wait for this)
+      api.post('/auth/logout').catch(err => {
+        console.warn('Backend logout notification failed:', err);
+      });
+      
+      console.log('Logout successful');
       
     } catch (error) {
       console.error('Logout error:', error);
-      setError('Logout failed. Please try again.');
+      setError('Logout failed. Please refresh the page.');
       throw error;
     } finally {
       setLoading(false);
@@ -159,6 +184,7 @@ export const AuthProvider = ({ children }) => {
       return response.data.user;
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
+      // Don't throw here, just return null
       return null;
     }
   };
@@ -175,18 +201,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Check if user has completed profile
+  // Check if user profile is complete
   const isProfileComplete = () => {
     if (!backendUser) return false;
-    return !!(backendUser.name && backendUser.email && backendUser.phone);
+    return !!(backendUser.name && backendUser.email);
   };
 
-  // Listen to Firebase auth state changes
+  // Enhanced auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
+        console.log('Auth state changed:', firebaseUser ? 'User signed in' : 'User signed out');
+        
         if (firebaseUser) {
-          // User is signed in to Firebase
+          // Set Firebase user data
           setUser({
             uid: firebaseUser.uid,
             email: firebaseUser.email,
@@ -196,17 +224,31 @@ export const AuthProvider = ({ children }) => {
             phoneNumber: firebaseUser.phoneNumber
           });
 
-          // Fetch user data from backend
-          await fetchUserProfile();
+          // Try to fetch backend user data
+          const backendUserData = await fetchUserProfile();
+          
+          // If no backend user data, create fallback from Firebase
+          if (!backendUserData) {
+            console.log('No backend user data, using Firebase data');
+            setBackendUser({
+              name: firebaseUser.displayName || '',
+              email: firebaseUser.email,
+              phone: firebaseUser.phoneNumber || '',
+              firebaseUID: firebaseUser.uid,
+              photoURL: firebaseUser.photoURL || '',
+              emailVerified: firebaseUser.emailVerified,
+              _fromFirebase: true
+            });
+          }
           
         } else {
-          // User is signed out
+          // User signed out
           setUser(null);
           setBackendUser(null);
         }
       } catch (error) {
         console.error('Auth state change error:', error);
-        setError('Authentication state error');
+        setError('Authentication error occurred');
       } finally {
         setLoading(false);
       }
@@ -215,7 +257,7 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
-  // Clear error after some time
+  // Auto-clear errors
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => {
@@ -225,16 +267,17 @@ export const AuthProvider = ({ children }) => {
     }
   }, [error]);
 
+  // Context value
   const value = {
-    // Firebase user data
+    // User data
     user,
-    
-    // Backend user data
     backendUser,
     
-    // States
+    // Auth state
     loading,
     error,
+    isAuthenticated: !!user,
+    isProfileComplete: isProfileComplete(),
     
     // Auth methods
     signInWithGoogle,
@@ -243,15 +286,16 @@ export const AuthProvider = ({ children }) => {
     // Profile methods
     fetchUserProfile,
     updateUserProfile,
-    isProfileComplete,
     
     // Utility methods
     setError,
     clearError: () => setError(null),
     
     // Combined user data for convenience
-    isAuthenticated: !!(user && backendUser),
-    userData: backendUser || user
+    userData: backendUser || user,
+    
+    // Helper methods
+    refreshUserData: fetchUserProfile
   };
 
   return (
