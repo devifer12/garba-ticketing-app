@@ -19,10 +19,6 @@ router.post("/google-signin", async (req, res) => {
     // Extract user information from the token
     const { uid, email, name, picture, email_verified } = decodedToken;
 
-    if (!email) {
-      return res.status(400).json({ error: "Email is required from Google account" });
-    }
-
     // Find or create user in our database
     const user = await User.findOrCreateGoogleUser({
       uid,
@@ -85,12 +81,8 @@ router.get("/me", verifyToken, async (req, res) => {
         firebaseUID: user.firebaseUID,
         name: user.name,
         email: user.email,
-        phone: user.phone,
         profilePicture: user.profilePicture,
         role: user.role,
-        authMethod: user.authMethod,
-        isEmailVerified: user.isEmailVerified,
-        isPhoneVerified: user.isPhoneVerified,
         createdAt: user.createdAt,
         lastLogin: user.lastLogin
       }
@@ -118,12 +110,8 @@ router.get("/profile", verifyToken, async (req, res) => {
         firebaseUID: user.firebaseUID,
         name: user.name,
         email: user.email,
-        phone: user.phone,
         profilePicture: user.profilePicture,
         role: user.role,
-        authMethod: user.authMethod,
-        isEmailVerified: user.isEmailVerified,
-        isPhoneVerified: user.isPhoneVerified,
         createdAt: user.createdAt,
         lastLogin: user.lastLogin
       }
@@ -138,7 +126,7 @@ router.get("/profile", verifyToken, async (req, res) => {
 // Update user profile (protected route)
 router.put("/profile", verifyToken, async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const { name } = req.body;
     
     const user = await User.findOne({ firebaseUID: req.user.uid });
     
@@ -148,21 +136,6 @@ router.put("/profile", verifyToken, async (req, res) => {
 
     // Update allowed fields
     if (name) user.name = name;
-    if (phone) {
-      // Check if phone number is already taken by another user
-      const existingUser = await User.findOne({ 
-        phone: phone, 
-        _id: { $ne: user._id } 
-      });
-      
-      if (existingUser) {
-        return res.status(400).json({ error: "Phone number already in use" });
-      }
-      
-      user.phone = phone;
-      user.isPhoneVerified = false; // Reset verification status
-    }
-
     await user.save();
 
     res.status(200).json({
@@ -173,12 +146,8 @@ router.put("/profile", verifyToken, async (req, res) => {
         firebaseUID: user.firebaseUID,
         name: user.name,
         email: user.email,
-        phone: user.phone,
         profilePicture: user.profilePicture,
         role: user.role,
-        authMethod: user.authMethod,
-        isEmailVerified: user.isEmailVerified,
-        isPhoneVerified: user.isPhoneVerified,
         createdAt: user.createdAt,
         lastLogin: user.lastLogin
       }

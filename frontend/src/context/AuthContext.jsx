@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
   };
 
-  // Sync user with backend
+  // Sync user with backend - FIXED: Correct API call structure
   const syncUserWithBackend = async (firebaseUser) => {
     try {
       console.log('Syncing user with backend:', firebaseUser.uid);
@@ -39,19 +39,15 @@ export const AuthProvider = ({ children }) => {
       // Get fresh Firebase ID token
       const idToken = await firebaseUser.getIdToken();
       
-      // Prepare user data
-      const userData = {
-        name: firebaseUser.displayName || '',
-        email: firebaseUser.email,
-        phone: firebaseUser.phoneNumber || '',
-        firebaseUID: firebaseUser.uid,
-        photoURL: firebaseUser.photoURL || '',
-        emailVerified: firebaseUser.emailVerified,
+      // FIXED: Send only idToken as expected by backend
+      const requestData = {
         idToken: idToken
       };
       
+      console.log('Sending to backend:', requestData);
+      
       // Send to backend
-      const response = await api.post('/auth/google-signin', userData);
+      const response = await api.post('/auth/google-signin', requestData);
       
       console.log('Backend sync successful:', response.data);
       setBackendUser(response.data.user);
@@ -202,13 +198,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Check if user profile is complete
-  const isProfileComplete = () => {
-    if (!backendUser && !user) return false;
-    const userData = backendUser || user;
-    return !!(userData.name && userData.email);
-  };
-
   // Auth state listener
   useEffect(() => {
     console.log('Setting up auth state listener...');
@@ -225,7 +214,6 @@ export const AuthProvider = ({ children }) => {
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
             emailVerified: firebaseUser.emailVerified,
-            phoneNumber: firebaseUser.phoneNumber
           });
 
           // Only sync with backend if not already done
@@ -280,7 +268,6 @@ export const AuthProvider = ({ children }) => {
     initializing,
     error,
     isAuthenticated: !!user,
-    isProfileComplete: isProfileComplete(),
     
     // Auth methods
     signInWithGoogle,
