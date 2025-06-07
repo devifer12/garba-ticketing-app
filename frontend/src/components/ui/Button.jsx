@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useState } from "react";
+import {useNavigate} from "react-router-dom"
 
 const PrimaryButton = ({
   children,
@@ -45,6 +46,7 @@ const GoogleSignInButton = ({
   const { signInWithGoogle, user, loading, error } = useAuth();
   const [localLoading, setLocalLoading] = useState(false);
   const [localError, setLocalError] = useState('');
+  const navigate = useNavigate();
 
   // Clear local error when auth error changes
   useState(() => {
@@ -76,6 +78,7 @@ const GoogleSignInButton = ({
       if (result) {
         console.log('Sign-in successful:', result);
         // Success feedback could be added here
+        navigate('/dashboard');
       }
       
     } catch (error) {
@@ -192,6 +195,7 @@ const GoogleSignInButton = ({
           Click to sign in with your Google account
         </motion.div>
       )}
+      {/* {dashboardDirection()} */}
     </div>
   );
 };
