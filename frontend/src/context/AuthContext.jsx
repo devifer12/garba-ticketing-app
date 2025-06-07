@@ -84,7 +84,6 @@ export const AuthProvider = ({ children }) => {
       const fallbackUser = {
         name: firebaseUser.displayName || '',
         email: firebaseUser.email,
-        phone: firebaseUser.phoneNumber || '',
         firebaseUID: firebaseUser.uid,
         photoURL: firebaseUser.photoURL || '',
         emailVerified: firebaseUser.emailVerified,

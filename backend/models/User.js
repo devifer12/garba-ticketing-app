@@ -54,97 +54,109 @@ const userSchema = new mongoose.Schema({
 // ENHANCED: Static method to find or create user from Google auth
 userSchema.statics.findOrCreateGoogleUser = async function(googleUserData) {
   const { uid, email, name, picture, email_verified } = googleUserData;
-  console.log('🔍 findOrCreateGoogleUser called with:', { uid, email });
+  console.log('🔍 findOrCreateGoogleUser called with:', { uid, email, name });
 
   try {
-    // Try to find user by Firebase UID first
+    // First, try to find user by Firebase UID
     let user = await this.findOne({ firebaseUID: uid });
 
-    // If not found by UID, try finding by email
-    if (!user) {
-      user = await this.findOne({ email: email });
-    }
-
     if (user) {
-      console.log('✅ Existing user found:', user.email);
-
-      // Update user data with latest info from Google
-      user.firebaseUID = uid;
+      console.log('✅ Existing user found by UID:', user.email);
+      
+      // Update last login time only
       user.lastLogin = new Date();
-      user.isEmailVerified = email_verified || user.isEmailVerified;
-      user.profilePicture = picture || user.profilePicture;
-
-      if (name && name !== user.name) {
-        console.log(`📝 Updating name from "${user.name}" to "${name}"`);
-        user.name = name;
-      }
-
       await user.save();
-      console.log('✅ User updated successfully');
+      
       return user;
     }
 
-    // Create completely new user if not found
-    console.log('🆕 Creating new user for:', email);
+    // If not found by UID, check if there's a user with this email (migration case)
+    const existingEmailUser = await this.findOne({ email: email });
+    
+    if (existingEmailUser) {
+      console.log('📧 Found user by email, updating with Firebase UID:', email);
+      
+      // Update existing user with Firebase UID (for migration)
+      existingEmailUser.firebaseUID = uid;
+      existingEmailUser.lastLogin = new Date();
+      
+      // Update profile picture if provided and not already set
+      if (picture && !existingEmailUser.profilePicture) {
+        existingEmailUser.profilePicture = picture;
+      }
+      
+      // Update email verification if Google says it's verified
+      if (email_verified) {
+        existingEmailUser.isEmailVerified = true;
+      }
+      
+      await existingEmailUser.save();
+      console.log('✅ Existing email user updated with Firebase UID');
+      
+      return existingEmailUser;
+    }
+
+    // Create completely new user
+    console.log('🆕 Creating brand new user for:', email);
+    
     const newUserData = {
       firebaseUID: uid,
       name: name || email.split('@')[0],
       email: email,
       profilePicture: picture || null,
       isEmailVerified: email_verified || false,
+      role: 'guest', // Set default role
       lastLogin: new Date(),
       createdAt: new Date()
     };
 
-    console.log('📝 New user data:', newUserData);
+    console.log('📝 New user data being created:', newUserData);
+    
     const newUser = new this(newUserData);
-    await newUser.save();
-
+    const savedUser = await newUser.save();
+    
     console.log('✅ New user created successfully:', {
-      id: newUser._id,
-      email: newUser.email,
-      firebaseUID: newUser.firebaseUID
+      id: savedUser._id,
+      email: savedUser.email,
+      firebaseUID: savedUser.firebaseUID,
+      name: savedUser.name
     });
 
-    return newUser;
+    return savedUser;
 
   } catch (error) {
     console.error('❌ Error in findOrCreateGoogleUser:', error);
-
+    
+    // Handle duplicate key errors gracefully
     if (error.code === 11000) {
-      console.log('🔍 Duplicate key error, analyzing...');
-      const duplicateField = Object.keys(error.keyPattern || {})[0];
-      const duplicateValue = error.keyValue?.[duplicateField];
-
-      console.log('Duplicate detected:', { field: duplicateField, value: duplicateValue });
-
+      console.log('🔍 Duplicate key error detected');
+      
+      // Try to find the conflicting user and return it
       try {
-        const query = {};
-        query[duplicateField] = duplicateValue;
-
-        const existingUser = await this.findOne(query);
-
-        if (existingUser) {
-          console.log('✅ Found conflicting user, updating:', existingUser.email);
-
-          existingUser.firebaseUID = uid;
-          existingUser.isEmailVerified = email_verified || existingUser.isEmailVerified;
-          existingUser.profilePicture = picture || existingUser.profilePicture;
-          existingUser.lastLogin = new Date();
-
-          if (name && name !== existingUser.name) {
-            existingUser.name = name;
+        const conflictUser = await this.findOne({ 
+          $or: [
+            { firebaseUID: uid },
+            { email: email }
+          ]
+        });
+        
+        if (conflictUser) {
+          console.log('✅ Found conflicting user, returning it:', conflictUser.email);
+          
+          // Update Firebase UID if missing
+          if (!conflictUser.firebaseUID) {
+            conflictUser.firebaseUID = uid;
+            conflictUser.lastLogin = new Date();
+            await conflictUser.save();
           }
-
-          await existingUser.save();
-          console.log('✅ Conflicting user updated successfully');
-          return existingUser;
+          
+          return conflictUser;
         }
-      } catch (updateError) {
-        console.error('❌ Failed to resolve duplicate key error:', updateError);
+      } catch (findError) {
+        console.error('❌ Failed to resolve duplicate key error:', findError);
       }
     }
-
+    
     throw error;
   }
 };
@@ -164,7 +176,7 @@ userSchema.methods.getSafeUserData = function() {
   };
 };
 
-// ENHANCED: Static method to find user by Firebase UID with better error handling
+// Static method to find user by Firebase UID
 userSchema.statics.findByFirebaseUID = async function(uid) {
   try {
     console.log('🔍 Finding user by Firebase UID:', uid);
@@ -183,7 +195,7 @@ userSchema.statics.findByFirebaseUID = async function(uid) {
   }
 };
 
-// ENHANCED: Add index for better performance
+// Add indexes for better performance
 userSchema.index({ firebaseUID: 1 });
 userSchema.index({ email: 1 });
 userSchema.index({ createdAt: -1 });

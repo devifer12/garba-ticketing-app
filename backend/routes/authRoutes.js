@@ -115,7 +115,7 @@ router.get("/profile", verifyToken, async (req, res) => {
 // Update user profile (protected route)
 router.put("/profile", verifyToken, async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const { name } = req.body;
     
     const user = await User.findOne({ firebaseUID: req.user.uid });
     
@@ -125,8 +125,6 @@ router.put("/profile", verifyToken, async (req, res) => {
 
     // Update allowed fields
     if (name) user.name = name;
-    if (phone) user.phone = phone;
-    
     await user.save();
 
     res.status(200).json({

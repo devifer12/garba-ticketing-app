@@ -36,7 +36,7 @@ router.post('/', verifyToken, async (req, res) => {
     });
 
     // Populate user details for response
-    await ticket.populate('user', 'name email phone');
+    await ticket.populate('user', 'name email ');
 
     res.status(201).json({
       success: true,
@@ -75,7 +75,7 @@ router.get('/my-tickets', verifyToken, async (req, res) => {
 
     // Get all tickets for this user
     const tickets = await Ticket.find({ user: user._id })
-      .populate('user', 'name email phone')
+      .populate('user', 'name email ')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -113,7 +113,7 @@ router.get('/:ticketId', verifyToken, async (req, res) => {
     const ticket = await Ticket.findOne({ 
       _id: ticketId, 
       user: user._id 
-    }).populate('user', 'name email phone');
+    }).populate('user', 'name email ');
 
     if (!ticket) {
       return res.status(404).json({ error: "Ticket not found" });
@@ -201,7 +201,7 @@ router.get('/admin/all', verifyToken, isManager, async (req, res) => {
     }
 
     const tickets = await Ticket.find(query)
-      .populate('user', 'name email phone')
+      .populate('user', 'name email ')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -237,7 +237,7 @@ router.patch('/admin/:ticketId/status', verifyToken, isAdmin, async (req, res) =
       ticketId,
       { status },
       { new: true }
-    ).populate('user', 'name email phone');
+    ).populate('user', 'name email ');
 
     if (!ticket) {
       return res.status(404).json({ error: "Ticket not found" });

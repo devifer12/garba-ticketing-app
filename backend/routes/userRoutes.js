@@ -5,13 +5,11 @@ const User = require('../models/User');
 // Register a new user (automatically as 'guest')
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, phone } = req.body;
+    const { name, email } = req.body;
     
     const user = await User.create({ 
       name, 
       email,
-      phone
-      // Omit firebaseUID entirely - don't set it to undefined or null
     });
     
     res.status(201).json(user);

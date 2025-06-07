@@ -34,8 +34,7 @@ const errorHandler = (err, req, res, next) => {
     let message = `Duplicate field value: ${field}`;
     if (field === 'email') {
       message = 'This email is already registered. Please use a different email or sign in.';
-    } else if (field === 'phone') {
-      message = 'This phone number is already registered. Please use a different number.';
+    } else {
     }
     
     return res.status(400).json({ 
