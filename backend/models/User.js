@@ -1,12 +1,11 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema({
   // Firebase UID (primary identifier for Google auth)
   firebaseUID: {
     type: String,
-    unique: true,
-    sparse: true // Allows null values but ensures uniqueness when present
+    required: true,
+    unique: true
   },
   
   // Basic user information
@@ -23,33 +22,17 @@ const userSchema = new mongoose.Schema({
     lowercase: true
   },
   
-  // Phone is now optional since Google auth might not provide it
+  // Phone is optional since Google auth might not provide it
   phone: {
     type: String,
     unique: true,
     sparse: true // Allows null values but ensures uniqueness when present
   },
   
-  // Password is now optional (not needed for Google auth)
-  password: {
-    type: String,
-    required: function() {
-      // Password required only if firebaseUID is not present (traditional auth)
-      return !this.firebaseUID;
-    }
-  },
-  
   // Google-specific fields
   profilePicture: {
     type: String, // URL to Google profile picture
     default: null
-  },
-  
-  // Authentication method tracking
-  authMethod: {
-    type: String,
-    enum: ['google', 'traditional'],
-    default: 'traditional'
   },
   
   // Verification status
@@ -80,21 +63,7 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Hash password before saving (only for traditional auth)
-userSchema.pre("save", async function(next) {
-  // Only hash password if it exists and is modified
-  if (!this.password || !this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
-});
-
-// Method to compare password (for traditional auth)
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  if (!this.password) return false;
-  return await bcrypt.compare(candidatePassword, this.password);
-};
-
-// Static method to find or create user from Google auth - Enhanced version
+// Static method to find or create user from Google auth
 userSchema.statics.findOrCreateGoogleUser = async function(googleUserData) {
   const { uid, email, name, picture, email_verified } = googleUserData;
   
@@ -134,7 +103,6 @@ userSchema.statics.findOrCreateGoogleUser = async function(googleUserData) {
       console.log('Existing user found by email, linking to Google:', user.email);
       // Existing user, add Google auth to their account
       user.firebaseUID = uid;
-      user.authMethod = 'google';
       user.isEmailVerified = email_verified;
       user.profilePicture = picture;
       user.lastLogin = new Date();
@@ -153,7 +121,6 @@ userSchema.statics.findOrCreateGoogleUser = async function(googleUserData) {
       name: name || email.split('@')[0], // Fallback to email prefix if no name
       email: email,
       profilePicture: picture,
-      authMethod: 'google',
       isEmailVerified: email_verified || false,
       lastLogin: new Date()
     });
@@ -177,7 +144,6 @@ userSchema.statics.findOrCreateGoogleUser = async function(googleUserData) {
         console.log('Found existing user after duplicate error:', existingUser.email);
         // Update the existing user with Google data
         existingUser.firebaseUID = uid;
-        existingUser.authMethod = 'google';
         existingUser.isEmailVerified = email_verified || existingUser.isEmailVerified;
         existingUser.profilePicture = picture || existingUser.profilePicture;
         existingUser.lastLogin = new Date();
@@ -193,11 +159,6 @@ userSchema.statics.findOrCreateGoogleUser = async function(googleUserData) {
   }
 };
 
-// Method to check if user profile is complete
-userSchema.methods.isProfileComplete = function() {
-  return !!(this.name && this.email && this.phone);
-};
-
 // Method to get safe user data (excluding sensitive fields)
 userSchema.methods.getSafeUserData = function() {
   return {
@@ -208,7 +169,6 @@ userSchema.methods.getSafeUserData = function() {
     phone: this.phone,
     profilePicture: this.profilePicture,
     role: this.role,
-    authMethod: this.authMethod,
     isEmailVerified: this.isEmailVerified,
     isPhoneVerified: this.isPhoneVerified,
     createdAt: this.createdAt,

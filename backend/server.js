@@ -60,10 +60,8 @@ const verifyFirebaseToken = require('./middlewares/authMiddleware');
 const errorHandler = require('./middlewares/errorMiddleware');
 
 // Import routes
-const userRoutes = require('./routes/userRoutes');
+const authRoutes = require('./routes/authRoutes'); // Clean Google auth routes
 const ticketRoutes = require('./routes/ticketRoutes');
-const authRoutes = require('./routes/authRoutes'); // Traditional auth (keep for backward compatibility)
-const googleAuthRoutes = require('./routes/googleAuth'); // Google auth routes
 
 // Health check route
 app.get('/', (req, res) => {
@@ -71,21 +69,16 @@ app.get('/', (req, res) => {
     message: 'Garba Ticketing App Backend is running!',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
-    features: ['Google Authentication', 'Ticket Booking', 'User Management'],
+    authentication: 'Google Authentication Only',
     endpoints: {
       auth: '/api/auth',
-      googleAuth: '/api/google-auth',
-      tickets: '/api/tickets',
-      users: '/api/users'
+      tickets: '/api/tickets'
     }
   });
 });
 
-// API Routes - Fixed routing structure
-app.use('/api/auth', googleAuthRoutes); // Primary auth routes (Google + profile management)
-app.use('/api/google-auth', googleAuthRoutes); // Alternative endpoint for compatibility
-app.use('/api/traditional-auth', authRoutes); // Traditional auth routes (backward compatibility)
-app.use('/api/users', userRoutes); // User management routes
+// API Routes - Simplified structure
+app.use('/api/auth', authRoutes); // All authentication routes
 app.use('/api/tickets', ticketRoutes); // Ticket routes (protected)
 
 // Protected test route for debugging
@@ -101,13 +94,14 @@ app.get('/api/protected', verifyFirebaseToken, (req, res) => {
   });
 });
 
-// API status route with more details
+// API status route
 app.get('/api/status', (req, res) => {
   res.json({
     status: 'online',
     database: 'connected',
     firebase: 'initialized',
     environment: process.env.NODE_ENV || 'development',
+    authentication: 'Google Authentication Only',
     cors: {
       origins: corsOptions.origin,
       methods: corsOptions.methods
@@ -119,8 +113,7 @@ app.get('/api/status', (req, res) => {
         profileAlt: 'GET /api/auth/profile',
         updateProfile: 'PUT /api/auth/profile',
         deleteAccount: 'DELETE /api/auth/account',
-        logout: 'POST /api/auth/logout',
-        signout: 'POST /api/auth/signout'
+        logout: 'POST /api/auth/logout'
       },
       tickets: {
         create: 'POST /api/tickets',
@@ -193,6 +186,7 @@ process.on('unhandledRejection', (err) => {
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running for garba-ticketing-app on http://localhost:${PORT}`);
+  console.log(`🔐 Authentication: Google Sign-In Only`);
   console.log(`📱 Auth endpoints: http://localhost:${PORT}/api/auth`);
   console.log(`🎫 Ticket endpoints: http://localhost:${PORT}/api/tickets`);
   console.log(`💡 API status: http://localhost:${PORT}/api/status`);

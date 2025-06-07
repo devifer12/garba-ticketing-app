@@ -179,7 +179,17 @@ const Hero = () => {
                 🎟️ Book Your Tickets Now
               </PrimaryButton>
 
-              <GoogleSignInButton>📱 Sign In with Google</GoogleSignInButton>
+              {!user ? (
+                <GoogleSignInButton onClick={handleGoogleSignIn}>
+                  📱 Sign In with Google
+                </GoogleSignInButton>
+              ) : (
+                <button
+                  onClick={signOut}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors duration-300 flex items-center gap-2">
+                  👋 Sign Out
+                </button>
+              )}
             </motion.div>
 
             {/* Limited Tickets Warning */}
