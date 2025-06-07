@@ -25,31 +25,51 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [backendUser, setBackendUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
+  const [syncInProgress, setSyncInProgress] = useState(false); // Add sync state
 
   // Clear error function
   const clearError = () => {
     setError(null);
   };
 
-  // Sync user with backend - FIXED: Send only idToken as expected by backend
-  const syncUserWithBackend = async (firebaseUser) => {
+  // Clear all user state - FIXED: Complete state reset
+  const clearUserState = () => {
+    console.log('🧹 Clearing all user state...');
+    setUser(null);
+    setBackendUser(null);
+    setSyncInProgress(false);
+    setError(null);
+  };
+
+  // Sync user with backend - FIXED: Always sync, don't skip
+  const syncUserWithBackend = async (firebaseUser, force = false) => {
+    // Prevent multiple simultaneous syncs for the same user
+    if (syncInProgress && !force) {
+      console.log('⏳ Sync already in progress, skipping...');
+      return;
+    }
+
     try {
-      console.log('Syncing user with backend:', firebaseUser.uid);
+      setSyncInProgress(true);
+      console.log('🔄 Syncing user with backend:', firebaseUser.uid);
       
       // Get fresh Firebase ID token
-      const idToken = await firebaseUser.getIdToken();
+      const idToken = await firebaseUser.getIdToken(true); // Force refresh
       
-      // FIXED: Send only idToken as expected by backend
       const requestData = {
-        idToken: idToken  // This is what your backend expects
+        idToken: idToken
       };
       
-      console.log('Sending to backend:', { idToken: 'present' }); // Don't log the actual token
+      console.log('📤 Sending to backend:', { idToken: 'present', uid: firebaseUser.uid });
       
       // Send to backend
       const response = await api.post('/auth/google-signin', requestData);
       
-      console.log('Backend sync successful:', response.data);
+      console.log('✅ Backend sync successful:', {
+        email: response.data.user.email,
+        uid: response.data.user.firebaseUID
+      });
+      
       setBackendUser(response.data.user);
       
       return {
@@ -58,7 +78,7 @@ export const AuthProvider = ({ children }) => {
       };
       
     } catch (error) {
-      console.error('Backend sync failed:', error);
+      console.error('❌ Backend sync failed:', error);
       
       // Create fallback user data from Firebase
       const fallbackUser = {
@@ -75,6 +95,8 @@ export const AuthProvider = ({ children }) => {
       
       // Don't throw error - allow app to continue with Firebase data
       return { user: fallbackUser, isNewUser: false };
+    } finally {
+      setSyncInProgress(false);
     }
   };
 
@@ -84,7 +106,10 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       setLoading(true);
       
-      console.log('Starting Google Sign-In...');
+      console.log('🚀 Starting Google Sign-In...');
+      
+      // FIXED: Clear existing state before new sign-in
+      clearUserState();
       
       // Configure Google Auth Provider
       const provider = new GoogleAuthProvider();
@@ -98,16 +123,28 @@ export const AuthProvider = ({ children }) => {
       const result = await signInWithPopup(auth, provider);
       const firebaseUser = result.user;
       
-      console.log('Firebase authentication successful:', {
+      console.log('🔥 Firebase authentication successful:', {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         displayName: firebaseUser.displayName
       });
       
-      // Sync with backend
-      const syncResult = await syncUserWithBackend(firebaseUser);
+      // Set Firebase user immediately
+      setUser({
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+        emailVerified: firebaseUser.emailVerified,
+      });
       
-      console.log('User sign-in complete:', syncResult);
+      // Sync with backend with force flag
+      const syncResult = await syncUserWithBackend(firebaseUser, true);
+      
+      console.log('✅ User sign-in complete:', {
+        firebaseUID: firebaseUser.uid,
+        backendEmail: syncResult.user.email
+      });
       
       return {
         firebaseUser,
@@ -116,7 +153,10 @@ export const AuthProvider = ({ children }) => {
       };
       
     } catch (error) {
-      console.error('Google Sign-In Error:', error);
+      console.error('❌ Google Sign-In Error:', error);
+      
+      // Clear state on error
+      clearUserState();
       
       // Handle specific Firebase errors
       let errorMessage = 'Sign-in failed. Please try again.';
@@ -141,30 +181,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Enhanced logout
+  // Enhanced logout - FIXED: Complete state cleanup
   const logout = async () => {
     try {
       setError(null);
       setLoading(true);
       
-      console.log('Starting logout...');
+      console.log('🚪 Starting logout...');
       
       // Clear local state first
-      setUser(null);
-      setBackendUser(null);
+      clearUserState();
       
       // Sign out from Firebase
       await signOut(auth);
       
       // Notify backend (optional, don't wait)
       api.post('/auth/logout').catch(err => {
-        console.warn('Backend logout notification failed:', err);
+        console.warn('⚠️ Backend logout notification failed:', err);
       });
       
-      console.log('Logout successful');
+      console.log('✅ Logout successful');
       
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ Logout error:', error);
       setError('Logout failed. Please try refreshing the page.');
       throw error;
     } finally {
@@ -175,12 +214,12 @@ export const AuthProvider = ({ children }) => {
   // Fetch user profile from backend
   const fetchUserProfile = async () => {
     try {
-      console.log('Fetching user profile...');
+      console.log('📊 Fetching user profile...');
       const response = await api.get('/auth/me');
       setBackendUser(response.data.user);
       return response.data.user;
     } catch (error) {
-      console.error('Failed to fetch user profile:', error);
+      console.error('❌ Failed to fetch user profile:', error);
       return null;
     }
   };
@@ -188,23 +227,23 @@ export const AuthProvider = ({ children }) => {
   // Update user profile
   const updateUserProfile = async (userData) => {
     try {
-      console.log('Updating user profile:', userData);
+      console.log('📝 Updating user profile:', userData);
       const response = await api.put('/auth/profile', userData);
       setBackendUser(response.data.user);
       return response.data.user;
     } catch (error) {
-      console.error('Failed to update user profile:', error);
+      console.error('❌ Failed to update user profile:', error);
       throw error;
     }
   };
 
-  // Auth state listener
+  // Auth state listener - FIXED: Always sync when user changes
   useEffect(() => {
-    console.log('Setting up auth state listener...');
+    console.log('👂 Setting up auth state listener...');
     
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
-        console.log('Auth state changed:', firebaseUser ? `User: ${firebaseUser.email}` : 'No user');
+        console.log('🔄 Auth state changed:', firebaseUser ? `User: ${firebaseUser.email}` : 'No user');
         
         if (firebaseUser) {
           // Set Firebase user
@@ -216,20 +255,26 @@ export const AuthProvider = ({ children }) => {
             emailVerified: firebaseUser.emailVerified,
           });
 
-          // Only sync with backend if not already done
-          if (!backendUser || backendUser.firebaseUID !== firebaseUser.uid) {
-            console.log('Syncing with backend...');
-            await syncUserWithBackend(firebaseUser);
+          // FIXED: Always sync with backend, check if it's a different user
+          const shouldSync = !backendUser || 
+                           backendUser.firebaseUID !== firebaseUser.uid ||
+                           backendUser.email !== firebaseUser.email;
+          
+          if (shouldSync) {
+            console.log('🔄 Syncing with backend - user changed or no backend user');
+            await syncUserWithBackend(firebaseUser, true);
+          } else {
+            console.log('✅ Backend user already synced for this Firebase user');
           }
           
         } else {
-          // User signed out
-          setUser(null);
-          setBackendUser(null);
+          // User signed out - clear all state
+          console.log('🚪 User signed out, clearing state');
+          clearUserState();
         }
         
       } catch (error) {
-        console.error('Auth state change error:', error);
+        console.error('❌ Auth state change error:', error);
         setError('Authentication error occurred');
       }
     });
@@ -244,7 +289,7 @@ export const AuthProvider = ({ children }) => {
       unsubscribe();
       clearTimeout(initTimer);
     };
-  }, []);
+  }, []); // FIXED: Remove backendUser dependency to prevent stale closures
 
   // Auto-clear errors after 5 seconds
   useEffect(() => {
@@ -268,6 +313,7 @@ export const AuthProvider = ({ children }) => {
     initializing,
     error,
     isAuthenticated: !!user,
+    syncInProgress,
     
     // Auth methods
     signInWithGoogle,
@@ -280,6 +326,7 @@ export const AuthProvider = ({ children }) => {
     // Utility methods
     setError,
     clearError,
+    clearUserState, // Add this for manual state clearing
     
     // Helper methods
     refreshUserData: fetchUserProfile,
