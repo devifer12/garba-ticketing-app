@@ -22,13 +22,6 @@ const userSchema = new mongoose.Schema({
     lowercase: true
   },
   
-  // Phone is optional since Google auth might not provide it
-  phone: {
-    type: String,
-    unique: true,
-    sparse: true // Allows null values but ensures uniqueness when present
-  },
-  
   // Google-specific fields
   profilePicture: {
     type: String, // URL to Google profile picture
@@ -40,11 +33,6 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  isPhoneVerified: {
-    type: Boolean,
-    default: false
-  },
-  
   // User role for authorization
   role: {
     type: String,
@@ -168,11 +156,9 @@ userSchema.methods.getSafeUserData = function() {
     firebaseUID: this.firebaseUID,
     name: this.name,
     email: this.email,
-    phone: this.phone,
     profilePicture: this.profilePicture,
     role: this.role,
     isEmailVerified: this.isEmailVerified,
-    isPhoneVerified: this.isPhoneVerified,
     createdAt: this.createdAt,
     lastLogin: this.lastLogin
   };
