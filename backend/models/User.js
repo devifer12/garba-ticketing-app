@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     enum: ['guest', 'admin', 'manager', 'qrchecker'],
-    default: 'admin'
+    default: 'guest'
   },
   
   // Timestamps
