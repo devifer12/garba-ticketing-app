@@ -21,6 +21,7 @@
     "express": "^4.19.2",
     "firebase-admin": "^13.4.0",
     "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.17.0",
     "mongoose": "^8.15.1",
     "twilio": "^5.7.0"
   },
