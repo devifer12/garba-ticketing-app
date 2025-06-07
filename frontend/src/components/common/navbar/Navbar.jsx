@@ -91,42 +91,6 @@ const Navbar = () => {
             }}>
             Pre-Navratri Grand Celebration
           </motion.p>
-
-          {/* Welcome message for signed-in users */}
-          {user && (
-            // <motion.p
-            //   className="text-navratri-yellow font-medium text-center text-sm mt-2"
-            //   style={{
-            //     opacity: subtitleOpacity,
-            //     transform: `translateY(${subtitleY}px)`,
-            //   }}
-            //   animate={{
-            //     opacity: [0.7, 1, 0.7],
-            //   }}
-            //   transition={{
-            //     duration: 2,
-            //     repeat: Infinity,
-            //   }}
-
-            // >
-            //   Welcome back, {user.displayName?.split(' ')[0] || 'Friend'}! 🎉
-            // </motion.p>
-            <motion.p
-              className="text-lg md:text-xl text-slate-300 font-light text-center mt-4"
-              style={{
-                opacity: subtitleOpacity,
-                transform: `translateY(${subtitleY}px)`,
-              }}
-              // animate={{
-              //   opacity: [0.7, 1, 0.7],
-              // }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-              }}>
-              Welcome back, {user.displayName?.split(" ")[0] || "Friend"}! 🎉
-            </motion.p>
-          )}
         </div>
       </div>
     </motion.nav>

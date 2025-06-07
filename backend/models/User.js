@@ -48,8 +48,8 @@ const userSchema = new mongoose.Schema({
   // User role for authorization
   role: {
     type: String,
-    enum: ['guest', 'user', 'admin', 'manager', 'qrchecker'],
-    default: 'user'
+    enum: ['guest', 'admin', 'manager', 'qrchecker'],
+    default: 'admin'
   },
   
   // Timestamps

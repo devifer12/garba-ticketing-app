@@ -42,7 +42,7 @@ const GoogleSignInButton = ({
   disabled = false,
   ...props
 }) => {
-  const { signInWithGoogle, loading, error } = useAuth();
+  const { signInWithGoogle, user, loading, error } = useAuth();
   const [localLoading, setLocalLoading] = useState(false);
   const [localError, setLocalError] = useState('');
 
@@ -182,7 +182,8 @@ const GoogleSignInButton = ({
       )}
       
       {/* Success Message Display */}
-      {!displayError && !isLoading && !loading && (
+      
+      {!displayError && !isLoading && !loading && !user && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.7 }}
