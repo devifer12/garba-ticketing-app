@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
   };
 
-  // Sync user with backend - FIXED: Correct API call structure
+  // Sync user with backend - FIXED: Send only idToken as expected by backend
   const syncUserWithBackend = async (firebaseUser) => {
     try {
       console.log('Syncing user with backend:', firebaseUser.uid);
@@ -41,10 +41,10 @@ export const AuthProvider = ({ children }) => {
       
       // FIXED: Send only idToken as expected by backend
       const requestData = {
-        idToken: idToken
+        idToken: idToken  // This is what your backend expects
       };
       
-      console.log('Sending to backend:', requestData);
+      console.log('Sending to backend:', { idToken: 'present' }); // Don't log the actual token
       
       // Send to backend
       const response = await api.post('/auth/google-signin', requestData);

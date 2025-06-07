@@ -23,7 +23,11 @@ const corsOptions = {
     'Accept',
     'Origin',
     'Access-Control-Request-Method',
-    'Access-Control-Request-Headers'
+    'Access-Control-Request-Headers',
+    'x-user-uid',        // Added - lowercase version
+    'X-User-UID',        // Added - capitalized version  
+    'X-User-Email',      // Added - for email header
+    'X-Request-Time'     // Added - for timestamp header
   ],
   exposedHeaders: ['Authorization'],
   optionsSuccessStatus: 200,
