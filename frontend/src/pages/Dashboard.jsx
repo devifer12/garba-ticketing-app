@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/common/navbar/Navbar';
+import TicketsDetails from '../components/dashboard/TicketsDetails';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -223,6 +224,7 @@ const Dashboard = () => {
           </motion.div>
         </motion.div>
       </main>
+      <TicketsDetails />
     </div>
   );
 };
