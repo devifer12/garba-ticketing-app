@@ -66,6 +66,7 @@ const errorHandler = require('./middlewares/errorMiddleware');
 // Import routes
 const authRoutes = require('./routes/authRoutes'); // Clean Google auth routes
 const ticketRoutes = require('./routes/ticketRoutes');
+const eventRoutes = require('./routes/eventRoutes'); // 🆕 Added event routes
 
 // Health check route
 app.get('/', (req, res) => {
@@ -76,7 +77,8 @@ app.get('/', (req, res) => {
     authentication: 'Google Authentication Only',
     endpoints: {
       auth: '/api/auth',
-      tickets: '/api/tickets'
+      tickets: '/api/tickets',
+      events: '/api/events' // 🆕 Added events endpoint
     }
   });
 });
@@ -84,6 +86,7 @@ app.get('/', (req, res) => {
 // API Routes - Simplified structure
 app.use('/api/auth', authRoutes); // All authentication routes
 app.use('/api/tickets', ticketRoutes); // Ticket routes (protected)
+app.use('/api/events', eventRoutes); // 🆕 Event routes (mixed public/protected)
 
 // Protected test route for debugging
 app.get('/api/protected', verifyFirebaseToken, (req, res) => {
@@ -128,6 +131,20 @@ app.get('/api/status', (req, res) => {
       admin: {
         allTickets: 'GET /api/tickets/admin/all',
         updateTicketStatus: 'PATCH /api/tickets/admin/:ticketId/status'
+      },
+      // 🆕 Added events routes documentation
+      events: {
+        // Public routes
+        active: 'GET /api/events/active',
+        all: 'GET /api/events',
+        specific: 'GET /api/events/:id',
+        // Protected routes (admin/manager)
+        adminAll: 'GET /api/events/admin/all',
+        create: 'POST /api/events',
+        update: 'PUT /api/events/:id',
+        delete: 'DELETE /api/events/:id',
+        toggleActive: 'PATCH /api/events/:id/toggle-active',
+        stats: 'GET /api/events/:id/stats'
       }
     }
   });
@@ -141,13 +158,25 @@ app.use('/api/*', (req, res) => {
     method: req.method,
     availableEndpoints: [
       'GET /api/status',
+      // Auth endpoints
       'POST /api/auth/google-signin',
       'GET /api/auth/me',
       'GET /api/auth/profile',
       'PUT /api/auth/profile',
       'POST /api/auth/logout',
+      // Ticket endpoints
       'POST /api/tickets',
       'GET /api/tickets/my-tickets',
+      // Event endpoints (public)
+      'GET /api/events/active',
+      'GET /api/events',
+      'GET /api/events/:id',
+      // Event endpoints (protected)
+      'GET /api/events/admin/all',
+      'POST /api/events',
+      'PUT /api/events/:id',
+      'DELETE /api/events/:id',
+      // Other
       'GET /api/protected'
     ]
   });
@@ -193,6 +222,7 @@ const server = app.listen(PORT, () => {
   console.log(`🔐 Authentication: Google Sign-In Only`);
   console.log(`📱 Auth endpoints: http://localhost:${PORT}/api/auth`);
   console.log(`🎫 Ticket endpoints: http://localhost:${PORT}/api/tickets`);
+  console.log(`🎉 Event endpoints: http://localhost:${PORT}/api/events`); // 🆕 Added
   console.log(`💡 API status: http://localhost:${PORT}/api/status`);
   console.log(`🌐 CORS enabled for: ${corsOptions.origin.join(', ')}`);
 });
