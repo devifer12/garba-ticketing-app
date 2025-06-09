@@ -188,7 +188,7 @@ router.patch('/:ticketId/cancel', verifyToken, async (req, res) => {
 });
 
 // Admin routes (for managing all tickets)
-const { isAdmin, isManager } = require('../middlewares/roleMiddlewares');
+const { isAdmin, isManager } = require('../middlewares/roleMiddleware');
 
 // Get all tickets (Admin/Manager only)
 router.get('/admin/all', verifyToken, isManager, async (req, res) => {
