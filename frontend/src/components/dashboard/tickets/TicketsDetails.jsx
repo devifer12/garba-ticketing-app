@@ -10,10 +10,9 @@ const TicketsDetails = () => {
         <div>
           <img
             src={Hero1}
-            alt=""
+            alt="HERO IMAGE"
             width={180}
             height={180}
-            objectFit="contain"
           />
         </div>
         <div className="flex gap-4 justify-between w-full px-12">
