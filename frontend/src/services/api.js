@@ -252,6 +252,61 @@ export const authAPI = {
   }
 };
 
+// Event API endpoints - NEW SECTION
+export const eventAPI = {
+  // Get current event details (public)
+  getCurrentEvent: async () => {
+    try {
+      console.log('Fetching current event...');
+      const response = await api.get('/event');
+      console.log('Get current event success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Get current event failed:', error);
+      throw error;
+    }
+  },
+  
+  // Check if event exists
+  checkEventExists: async () => {
+    try {
+      console.log('Checking if event exists...');
+      const response = await api.get('/event/exists');
+      console.log('Check event exists success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Check event exists failed:', error);
+      throw error;
+    }
+  },
+  
+  // Create new event (admin only)
+  createEvent: async (eventData) => {
+    try {
+      console.log('Creating new event...', eventData);
+      const response = await api.post('/event', eventData);
+      console.log('Create event success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Create event failed:', error);
+      throw error;
+    }
+  },
+  
+  // Update existing event (admin only)
+  updateEvent: async (eventData) => {
+    try {
+      console.log('Updating event...', eventData);
+      const response = await api.put('/event', eventData);
+      console.log('Update event success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Update event failed:', error);
+      throw error;
+    }
+  }
+};
+
 // Ticket API endpoints
 export const ticketAPI = {
   // Create new ticket booking
@@ -299,6 +354,85 @@ export const ticketAPI = {
   }
 };
 
+// Admin API endpoints - NEW SECTION
+export const adminAPI = {
+  // Get all tickets (admin only)
+  getAllTickets: async () => {
+    try {
+      console.log('Fetching all tickets...');
+      const response = await api.get('/tickets/admin/all');
+      console.log('Get all tickets success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Get all tickets failed:', error);
+      throw error;
+    }
+  },
+  
+  // Update ticket status (admin only)
+  updateTicketStatus: async (ticketId, status) => {
+    try {
+      console.log(`Updating ticket ${ticketId} status to ${status}...`);
+      const response = await api.patch(`/tickets/admin/${ticketId}/status`, { status });
+      console.log('Update ticket status success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Update ticket status failed:', error);
+      throw error;
+    }
+  },
+  
+  // Get user count (for dashboard stats)
+  getUserCount: async () => {
+    try {
+      console.log('Fetching user count...');
+      const response = await api.get('/admin/users/count');
+      console.log('Get user count success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Get user count failed:', error);
+      // Return default data if endpoint doesn't exist yet
+      return { data: { count: 0 } };
+    }
+  },
+  
+  // Get ticket statistics (for dashboard stats)
+  getTicketStats: async () => {
+    try {
+      console.log('Fetching ticket stats...');
+      const response = await api.get('/admin/tickets/stats');
+      console.log('Get ticket stats success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Get ticket stats failed:', error);
+      // Return default data if endpoint doesn't exist yet
+      return { data: { total: 0, revenue: 0 } };
+    }
+  },
+  
+  // Get dashboard analytics
+  getDashboardAnalytics: async () => {
+    try {
+      console.log('Fetching dashboard analytics...');
+      const response = await api.get('/admin/analytics/dashboard');
+      console.log('Get dashboard analytics success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Get dashboard analytics failed:', error);
+      // Return default data if endpoint doesn't exist yet
+      return { 
+        data: { 
+          totalUsers: 0, 
+          totalTickets: 0, 
+          totalRevenue: 0,
+          recentBookings: [],
+          salesChart: []
+        } 
+      };
+    }
+  }
+};
+
 // Utility functions
 export const apiUtils = {
   // Test API connectivity
@@ -326,7 +460,24 @@ export const apiUtils = {
     baseURL: api.defaults.baseURL,
     timeout: api.defaults.timeout,
     headers: api.defaults.headers
-  })
+  }),
+  
+  // Format error message for user display
+  formatErrorMessage: (error) => {
+    if (error.serverMessage) {
+      return error.serverMessage;
+    }
+    if (error.response?.data?.message) {
+      return error.response.data.message;
+    }
+    if (error.response?.data?.error) {
+      return error.response.data.error;
+    }
+    if (error.message) {
+      return error.message;
+    }
+    return 'An unexpected error occurred';
+  }
 };
 
 // Export default api instance

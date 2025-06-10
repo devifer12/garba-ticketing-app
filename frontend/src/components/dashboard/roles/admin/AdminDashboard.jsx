@@ -1,71 +1,130 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { eventAPI, adminAPI, apiUtils } from '../../../../services/api';
 
 const AdminDashboard = () => {
   const { user, backendUser } = useAuth();
   const [eventStatus, setEventStatus] = useState({
     exists: false,
     loading: true,
-    error: null
+    error: null,
+    eventData: null
   });
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalTickets: 0,
-    totalRevenue: 0
+    totalRevenue: 0,
+    loading: true
   });
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkEventStatus = async () => {
-      try {
-        const response = await axios.get('/api/event/exists');
-        setEventStatus({
-          exists: response.data.exists,
-          loading: false,
-          error: null
-        });
-      } catch (err) {
-        setEventStatus({
-          exists: false,
-          loading: false,
-          error: 'Failed to check event status'
-        });
-        toast.error('Failed to load event status');
-      }
+    const initializeDashboard = async () => {
+      await Promise.all([
+        checkEventStatus(),
+        fetchDashboardStats()
+      ]);
     };
 
-    const fetchStats = async () => {
-      try {
-        // Fetch dashboard statistics
-        const [usersRes, ticketsRes] = await Promise.all([
-          axios.get('/api/admin/users/count').catch(() => ({ data: { count: 0 } })),
-          axios.get('/api/admin/tickets/stats').catch(() => ({ data: { total: 0, revenue: 0 } }))
-        ]);
-        
-        setStats({
-          totalUsers: usersRes.data.count || 0,
-          totalTickets: ticketsRes.data.total || 0,
-          totalRevenue: ticketsRes.data.revenue || 0
-        });
-      } catch (err) {
-        console.error('Failed to fetch stats:', err);
-      }
-    };
-
-    checkEventStatus();
-    fetchStats();
+    initializeDashboard();
   }, []);
+
+  const checkEventStatus = async () => {
+    try {
+      setEventStatus(prev => ({ ...prev, loading: true, error: null }));
+      
+      // Check if event exists
+      const existsResponse = await eventAPI.checkEventExists();
+      const exists = existsResponse.data.exists;
+      
+      let eventData = null;
+      if (exists) {
+        try {
+          // If event exists, fetch its details
+          const eventResponse = await eventAPI.getCurrentEvent();
+          eventData = eventResponse.data.data;
+        } catch (eventError) {
+          console.warn('Event exists but could not fetch details:', eventError);
+        }
+      }
+      
+      setEventStatus({
+        exists,
+        loading: false,
+        error: null,
+        eventData
+      });
+      
+    } catch (err) {
+      console.error('Failed to check event status:', err);
+      const errorMessage = apiUtils.formatErrorMessage(err);
+      
+      setEventStatus({
+        exists: false,
+        loading: false,
+        error: errorMessage,
+        eventData: null
+      });
+      
+      toast.error(`Failed to load event status: ${errorMessage}`);
+    }
+  };
+
+  const fetchDashboardStats = async () => {
+    try {
+      setStats(prev => ({ ...prev, loading: true }));
+      
+      // Fetch all dashboard statistics
+      const [usersResponse, ticketStatsResponse] = await Promise.all([
+        adminAPI.getUserCount().catch(err => {
+          console.warn('Failed to fetch user count:', err);
+          return { data: { count: 0 } };
+        }),
+        adminAPI.getTicketStats().catch(err => {
+          console.warn('Failed to fetch ticket stats:', err);
+          return { data: { total: 0, revenue: 0 } };
+        })
+      ]);
+      
+      setStats({
+        totalUsers: usersResponse.data.count || 0,
+        totalTickets: ticketStatsResponse.data.total || 0,
+        totalRevenue: ticketStatsResponse.data.revenue || 0,
+        loading: false
+      });
+      
+    } catch (err) {
+      console.error('Failed to fetch dashboard stats:', err);
+      setStats({
+        totalUsers: 0,
+        totalTickets: 0,
+        totalRevenue: 0,
+        loading: false
+      });
+    }
+  };
 
   const handleCreateEvent = () => {
     navigate('/admin/event/create');
   };
 
   const handleEditEvent = () => {
-    navigate('/admin/event/edit');
+    if (eventStatus.eventData) {
+      navigate('/admin/event/edit', { state: { eventData: eventStatus.eventData } });
+    } else {
+      navigate('/admin/event/edit');
+    }
+  };
+
+  const handleViewEvent = () => {
+    if (eventStatus.eventData) {
+      navigate('/admin/event/manage', { state: { eventData: eventStatus.eventData } });
+    } else {
+      navigate('/admin/event/manage');
+    }
   };
 
   const handleManageUsers = () => {
@@ -78,6 +137,14 @@ const AdminDashboard = () => {
 
   const handleViewAnalytics = () => {
     navigate('/admin/analytics');
+  };
+
+  const refreshDashboard = async () => {
+    await Promise.all([
+      checkEventStatus(),
+      fetchDashboardStats()
+    ]);
+    toast.success('Dashboard refreshed');
   };
 
   return (
@@ -127,9 +194,19 @@ const AdminDashboard = () => {
           />
           
           <div className="bg-slate-700/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30">
-            <h2 className="text-2xl font-bold text-white mb-4">
-              Welcome, Administrator! 
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-white">
+                Welcome, Administrator! 
+              </h2>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={refreshDashboard}
+                className="px-4 py-2 bg-slate-600/50 hover:bg-slate-600/70 rounded-lg border border-slate-500/30 text-white text-sm font-medium transition-all"
+              >
+                🔄 Refresh
+              </motion.button>
+            </div>
             <p className="text-lg text-slate-300 mb-4">
               You are <span className="text-red-400 font-semibold">Admin</span>
             </p>
@@ -174,7 +251,11 @@ const AdminDashboard = () => {
           >
             <div className="text-3xl mb-3">👥</div>
             <h3 className="text-blue-300 font-medium mb-1">Total Users</h3>
-            <p className="text-white text-2xl font-bold">{stats.totalUsers}</p>
+            {stats.loading ? (
+              <div className="animate-pulse bg-blue-700/30 h-8 w-16 rounded"></div>
+            ) : (
+              <p className="text-white text-2xl font-bold">{stats.totalUsers}</p>
+            )}
           </motion.div>
 
           <motion.div
@@ -183,7 +264,11 @@ const AdminDashboard = () => {
           >
             <div className="text-3xl mb-3">🎫</div>
             <h3 className="text-green-300 font-medium mb-1">Tickets Sold</h3>
-            <p className="text-white text-2xl font-bold">{stats.totalTickets}</p>
+            {stats.loading ? (
+              <div className="animate-pulse bg-green-700/30 h-8 w-16 rounded"></div>
+            ) : (
+              <p className="text-white text-2xl font-bold">{stats.totalTickets}</p>
+            )}
           </motion.div>
 
           <motion.div
@@ -192,7 +277,11 @@ const AdminDashboard = () => {
           >
             <div className="text-3xl mb-3">💰</div>
             <h3 className="text-purple-300 font-medium mb-1">Total Revenue</h3>
-            <p className="text-white text-2xl font-bold">${stats.totalRevenue}</p>
+            {stats.loading ? (
+              <div className="animate-pulse bg-purple-700/30 h-8 w-16 rounded"></div>
+            ) : (
+              <p className="text-white text-2xl font-bold">${stats.totalRevenue}</p>
+            )}
           </motion.div>
         </motion.div>
 
@@ -222,165 +311,190 @@ const AdminDashboard = () => {
           {eventStatus.loading ? (
             <div className="flex justify-center items-center py-4">
               <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-yellow-500"></div>
+              <span className="ml-2 text-slate-300">Loading event status...</span>
             </div>
           ) : eventStatus.error ? (
-            <div className="text-red-400 text-center py-4 text-sm">
-              {eventStatus.error}
+            <div className="bg-red-900/20 border border-red-700/30 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2 text-red-400 text-sm mb-2">
+                <span>⚠️</span>
+                <span className="font-medium">Error Loading Event Status</span>
+              </div>
+              <p className="text-red-300 text-sm">{eventStatus.error}</p>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={checkEventStatus}
+                className="mt-3 px-4 py-2 bg-red-600/50 hover:bg-red-600/70 text-white text-sm rounded-lg transition-all"
+              >
+                Retry
+              </motion.button>
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-slate-300 text-sm">
-                {eventStatus.exists
-                  ? 'The event is currently configured and active.'
-                  : 'No event has been created yet.'}
-              </p>
+              <div>
+                <p className="text-slate-300 text-sm mb-2">
+                  {eventStatus.exists
+                    ? 'The event is currently configured and active.'
+                    : 'No event has been created yet.'}
+                </p>
+                
+                {/* Show event details if available */}
+                {eventStatus.eventData && (
+                  <div className="bg-slate-700/30 rounded-lg p-4 mb-4">
+                    <h4 className="text-white font-medium mb-2">{eventStatus.eventData.name}</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-slate-400">Date:</span>
+                        <span className="text-white ml-2">
+                          {new Date(eventStatus.eventData.date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Venue:</span>
+                        <span className="text-white ml-2">{eventStatus.eventData.venue}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Available Tickets:</span>
+                        <span className="text-white ml-2">
+                          {eventStatus.eventData.availableTickets} / {eventStatus.eventData.totalTickets}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Ticket Price:</span>
+                        <span className="text-white ml-2">${eventStatus.eventData.ticketPrice}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
               
-              <div className="flex justify-center gap-4 pt-2">
-                {eventStatus.exists ? (
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3">
+                {!eventStatus.exists ? (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleCreateEvent}
+                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-medium rounded-lg transition-all flex items-center gap-2"
+                  >
+                    <span>✨</span>
+                    Create Event
+                  </motion.button>
+                ) : (
                   <>
                     <motion.button
-                      whileHover={{ scale: 1.03 }}
+                      whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium rounded-lg shadow-lg hover:shadow-blue-500/20 transition-all text-sm"
-                      onClick={() => navigate('/admin/event/manage')}
-                      disabled={eventStatus.loading}
+                      onClick={handleViewEvent}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-medium rounded-lg transition-all flex items-center gap-2"
                     >
-                      View Event
+                      <span>👀</span>
+                      Manage Event
                     </motion.button>
                     <motion.button
-                      whileHover={{ scale: 1.03 }}
+                      whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-medium rounded-lg shadow-lg hover:shadow-orange-500/20 transition-all text-sm"
                       onClick={handleEditEvent}
-                      disabled={eventStatus.loading}
+                      className="px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white font-medium rounded-lg transition-all flex items-center gap-2"
                     >
-                      Edit Event Details
+                      <span>✏️</span>
+                      Edit Event
                     </motion.button>
                   </>
-                ) : (
-                  <motion.button
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 text-white font-medium rounded-lg shadow-lg hover:shadow-red-500/20 transition-all text-sm"
-                    onClick={handleCreateEvent}
-                    disabled={eventStatus.loading}
-                  >
-                    Create New Event
-                  </motion.button>
                 )}
               </div>
             </div>
           )}
         </motion.div>
 
-        {/* Admin Management Features */}
+        {/* Management Action Cards */}
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
+          {/* User Management */}
           <motion.div
-            className="bg-slate-800/50 rounded-xl p-6 border border-slate-600/30 cursor-pointer group"
-            whileHover={{ scale: 1.02 }}
-            onClick={handleManageTickets}
-          >
-            <div className="text-3xl mb-4 group-hover:scale-110 transition-transform">🎫</div>
-            <h3 className="text-white font-semibold mb-2 text-lg">Ticket Management</h3>
-            <p className="text-slate-400 text-sm mb-4">
-              Manage all ticket sales, view booking details, and handle refunds
-            </p>
-            <div className="flex items-center gap-2 text-blue-400 text-sm font-medium">
-              <span>Manage Tickets</span>
-              <span className="group-hover:translate-x-1 transition-transform">→</span>
-            </div>
-          </motion.div>
-          
-          <motion.div
-            className="bg-slate-800/50 rounded-xl p-6 border border-slate-600/30 cursor-pointer group"
-            whileHover={{ scale: 1.02 }}
+            className="bg-gradient-to-br from-indigo-900/40 to-indigo-800/40 backdrop-blur-xl rounded-xl p-6 border border-indigo-700/30 cursor-pointer"
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleManageUsers}
           >
-            <div className="text-3xl mb-4 group-hover:scale-110 transition-transform">👥</div>
-            <h3 className="text-white font-semibold mb-2 text-lg">User Management</h3>
-            <p className="text-slate-400 text-sm mb-4">
-              View user accounts, manage roles, and handle user-related issues
+            <div className="text-4xl mb-4">👥</div>
+            <h3 className="text-xl font-bold text-white mb-2">Manage Users</h3>
+            <p className="text-indigo-300 text-sm mb-4">
+              View and manage registered users, permissions, and user activity.
             </p>
-            <div className="flex items-center gap-2 text-green-400 text-sm font-medium">
-              <span>Manage Users</span>
-              <span className="group-hover:translate-x-1 transition-transform">→</span>
+            <div className="flex items-center text-indigo-400 text-sm font-medium">
+              <span>Open User Management</span>
+              <span className="ml-2">→</span>
             </div>
           </motion.div>
-          
+
+          {/* Ticket Management */}
           <motion.div
-            className="bg-slate-800/50 rounded-xl p-6 border border-slate-600/30 cursor-pointer group"
-            whileHover={{ scale: 1.02 }}
+            className="bg-gradient-to-br from-emerald-900/40 to-emerald-800/40 backdrop-blur-xl rounded-xl p-6 border border-emerald-700/30 cursor-pointer"
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleManageTickets}
+          >
+            <div className="text-4xl mb-4">🎫</div>
+            <h3 className="text-xl font-bold text-white mb-2">Manage Tickets</h3>
+            <p className="text-emerald-300 text-sm mb-4">
+              View ticket sales, process refunds, and manage ticket inventory.
+            </p>
+            <div className="flex items-center text-emerald-400 text-sm font-medium">
+              <span>Open Ticket Management</span>
+              <span className="ml-2">→</span>
+            </div>
+          </motion.div>
+
+          {/* Analytics */}
+          <motion.div
+            className="bg-gradient-to-br from-violet-900/40 to-violet-800/40 backdrop-blur-xl rounded-xl p-6 border border-violet-700/30 cursor-pointer"
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleViewAnalytics}
           >
-            <div className="text-3xl mb-4 group-hover:scale-110 transition-transform">📊</div>
-            <h3 className="text-white font-semibold mb-2 text-lg">Analytics & Reports</h3>
-            <p className="text-slate-400 text-sm mb-4">
-              View detailed reports, sales analytics, and performance metrics
+            <div className="text-4xl mb-4">📊</div>
+            <h3 className="text-xl font-bold text-white mb-2">Analytics</h3>
+            <p className="text-violet-300 text-sm mb-4">
+              View detailed reports, charts, and insights about event performance.
             </p>
-            <div className="flex items-center gap-2 text-purple-400 text-sm font-medium">
+            <div className="flex items-center text-violet-400 text-sm font-medium">
               <span>View Analytics</span>
-              <span className="group-hover:translate-x-1 transition-transform">→</span>
+              <span className="ml-2">→</span>
             </div>
           </motion.div>
         </motion.div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions Footer */}
         <motion.div
-          className="mt-8 bg-slate-700/30 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          className="mt-8 pt-6 border-t border-slate-700/30"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
         >
-          <div className="flex items-center gap-3 mb-6">
-            <span className="text-2xl">⚡</span>
-            <h3 className="text-xl font-bold text-white">Quick Actions</h3>
-            <div className="flex-1 h-px bg-gradient-to-r from-yellow-500/50 to-transparent"></div>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="flex flex-wrap justify-center gap-4">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="p-4 bg-slate-600/50 rounded-lg border border-slate-500/30 hover:bg-slate-600/70 transition-all text-center"
-              onClick={() => navigate('/admin/event/manage')}
+              onClick={refreshDashboard}
+              className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 text-sm rounded-lg transition-all flex items-center gap-2"
             >
-              <div className="text-2xl mb-2">🎪</div>
-              <p className="text-white text-sm font-medium">Event Hub</p>
+              <span>🔄</span>
+              Refresh Dashboard
             </motion.button>
-
+            
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="p-4 bg-slate-600/50 rounded-lg border border-slate-500/30 hover:bg-slate-600/70 transition-all text-center"
-              onClick={handleManageTickets}
-            >
-              <div className="text-2xl mb-2">🎟️</div>
-              <p className="text-white text-sm font-medium">All Tickets</p>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-4 bg-slate-600/50 rounded-lg border border-slate-500/30 hover:bg-slate-600/70 transition-all text-center"
               onClick={() => navigate('/admin/settings')}
+              className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 text-sm rounded-lg transition-all flex items-center gap-2"
             >
-              <div className="text-2xl mb-2">⚙️</div>
-              <p className="text-white text-sm font-medium">Settings</p>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-4 bg-slate-600/50 rounded-lg border border-slate-500/30 hover:bg-slate-600/70 transition-all text-center"
-              onClick={() => navigate('/admin/support')}
-            >
-              <div className="text-2xl mb-2">🎧</div>
-              <p className="text-white text-sm font-medium">Support</p>
+              <span>⚙️</span>
+              Settings
             </motion.button>
           </div>
         </motion.div>
