@@ -32,7 +32,6 @@ const eventSchema = new mongoose.Schema({
     trim: true,
     validate: {
       validator: function(value) {
-        // Validate time format (e.g., "6:00 PM", "18:00")
         const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM)$/i;
         return timeRegex.test(value);
       },
@@ -46,7 +45,6 @@ const eventSchema = new mongoose.Schema({
     trim: true,
     validate: {
       validator: function(value) {
-        // Validate time format (e.g., "10:00 PM", "22:00")
         const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM)$/i;
         return timeRegex.test(value);
       },
@@ -120,11 +118,6 @@ const eventSchema = new mongoose.Schema({
     default: ''
   },
   
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  
   createdAt: {
     type: Date,
     default: Date.now
@@ -142,16 +135,27 @@ const eventSchema = new mongoose.Schema({
   }
 });
 
-// Pre-save middleware to update the updatedAt field
-eventSchema.pre('save', function(next) {
+// Pre-save middleware to update the updatedAt field and prevent multiple events
+eventSchema.pre('save', async function(next) {
+  // Update timestamp
   if (!this.isNew) {
     this.updatedAt = new Date();
   }
+  
+  // Prevent creating multiple events
+  if (this.isNew) {
+    const existingEvent = await this.constructor.findOne();
+    if (existingEvent) {
+      const error = new Error('Only one event can exist in the system');
+      return next(error);
+    }
+  }
+  
   next();
 });
 
 // Pre-update middleware to update the updatedAt field
-eventSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+eventSchema.pre(['findOneAndUpdate', 'updateOne'], function(next) {
   this.set({ updatedAt: new Date() });
   next();
 });
@@ -196,25 +200,9 @@ eventSchema.virtual('isUpcoming').get(function() {
 eventSchema.set('toJSON', { virtuals: true });
 eventSchema.set('toObject', { virtuals: true });
 
-// Index for better query performance
-eventSchema.index({ isActive: 1, date: 1 });
-eventSchema.index({ createdBy: 1 });
-eventSchema.index({ date: 1 });
-
-// Static method to get current active event
-eventSchema.statics.getCurrentActiveEvent = async function() {
-  return await this.findOne({
-    isActive: true,
-    date: { $gte: new Date() }
-  }).sort({ date: 1 }).populate('createdBy', 'name email');
-};
-
-// Static method to get all active events
-eventSchema.statics.getActiveEvents = async function() {
-  return await this.find({
-    isActive: true,
-    date: { $gte: new Date() }
-  }).sort({ date: 1 }).populate('createdBy', 'name email');
+// Static method to get the current event
+eventSchema.statics.getCurrentEvent = async function() {
+  return await this.findOne().populate('createdBy', 'name email');
 };
 
 // Instance method to update available tickets
@@ -229,9 +217,7 @@ eventSchema.methods.updateAvailableTickets = async function(ticketsSold) {
 
 // Instance method to check if user can purchase tickets
 eventSchema.methods.canPurchaseTickets = function(quantity = 1) {
-  return this.isActive && 
-         this.isUpcoming && 
-         this.availableTickets >= quantity;
+  return this.isUpcoming && this.availableTickets >= quantity;
 };
 
 const Event = mongoose.model('Event', eventSchema);

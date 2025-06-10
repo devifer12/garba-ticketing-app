@@ -1,18 +1,24 @@
 // frontend/src/components/auth/UserProfile.jsx
-import { motion } from 'framer-motion';
-import { useAuth } from '../../context/AuthContext';
-import { GoogleSignInButton } from '../ui/Button';
+import { motion } from "framer-motion";
+import { useAuth } from "../../context/AuthContext";
+import { GoogleSignInButton } from "../ui/Button";
+import { useNavigate } from "react-router-dom";
 
 const UserProfile = ({ className = "" }) => {
   const { user, logout, loading } = useAuth();
+  const navigate = useNavigate();
 
   if (!user) return null;
+
+  const travelToDashboard = () => {
+    navigate("/dashboard");
+  };
 
   const handleLogout = async () => {
     try {
       await logout();
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     }
   };
 
@@ -20,13 +26,13 @@ const UserProfile = ({ className = "" }) => {
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`flex items-center gap-4 ${className}`}
-    >
+      className={`flex items-center gap-4 cursor-pointer ${className}`}
+      onClick={travelToDashboard}
+      >
       {/* User Avatar */}
       <motion.div
         className="flex items-center gap-3 bg-slate-800/50 backdrop-blur-xl rounded-full px-4 py-2 border border-slate-700/30"
-        whileHover={{ scale: 1.02 }}
-      >
+        whileHover={{ scale: 1.02 }}>
         {user.photoURL ? (
           <img
             src={user.photoURL}
@@ -35,17 +41,15 @@ const UserProfile = ({ className = "" }) => {
           />
         ) : (
           <div className="w-8 h-8 rounded-full bg-gradient-to-r from-navratri-orange to-navratri-yellow flex items-center justify-center text-slate-900 font-bold text-sm">
-            {user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
+            {user.displayName?.charAt(0) || user.email?.charAt(0) || "U"}
           </div>
         )}
-        
+
         <div className="hidden md:block">
           <p className="text-white font-medium text-sm">
-            {user.displayName || 'User'}
+            {user.displayName || "User"}
           </p>
-          <p className="text-slate-400 text-xs">
-            {user.email}
-          </p>
+          <p className="text-slate-400 text-xs">{user.email}</p>
         </div>
       </motion.div>
 
@@ -53,9 +57,8 @@ const UserProfile = ({ className = "" }) => {
       <GoogleSignInButton
         onClick={handleLogout}
         disabled={loading}
-        className="text-sm px-4 py-2"
-      >
-        {loading ? 'Signing out...' : 'Sign Out'}
+        className="text-sm px-4 py-2 cursor-pointer">
+        {loading ? "Signing out..." : "Sign Out"}
       </GoogleSignInButton>
     </motion.div>
   );

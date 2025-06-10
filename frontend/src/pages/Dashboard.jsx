@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/common/navbar/Navbar';
 
 // Import role-based dashboard components
-import AdminDashboard from '../components/dashboard/roles/AdminDashboard';
+import AdminDashboard from '../components/dashboard/roles/admin/AdminDashboard';
 import GuestDashboard from '../components/dashboard/roles/GuestDashboard';
 import ManagerDashboard from '../components/dashboard/roles/ManagerDashboard';
 import QrCheckerDashboard from '../components/dashboard/roles/QrCheckerDashboard';
