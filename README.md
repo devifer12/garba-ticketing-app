@@ -1,12 +1,51 @@
-# React + Vite
+🎟️ Garba Ticketing App
+A full-stack digital ticketing platform built for a one-day Pre-Navratri Garba Raas event. This platform offers seamless Google Sign-In, QR code-based ticket generation, email delivery, and role-based access for guests, admins, and checkers to streamline event registration and entry management.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+🛠 Tech Stack
+# Frontend
+React.js with Vite
 
-Currently, two official plugins are available:
+Tailwind CSS
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Framer Motion, React Spring, AOS (for UI animations)
 
-## Expanding the ESLint configuration
+# Backend
+Node.js + Express.js
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+MongoDB with Mongoose
+
+JWT for authentication
+
+Firebase Authentication for Google Sign-In
+
+Razorpay for payments 
+
+# Other Integrations
+QR Code Generator
+
+PDF Ticket Generation
+
+Email Service
+
+🔐 Roles & Permissions
+Role	Permissions
+Guest	Register, login with Google, view/download ticket
+Admin	Full access: manage users, checkers, and edit event details
+Manager	Manage guests, checkers, view reports — but cannot edit event details
+Checker	Scan guest QR tickets, mark attendance at entry gate
+
+
+🚀 Features
+🔐 Google OAuth Sign-In
+
+📩 Automated Email Ticket Delivery (with PDF & QR)
+
+🧾 QR Code Check-In System for quick entry validation
+
+🎫 Unique Ticket Generation per user
+
+📋 Admin Dashboard to manage guests and staff
+
+👥 Checker Portal to scan and verify QR tickets
+
+💳 Payment Gateway Integration (optional or under development)

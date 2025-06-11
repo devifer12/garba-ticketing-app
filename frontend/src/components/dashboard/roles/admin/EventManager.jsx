@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import axios from 'axios';
 import { toast } from 'react-toastify';
+import { eventAPI, apiUtils } from '../../../../services/api';
 
 const EventManager = () => {
   // Main state
@@ -11,7 +11,7 @@ const EventManager = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Form data state
+  // Form data state - Initialize with empty strings to prevent controlled/uncontrolled issues
   const [formData, setFormData] = useState({
     name: '',
     venue: '',
@@ -21,28 +21,31 @@ const EventManager = () => {
     endTime: '',
     ticketPrice: '',
     totalTickets: '',
-    category: '',
-    capacity: '',
-    organizer: '',
-    contactEmail: ''
+    eventImage: '',
+    features: [],
+    aboutText: ''
   });
 
   // Check if event exists on component mount
   useEffect(() => {
     const checkEventExists = async () => {
       try {
-        const existsRes = await axios.get('/api/event/exists');
+        setView('loading');
+        
+        const existsRes = await eventAPI.checkEventExists();
         if (existsRes.data.exists) {
           // Fetch event data
-          const eventRes = await axios.get('/api/event');
-          setEvent(eventRes.data.data);
+          const eventRes = await eventAPI.getCurrentEvent();
+          const eventData = eventRes.data.data;
+          setEvent(eventData);
           setView('preview');
         } else {
           setView('create');
         }
       } catch (error) {
         console.error('Error checking event:', error);
-        toast.error('Failed to load event information');
+        const errorMessage = apiUtils.formatErrorMessage(error);
+        toast.error(`Failed to load event information: ${errorMessage}`);
         setView('create');
       }
     };
@@ -50,15 +53,34 @@ const EventManager = () => {
     checkEventExists();
   }, []);
 
-  // Form handlers
+  // Form handlers - Fixed to prevent cursor jumping
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Use functional update to prevent stale state issues
+    setFormData(prevData => ({
+      ...prevData,
+      [name]: value
+    }));
     
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
+      setErrors(prevErrors => ({
+        ...prevErrors,
+        [name]: null
+      }));
     }
+  };
+
+  // Handle features array separately
+  const handleFeaturesChange = (e) => {
+    const value = e.target.value;
+    const featuresArray = value.split(',').map(f => f.trim()).filter(f => f);
+    
+    setFormData(prevData => ({
+      ...prevData,
+      features: featuresArray
+    }));
   };
 
   const validateForm = () => {
@@ -67,6 +89,11 @@ const EventManager = () => {
     if (!formData.name?.trim()) newErrors.name = 'Event name is required';
     if (!formData.date) newErrors.date = 'Event date is required';
     if (!formData.venue?.trim()) newErrors.venue = 'Event venue is required';
+    if (!formData.description?.trim()) newErrors.description = 'Event description is required';
+    if (!formData.startTime?.trim()) newErrors.startTime = 'Start time is required';
+    if (!formData.endTime?.trim()) newErrors.endTime = 'End time is required';
+    if (!formData.ticketPrice || formData.ticketPrice <= 0) newErrors.ticketPrice = 'Valid ticket price is required';
+    if (!formData.totalTickets || formData.totalTickets <= 0) newErrors.totalTickets = 'Valid total tickets count is required';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -74,18 +101,25 @@ const EventManager = () => {
 
   const handleSubmit = async () => {
     if (!validateForm()) {
-      toast.error('Please fill in all required fields');
+      toast.error('Please fill in all required fields correctly');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const endpoint = '/api/event';
+      // Prepare data for submission
+      const submitData = {
+        ...formData,
+        ticketPrice: parseFloat(formData.ticketPrice),
+        totalTickets: parseInt(formData.totalTickets),
+        features: Array.isArray(formData.features) ? formData.features : []
+      };
+
       if (view === 'create') {
-        await axios.post(endpoint, formData);
+        await eventAPI.createEvent(submitData);
         toast.success('Event created successfully! 🎉');
       } else if (view === 'edit') {
-        await axios.put(endpoint, formData);
+        await eventAPI.updateEvent(submitData);
         toast.success('Event updated successfully! ✨');
       }
       
@@ -94,11 +128,9 @@ const EventManager = () => {
         window.location.reload();
       }, 1500);
     } catch (err) {
-      console.error(err);
-      toast.error(
-        err.response?.data?.message || 
-        `Failed to ${view === 'create' ? 'create' : 'update'} event`
-      );
+      console.error('Event operation failed:', err);
+      const errorMessage = apiUtils.formatErrorMessage(err);
+      toast.error(`Failed to ${view === 'create' ? 'create' : 'update'} event: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
       setShowConfirmModal(false);
@@ -114,12 +146,11 @@ const EventManager = () => {
       date: event.date ? event.date.split('T')[0] : '',
       startTime: event.startTime || '',
       endTime: event.endTime || '',
-      ticketPrice: event.ticketPrice || '',
-      totalTickets: event.totalTickets || '',
-      category: event.category || '',
-      capacity: event.capacity || '',
-      organizer: event.organizer || '',
-      contactEmail: event.contactEmail || ''
+      ticketPrice: event.ticketPrice?.toString() || '',
+      totalTickets: event.totalTickets?.toString() || '',
+      eventImage: event.eventImage || '',
+      features: event.features || [],
+      aboutText: event.aboutText || ''
     });
     setView('edit');
   };
@@ -137,17 +168,21 @@ const EventManager = () => {
 
   const formatTime = (timeString) => {
     if (!timeString) return '';
-    const [hours, minutes] = timeString.split(':');
-    const date = new Date();
-    date.setHours(parseInt(hours), parseInt(minutes));
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      const [hours, minutes] = timeString.split(':');
+      const date = new Date();
+      date.setHours(parseInt(hours), parseInt(minutes));
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return timeString;
+    }
   };
 
-  // Input field component
-  const InputField = ({ 
+  // Input field component - Fixed to prevent re-rendering issues
+  const InputField = React.memo(({ 
     type = "text", 
     name, 
     placeholder, 
@@ -173,6 +208,19 @@ const EventManager = () => {
             onChange={handleInputChange}
             rows={rows || 4}
             className={`w-full px-4 py-3 bg-slate-700/50 backdrop-blur-xl border rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-300 resize-none ${
+              errors[name] 
+                ? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500' 
+                : 'border-slate-600/30 focus:ring-purple-500/30 focus:border-purple-500 hover:border-slate-500/50'
+            }`}
+          />
+        ) : name === 'features' ? (
+          <input
+            type="text"
+            name={name}
+            placeholder="Enter features separated by commas..."
+            value={Array.isArray(formData[name]) ? formData[name].join(', ') : ''}
+            onChange={handleFeaturesChange}
+            className={`w-full px-4 py-3 bg-slate-700/50 backdrop-blur-xl border rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-300 ${
               errors[name] 
                 ? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500' 
                 : 'border-slate-600/30 focus:ring-purple-500/30 focus:border-purple-500 hover:border-slate-500/50'
@@ -209,7 +257,7 @@ const EventManager = () => {
         </p>
       )}
     </div>
-  );
+  ));
 
   // Confirmation Modal Component
   const ConfirmModal = () => (
@@ -323,32 +371,49 @@ const EventManager = () => {
               </div>
             </div>
 
-            {/* Additional Info */}
-            {(event.capacity || event.ticketPrice || event.category) && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                {event.capacity && (
-                  <div className="bg-blue-900/30 backdrop-blur-xl rounded-xl p-4 border border-blue-700/30 text-center">
-                    <span className="text-2xl block mb-2">👥</span>
-                    <p className="text-blue-300 font-medium">Capacity</p>
-                    <p className="text-white text-xl font-bold">{event.capacity}</p>
-                  </div>
-                )}
-                
-                {event.ticketPrice && (
-                  <div className="bg-green-900/30 backdrop-blur-xl rounded-xl p-4 border border-green-700/30 text-center">
-                    <span className="text-2xl block mb-2">💰</span>
-                    <p className="text-green-300 font-medium">Ticket Price</p>
-                    <p className="text-white text-xl font-bold">${event.ticketPrice}</p>
-                  </div>
-                )}
-                
-                {event.category && (
-                  <div className="bg-purple-900/30 backdrop-blur-xl rounded-xl p-4 border border-purple-700/30 text-center">
-                    <span className="text-2xl block mb-2">🏷️</span>
-                    <p className="text-purple-300 font-medium">Category</p>
-                    <p className="text-white text-xl font-bold">{event.category}</p>
-                  </div>
-                )}
+            {/* Ticket Information */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              <div className="bg-green-900/30 backdrop-blur-xl rounded-xl p-4 border border-green-700/30 text-center">
+                <span className="text-2xl block mb-2">💰</span>
+                <p className="text-green-300 font-medium">Ticket Price</p>
+                <p className="text-white text-xl font-bold">₹{event.ticketPrice}</p>
+              </div>
+              
+              <div className="bg-blue-900/30 backdrop-blur-xl rounded-xl p-4 border border-blue-700/30 text-center">
+                <span className="text-2xl block mb-2">🎟️</span>
+                <p className="text-blue-300 font-medium">Available Tickets</p>
+                <p className="text-white text-xl font-bold">{event.availableTickets} / {event.totalTickets}</p>
+              </div>
+            </div>
+
+            {/* Features */}
+            {event.features && event.features.length > 0 && (
+              <div className="mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-3xl">✨</span>
+                  <h3 className="text-xl font-bold text-white">Features</h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {event.features.map((feature, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-purple-900/30 text-purple-300 rounded-full text-sm border border-purple-700/30"
+                    >
+                      {feature}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* About Text */}
+            {event.aboutText && (
+              <div className="mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-3xl">📖</span>
+                  <h3 className="text-xl font-bold text-white">About</h3>
+                </div>
+                <p className="text-slate-300 leading-relaxed">{event.aboutText}</p>
               </div>
             )}
 
@@ -430,6 +495,7 @@ const EventManager = () => {
                 placeholder="Event Description"
                 icon="📋"
                 rows={4}
+                required
               />
             </div>
 
@@ -455,6 +521,7 @@ const EventManager = () => {
                   name="startTime"
                   placeholder="Start Time"
                   icon="🕐"
+                  required
                 />
                 
                 <InputField
@@ -462,6 +529,7 @@ const EventManager = () => {
                   name="endTime"
                   placeholder="End Time"
                   icon="🕕"
+                  required
                 />
               </div>
             </div>
@@ -478,10 +546,11 @@ const EventManager = () => {
                 <InputField
                   type="number"
                   name="ticketPrice"
-                  placeholder="Ticket Price"
+                  placeholder="Ticket Price (₹)"
                   icon="💰"
                   min="0"
-                  step="0.01"
+                  step="1"
+                  required
                 />
                 
                 <InputField
@@ -490,6 +559,7 @@ const EventManager = () => {
                   placeholder="Total Tickets Available"
                   icon="🎟️"
                   min="1"
+                  required
                 />
               </div>
             </div>
@@ -502,34 +572,25 @@ const EventManager = () => {
                 <div className="flex-1 h-px bg-gradient-to-r from-orange-500/50 to-transparent"></div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 <InputField
-                  name="category"
-                  placeholder="Event Category"
-                  icon="🏷️"
+                  name="eventImage"
+                  placeholder="Event Image URL (optional)"
+                  icon="🖼️"
                 />
                 
                 <InputField
-                  type="number"
-                  name="capacity"
-                  placeholder="Maximum Capacity"
-                  icon="👥"
-                  min="1"
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField
-                  name="organizer"
-                  placeholder="Event Organizer"
-                  icon="🎭"
+                  name="features"
+                  placeholder="Event Features (comma separated)"
+                  icon="✨"
                 />
                 
                 <InputField
-                  type="email"
-                  name="contactEmail"
-                  placeholder="Contact Email"
-                  icon="📧"
+                  type="textarea"
+                  name="aboutText"
+                  placeholder="About the Event (optional)"
+                  icon="📖"
+                  rows={3}
                 />
               </div>
             </div>
