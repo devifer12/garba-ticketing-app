@@ -23,7 +23,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.17.0",
     "mongoose": "^8.15.1",
-    "twilio": "^5.7.0"
+    "qrcode": "^1.5.4",
+    "twilio": "^5.7.0",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

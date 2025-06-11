@@ -309,12 +309,14 @@ export const eventAPI = {
   }
 };
 
-// Ticket API endpoints
+// Ticket API endpoints - ENHANCED with QR code support
 export const ticketAPI = {
-  // Create new ticket booking
+  // Create new ticket booking with quantity support
   createBooking: async (bookingData) => {
     try {
+      console.log('Creating ticket booking...', bookingData);
       const response = await api.post('/tickets', bookingData);
+      console.log('Create booking success:', response.data);
       return response;
     } catch (error) {
       console.error('Create booking failed:', error);
@@ -325,7 +327,9 @@ export const ticketAPI = {
   // Get user's tickets
   getMyTickets: async () => {
     try {
+      console.log('Fetching user tickets...');
       const response = await api.get('/tickets/my-tickets');
+      console.log('Get my tickets success:', response.data);
       return response;
     } catch (error) {
       console.error('Get my tickets failed:', error);
@@ -336,7 +340,9 @@ export const ticketAPI = {
   // Get specific ticket
   getTicket: async (ticketId) => {
     try {
+      console.log(`Fetching ticket ${ticketId}...`);
       const response = await api.get(`/tickets/${ticketId}`);
+      console.log('Get ticket success:', response.data);
       return response;
     } catch (error) {
       console.error('Get ticket failed:', error);
@@ -347,10 +353,38 @@ export const ticketAPI = {
   // Cancel ticket
   cancelTicket: async (ticketId) => {
     try {
+      console.log(`Cancelling ticket ${ticketId}...`);
       const response = await api.patch(`/tickets/${ticketId}/cancel`);
+      console.log('Cancel ticket success:', response.data);
       return response;
     } catch (error) {
       console.error('Cancel ticket failed:', error);
+      throw error;
+    }
+  },
+  
+  // Verify QR code (for checkers)
+  verifyQRCode: async (qrCode) => {
+    try {
+      console.log('Verifying QR code...');
+      const response = await api.post('/tickets/verify-qr', { qrCode });
+      console.log('QR verification success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('QR verification failed:', error);
+      throw error;
+    }
+  },
+  
+  // Mark ticket as used (for checkers)
+  markTicketAsUsed: async (qrCode) => {
+    try {
+      console.log('Marking ticket as used...');
+      const response = await api.post('/tickets/mark-used', { qrCode });
+      console.log('Mark ticket as used success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Mark ticket as used failed:', error);
       throw error;
     }
   }
@@ -428,7 +462,7 @@ export const adminAPI = {
   getTicketStats: async () => {
     try {
       console.log('Fetching ticket stats...');
-      const response = await api.get('/admin/tickets/stats');
+      const response = await api.get('/tickets/admin/stats');
       console.log('Get ticket stats success:', response.data);
       return response;
     } catch (error) {
@@ -464,7 +498,7 @@ export const adminAPI = {
   getTicketManagement: async (params = {}) => {
     try {
       console.log('Fetching ticket management data...', params);
-      const response = await api.get('/admin/tickets/management', { params });
+      const response = await api.get('/admin/tickets/management');
       console.log('Get ticket management success:', response.data);
       return response;
     } catch (error) {
@@ -516,6 +550,35 @@ export const adminAPI = {
   }
 };
 
+// QR Code API endpoints - NEW
+export const qrAPI = {
+  // Verify QR code
+  verifyQR: async (qrCode) => {
+    try {
+      console.log('Verifying QR code...');
+      const response = await api.post('/tickets/verify-qr', { qrCode });
+      console.log('QR verification success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('QR verification failed:', error);
+      throw error;
+    }
+  },
+  
+  // Mark ticket as used via QR
+  markAsUsed: async (qrCode) => {
+    try {
+      console.log('Marking ticket as used via QR...');
+      const response = await api.post('/tickets/mark-used', { qrCode });
+      console.log('Mark as used success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Mark as used failed:', error);
+      throw error;
+    }
+  }
+};
+
 // Utility functions
 export const apiUtils = {
   // Test API connectivity
@@ -560,6 +623,12 @@ export const apiUtils = {
       return error.message;
     }
     return 'An unexpected error occurred';
+  },
+  
+  // Validate QR code format
+  isValidQRCode: (qrCode) => {
+    const qrPattern = /^GARBA2025-\d{13}-[A-Z0-9]{12}-[A-Z0-9]{8}$/;
+    return qrPattern.test(qrCode);
   }
 };
 
