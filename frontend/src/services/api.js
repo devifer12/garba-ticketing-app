@@ -228,6 +228,19 @@ export const authAPI = {
     }
   },
   
+  // Assign admin role (temporary for testing)
+  assignAdminRole: async () => {
+    try {
+      console.log('Assigning admin role...');
+      const response = await api.post('/auth/assign-admin');
+      console.log('Admin role assigned:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Admin role assignment failed:', error);
+      throw error;
+    }
+  },
+  
   // Logout user
   logout: async () => {
     try {
@@ -236,17 +249,6 @@ export const authAPI = {
     } catch (error) {
       console.error('Logout API failed:', error);
       // Don't throw error for logout API failure
-      return null;
-    }
-  },
-  
-  // Alternative logout endpoint
-  signout: async () => {
-    try {
-      const response = await api.post('/auth/signout');
-      return response;
-    } catch (error) {
-      console.error('Signout API failed:', error);
       return null;
     }
   }
@@ -354,7 +356,7 @@ export const ticketAPI = {
   }
 };
 
-// Admin API endpoints - ENHANCED
+// Admin API endpoints - ENHANCED with better error handling
 export const adminAPI = {
   // Get all tickets (admin only)
   getAllTickets: async (params = {}) => {
@@ -391,7 +393,7 @@ export const adminAPI = {
       return response;
     } catch (error) {
       console.error('Get user count failed:', error);
-      // Return default data if endpoint doesn't exist yet
+      // Return default data if endpoint fails
       return { data: { count: 0 } };
     }
   },
@@ -431,7 +433,7 @@ export const adminAPI = {
       return response;
     } catch (error) {
       console.error('Get ticket stats failed:', error);
-      // Return default data if endpoint doesn't exist yet
+      // Return default data if endpoint fails
       return { data: { total: 0, revenue: 0 } };
     }
   },
@@ -445,7 +447,7 @@ export const adminAPI = {
       return response;
     } catch (error) {
       console.error('Get dashboard analytics failed:', error);
-      // Return default data if endpoint doesn't exist yet
+      // Return default data if endpoint fails
       return { 
         data: { 
           users: { total: 0, newToday: 0 },

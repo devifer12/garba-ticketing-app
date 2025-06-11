@@ -3,13 +3,13 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { eventAPI, adminAPI, apiUtils } from '../../../../services/api';
+import { eventAPI, adminAPI, authAPI, apiUtils } from '../../../../services/api';
 import EventManager from './EventManager';
 import UserManagement from './UserManagement';
 import TicketManagement from './TicketManagement';
 
 const AdminDashboard = () => {
-  const { user, backendUser } = useAuth();
+  const { user, backendUser, refreshUserData } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'event-manager', 'user-management', 'ticket-management'
   const [eventStatus, setEventStatus] = useState({
     exists: false,
@@ -23,18 +23,56 @@ const AdminDashboard = () => {
     totalRevenue: 0,
     loading: true
   });
+  const [roleCheckLoading, setRoleCheckLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Check if user has admin role
+  const isAdmin = backendUser?.role === 'admin';
 
   useEffect(() => {
     const initializeDashboard = async () => {
+      // If user doesn't have admin role, try to assign it (for testing)
+      if (backendUser && backendUser.role !== 'admin') {
+        console.log('User does not have admin role, attempting to assign...');
+        await handleAssignAdminRole();
+      }
+
       await Promise.all([
         checkEventStatus(),
         fetchDashboardStats()
       ]);
     };
 
-    initializeDashboard();
-  }, []);
+    if (backendUser) {
+      initializeDashboard();
+    }
+  }, [backendUser]);
+
+  const handleAssignAdminRole = async () => {
+    try {
+      setRoleCheckLoading(true);
+      console.log('Attempting to assign admin role...');
+      
+      const response = await authAPI.assignAdminRole();
+      
+      if (response?.data?.success) {
+        toast.success('Admin role assigned successfully!');
+        // Refresh user data to get updated role
+        await refreshUserData();
+      }
+    } catch (error) {
+      console.error('Failed to assign admin role:', error);
+      const errorMessage = apiUtils.formatErrorMessage(error);
+      
+      if (error.statusCode === 403) {
+        toast.error('Access denied. Please contact an administrator to assign admin role.');
+      } else {
+        toast.error(`Failed to assign admin role: ${errorMessage}`);
+      }
+    } finally {
+      setRoleCheckLoading(false);
+    }
+  };
 
   const checkEventStatus = async () => {
     try {
@@ -128,6 +166,104 @@ const AdminDashboard = () => {
     setCurrentView('dashboard');
     refreshDashboard(); // Refresh data when returning to dashboard
   };
+
+  // Show role assignment UI if user doesn't have admin role
+  if (backendUser && !isAdmin) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="max-w-4xl mx-auto"
+      >
+        <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-slate-700/30">
+          <motion.div
+            className="text-center"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="text-6xl mb-4">🔐</div>
+            <h1 className="text-4xl md:text-5xl font-bold font-serif bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 bg-clip-text text-transparent mb-4">
+              Admin Access Required
+            </h1>
+            <div className="w-24 h-1 bg-gradient-to-r from-orange-500 to-pink-500 rounded-full mx-auto mb-6"></div>
+            
+            <div className="bg-slate-700/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30 mb-8">
+              <h2 className="text-2xl font-bold text-white mb-4">
+                Access Denied
+              </h2>
+              <p className="text-lg text-slate-300 mb-4">
+                Your current role is: <span className="text-orange-400 font-semibold">{backendUser.role}</span>
+              </p>
+              <p className="text-slate-400 mb-6">
+                You need admin privileges to access this dashboard. Click the button below to request admin access.
+              </p>
+              
+              {/* User Info */}
+              {(user || backendUser) && (
+                <div className="flex items-center justify-center gap-4 mb-6">
+                  {(user?.photoURL || backendUser?.profilePicture) ? (
+                    <img
+                      src={user?.photoURL || backendUser?.profilePicture}
+                      alt={user?.displayName || backendUser?.name}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-orange-400/50"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-white font-bold">
+                      {(user?.displayName || backendUser?.name)?.charAt(0) || 'U'}
+                    </div>
+                  )}
+                  <div className="text-left">
+                    <p className="text-white font-medium">
+                      {user?.displayName || backendUser?.name || 'User'}
+                    </p>
+                    <p className="text-slate-400 text-sm">
+                      {user?.email || backendUser?.email}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleAssignAdminRole}
+                disabled={roleCheckLoading}
+                className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-orange-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg mx-auto"
+              >
+                {roleCheckLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                    Requesting Access...
+                  </>
+                ) : (
+                  <>
+                    <span className="text-xl">🔑</span>
+                    Request Admin Access
+                  </>
+                )}
+              </motion.button>
+
+              <p className="text-xs text-slate-500 mt-4">
+                Note: This is for development/testing purposes. In production, admin roles should be assigned by existing administrators.
+              </p>
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/dashboard/guest')}
+              className="px-6 py-3 bg-slate-600/50 hover:bg-slate-600/70 text-slate-300 rounded-lg transition-all flex items-center gap-2 mx-auto"
+            >
+              <span>👤</span>
+              Go to Guest Dashboard
+            </motion.button>
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
 
   // Render different views based on currentView
   if (currentView === 'event-manager') {

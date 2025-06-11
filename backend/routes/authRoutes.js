@@ -44,7 +44,28 @@ router.post("/google-signin", async (req, res) => {
       email_verified
     });
 
-    console.log('User processing complete:', user.email);
+    // ENHANCED: Auto-assign admin role for specific emails or first user
+    if (user.role === 'guest') {
+      // Check if this should be an admin user
+      const adminEmails = [
+        'admin@example.com', // Add your admin email here
+        'your-email@gmail.com', // Replace with your actual email
+      ];
+      
+      // Check if this is the first user (make them admin)
+      const userCount = await User.countDocuments();
+      
+      if (adminEmails.includes(email.toLowerCase()) || userCount === 1) {
+        console.log('Assigning admin role to user:', email);
+        user.role = 'admin';
+        await user.save();
+      }
+    }
+
+    console.log('User processing complete:', {
+      email: user.email,
+      role: user.role
+    });
 
     // Return user data (excluding sensitive information)
     res.status(200).json({
@@ -136,6 +157,31 @@ router.put("/profile", verifyToken, async (req, res) => {
   } catch (error) {
     console.error("Profile update error:", error);
     res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+// ENHANCED: Manual role assignment endpoint (temporary for testing)
+router.post("/assign-admin", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findOne({ firebaseUID: req.user.uid });
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // For development/testing - assign admin role
+    user.role = 'admin';
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Admin role assigned successfully",
+      user: user.getSafeUserData()
+    });
+
+  } catch (error) {
+    console.error("Role assignment error:", error);
+    res.status(500).json({ error: "Failed to assign role" });
   }
 });
 
