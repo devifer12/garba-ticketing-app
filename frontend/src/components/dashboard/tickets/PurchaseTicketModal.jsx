@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
   const [quantity, setQuantity] = useState(1);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const maxQuantity = Math.min(10, event?.availableTickets || 0);
   const totalAmount = (event?.ticketPrice || 0) * quantity;
@@ -15,7 +16,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
   };
 
   const handlePurchase = () => {
-    if (quantity > 0 && quantity <= maxQuantity) {
+    if (quantity > 0 && quantity <= maxQuantity && agreedToTerms) {
       onPurchase(quantity);
       setShowConfirm(false);
     }
@@ -29,7 +30,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 rounded-2xl shadow-2xl max-w-md w-full"
+        className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
       >
         {!showConfirm ? (
           // Purchase Form
@@ -50,6 +51,10 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                 <div>
                   <span className="text-slate-400">Available:</span>
                   <p className="text-white font-bold">{event.availableTickets}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-slate-400">Venue:</span>
+                  <p className="text-white font-medium">{event.venue}</p>
                 </div>
               </div>
             </div>
@@ -99,11 +104,38 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
               </div>
             </div>
 
+            {/* Important Information */}
+            <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4 mb-6">
+              <h4 className="text-blue-300 font-medium mb-2">📋 What you'll get:</h4>
+              <ul className="text-blue-200 text-sm space-y-1">
+                <li>• Unique QR code for each ticket</li>
+                <li>• Instant ticket generation</li>
+                <li>• Downloadable and printable tickets</li>
+                <li>• Email confirmation</li>
+                <li>• Entry to the event</li>
+              </ul>
+            </div>
+
+            {/* Terms Agreement */}
+            <div className="mb-6">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-1 rounded border-slate-600 bg-slate-700 text-navratri-orange focus:ring-navratri-orange/30"
+                />
+                <span className="text-slate-300 text-sm">
+                  I agree to the terms and conditions, cancellation policy, and understand that tickets are non-transferable.
+                </span>
+              </label>
+            </div>
+
             {/* Action Buttons */}
             <div className="flex gap-3">
               <motion.button
                 onClick={() => setShowConfirm(true)}
-                disabled={purchasing || quantity === 0}
+                disabled={purchasing || quantity === 0 || !agreedToTerms}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-lg shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -139,6 +171,11 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
               </div>
               
               <div className="flex justify-between">
+                <span className="text-slate-400">Venue:</span>
+                <span className="text-white font-medium">{event.venue}</span>
+              </div>
+              
+              <div className="flex justify-between">
                 <span className="text-slate-400">Quantity:</span>
                 <span className="text-white font-medium">{quantity} ticket(s)</span>
               </div>
@@ -156,14 +193,14 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
               </div>
             </div>
 
-            {/* Important Notes */}
-            <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4 mb-6">
-              <h4 className="text-blue-300 font-medium mb-2">📋 Important Notes:</h4>
-              <ul className="text-blue-200 text-sm space-y-1">
-                <li>• Each ticket will have a unique QR code</li>
-                <li>• QR codes will be generated instantly</li>
-                <li>• You can download and print your tickets</li>
-                <li>• Tickets can be cancelled before the event</li>
+            {/* Payment Information */}
+            <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-4 mb-6">
+              <h4 className="text-green-300 font-medium mb-2">💳 Payment Process:</h4>
+              <ul className="text-green-200 text-sm space-y-1">
+                <li>• Secure payment processing</li>
+                <li>• Instant ticket generation after payment</li>
+                <li>• QR codes will be available immediately</li>
+                <li>• Email confirmation will be sent</li>
               </ul>
             </div>
 
@@ -197,6 +234,13 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
               >
                 Back
               </motion.button>
+            </div>
+
+            {/* Security Notice */}
+            <div className="mt-4 text-center">
+              <p className="text-slate-500 text-xs">
+                🔒 Your payment is secured with industry-standard encryption
+              </p>
             </div>
           </div>
         )}

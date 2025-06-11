@@ -1,25 +1,179 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../../context/AuthContext";
+import { eventAPI, ticketAPI, apiUtils } from "../../../services/api";
+import { toast } from "react-toastify";
 import TicketsDetails from "../tickets/TicketsDetails";
+import PurchaseTicketModal from "../tickets/PurchaseTicketModal";
 
 const GuestDashboard = () => {
   const { user, backendUser } = useAuth();
+  const [event, setEvent] = useState(null);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState(false);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState({
+    totalTickets: 0,
+    activeTickets: 0,
+    usedTickets: 0,
+    totalSpent: 0
+  });
+
+  useEffect(() => {
+    if (user && backendUser) {
+      fetchDashboardData();
+    }
+  }, [user, backendUser]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch event details and user tickets in parallel
+      const [eventResponse, ticketsResponse] = await Promise.all([
+        eventAPI.getCurrentEvent().catch(err => {
+          console.warn('Failed to fetch event:', err);
+          return { data: { data: null } };
+        }),
+        ticketAPI.getMyTickets().catch(err => {
+          console.warn('Failed to fetch tickets:', err);
+          return { data: { tickets: [] } };
+        })
+      ]);
+
+      setEvent(eventResponse.data.data);
+      setTickets(ticketsResponse.data.tickets || []);
+      
+      // Calculate user stats
+      const userTickets = ticketsResponse.data.tickets || [];
+      const stats = {
+        totalTickets: userTickets.length,
+        activeTickets: userTickets.filter(t => t.status === 'active').length,
+        usedTickets: userTickets.filter(t => t.status === 'used').length,
+        totalSpent: userTickets.reduce((sum, t) => sum + (t.price || 0), 0)
+      };
+      setStats(stats);
+      
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
+      const errorMessage = apiUtils.formatErrorMessage(err);
+      setError(errorMessage);
+      toast.error(`Failed to load dashboard: ${errorMessage}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePurchaseTickets = async (quantity) => {
+    try {
+      setPurchasing(true);
+      
+      const response = await ticketAPI.createBooking({ quantity });
+      
+      if (response.data.success) {
+        toast.success(`🎉 ${quantity} ticket(s) purchased successfully!`);
+        setShowPurchaseModal(false);
+        
+        // Refresh dashboard data
+        await fetchDashboardData();
+      }
+      
+    } catch (err) {
+      console.error('Failed to purchase tickets:', err);
+      const errorMessage = apiUtils.formatErrorMessage(err);
+      toast.error(`Failed to purchase tickets: ${errorMessage}`);
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'TBD';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return '';
+    try {
+      const [hours, minutes] = timeString.split(':');
+      const date = new Date();
+      date.setHours(parseInt(hours), parseInt(minutes));
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return timeString;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-navratri-orange mx-auto mb-4"></div>
+          <h2 className="text-xl font-bold text-white mb-2">Loading Dashboard</h2>
+          <p className="text-slate-400">Please wait while we set up your dashboard...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <motion.div
+          className="text-center max-w-md mx-auto p-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-8 border border-slate-700/30">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-white mb-4">Error Loading Dashboard</h2>
+            <p className="text-slate-400 mb-6">{error}</p>
+            <motion.button
+              onClick={fetchDashboardData}
+              className="px-6 py-3 bg-navratri-orange text-white rounded-lg font-semibold hover:bg-navratri-orange/80 transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Try Again
+            </motion.button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
-    <>
+    <div className="min-h-screen">
+      {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="max-w-4xl mx-auto">
+        className="max-w-6xl mx-auto mb-8"
+      >
         <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-slate-700/30">
           {/* Header */}
           <motion.div
             className="text-center mb-8"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}>
+            transition={{ delay: 0.2 }}
+          >
             <motion.div
               className="text-6xl mb-4"
               animate={{
@@ -30,12 +184,13 @@ const GuestDashboard = () => {
                 duration: 3,
                 repeat: Infinity,
                 repeatType: "reverse",
-              }}>
+              }}
+            >
               🎭
             </motion.div>
 
             <h1 className="text-4xl md:text-5xl font-bold font-serif bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent mb-4">
-              Guest Dashboard
+              Welcome to Garba Rass 2025!
             </h1>
 
             <motion.div
@@ -52,13 +207,11 @@ const GuestDashboard = () => {
 
             <div className="bg-slate-700/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30">
               <h2 className="text-2xl font-bold text-white mb-4">
-                Welcome to Garba Rass 2025!
+                Ready to Dance the Night Away?
               </h2>
               <p className="text-lg text-slate-300 mb-4">
-                You are{" "}
-                <span className="text-navratri-orange font-semibold">
-                  Guest
-                </span>
+                You are logged in as{" "}
+                <span className="text-navratri-orange font-semibold">Guest</span>
               </p>
 
               {/* User Info */}
@@ -72,8 +225,7 @@ const GuestDashboard = () => {
                     />
                   ) : (
                     <div className="w-12 h-12 rounded-full bg-gradient-to-r from-navratri-orange to-navratri-yellow flex items-center justify-center text-white font-bold">
-                      {(user?.displayName || backendUser?.name)?.charAt(0) ||
-                        "G"}
+                      {(user?.displayName || backendUser?.name)?.charAt(0) || "G"}
                     </div>
                   )}
                   <div className="text-left">
@@ -86,61 +238,197 @@ const GuestDashboard = () => {
                   </div>
                 </div>
               )}
-
-              {/* Guest Features Preview */}
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <motion.div
-                  className="bg-slate-800/50 rounded-xl p-4 border border-slate-600/30"
-                  whileHover={{ scale: 1.02 }}>
-                  <div className="text-2xl mb-2">🎫</div>
-                  <h3 className="text-white font-semibold mb-1">
-                    Book Tickets
-                  </h3>
-                  <p className="text-slate-400 text-sm">
-                    Purchase your Garba tickets
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  className="bg-slate-800/50 rounded-xl p-4 border border-slate-600/30"
-                  whileHover={{ scale: 1.02 }}>
-                  <div className="text-2xl mb-2">🎵</div>
-                  <h3 className="text-white font-semibold mb-1">
-                    Event Details
-                  </h3>
-                  <p className="text-slate-400 text-sm">
-                    View event information
-                  </p>
-                </motion.div>
-              </div>
-
-              {/* Decorative elements */}
-              <div className="flex justify-center mt-8 space-x-4">
-                {["🎵", "💃", "🎉", "✨"].map((emoji, index) => (
-                  <motion.div
-                    key={index}
-                    className="text-2xl"
-                    animate={{
-                      scale: [1, 1.2, 1],
-                      rotate: [0, 5, -5, 0],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      delay: index * 0.3,
-                    }}>
-                    {emoji}
-                  </motion.div>
-                ))}
-              </div>
             </div>
           </motion.div>
+
+          {/* User Stats */}
+          <motion.div
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <motion.div
+              className="bg-gradient-to-br from-blue-900/40 to-blue-800/40 backdrop-blur-xl rounded-xl p-4 border border-blue-700/30 text-center"
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="text-2xl mb-2">🎫</div>
+              <p className="text-blue-300 text-sm font-medium">Total Tickets</p>
+              <p className="text-white text-xl font-bold">{stats.totalTickets}</p>
+            </motion.div>
+
+            <motion.div
+              className="bg-gradient-to-br from-green-900/40 to-green-800/40 backdrop-blur-xl rounded-xl p-4 border border-green-700/30 text-center"
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="text-2xl mb-2">✅</div>
+              <p className="text-green-300 text-sm font-medium">Active</p>
+              <p className="text-white text-xl font-bold">{stats.activeTickets}</p>
+            </motion.div>
+
+            <motion.div
+              className="bg-gradient-to-br from-purple-900/40 to-purple-800/40 backdrop-blur-xl rounded-xl p-4 border border-purple-700/30 text-center"
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="text-2xl mb-2">🎯</div>
+              <p className="text-purple-300 text-sm font-medium">Used</p>
+              <p className="text-white text-xl font-bold">{stats.usedTickets}</p>
+            </motion.div>
+
+            <motion.div
+              className="bg-gradient-to-br from-orange-900/40 to-orange-800/40 backdrop-blur-xl rounded-xl p-4 border border-orange-700/30 text-center"
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="text-2xl mb-2">💰</div>
+              <p className="text-orange-300 text-sm font-medium">Total Spent</p>
+              <p className="text-white text-xl font-bold">₹{stats.totalSpent}</p>
+            </motion.div>
+          </motion.div>
+
+          {/* Event Information */}
+          {event && (
+            <motion.div
+              className="bg-slate-700/30 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30 mb-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-white mb-4">{event.name}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-slate-600/40 rounded-xl p-4">
+                    <div className="text-2xl mb-2">📅</div>
+                    <h4 className="text-white font-semibold mb-1">Date</h4>
+                    <p className="text-slate-300">{formatDate(event.date)}</p>
+                  </div>
+                  
+                  <div className="bg-slate-600/40 rounded-xl p-4">
+                    <div className="text-2xl mb-2">🕐</div>
+                    <h4 className="text-white font-semibold mb-1">Time</h4>
+                    <p className="text-slate-300">
+                      {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                    </p>
+                  </div>
+                  
+                  <div className="bg-slate-600/40 rounded-xl p-4">
+                    <div className="text-2xl mb-2">📍</div>
+                    <h4 className="text-white font-semibold mb-1">Venue</h4>
+                    <p className="text-slate-300">{event.venue}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Purchase Section */}
+              <div className="text-center">
+                <div className="bg-gradient-to-r from-navratri-orange/20 to-navratri-yellow/20 rounded-xl p-6 mb-6">
+                  <h4 className="text-white font-bold text-xl mb-2">Ticket Price: ₹{event.ticketPrice}</h4>
+                  <p className="text-slate-300 mb-4">
+                    {event.availableTickets > 0 
+                      ? `${event.availableTickets} tickets remaining` 
+                      : 'Sold Out!'
+                    }
+                  </p>
+                  
+                  {event.availableTickets > 0 ? (
+                    <motion.button
+                      onClick={() => setShowPurchaseModal(true)}
+                      className="px-8 py-4 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-xl shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 flex items-center gap-3 mx-auto"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      disabled={purchasing}
+                    >
+                      <span className="text-xl">🎟️</span>
+                      {purchasing ? 'Processing...' : 'Buy Tickets Now'}
+                    </motion.button>
+                  ) : (
+                    <div className="px-8 py-4 bg-red-600/50 text-red-200 font-bold rounded-xl border border-red-500/30">
+                      <span className="text-xl mr-2">😔</span>
+                      Event Sold Out
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Quick Actions */}
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <motion.div
+              className="bg-slate-800/50 rounded-xl p-6 border border-slate-600/30 cursor-pointer"
+              whileHover={{ scale: 1.02, y: -2 }}
+              onClick={() => document.getElementById('tickets-section')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <div className="text-3xl mb-3">🎫</div>
+              <h3 className="text-white font-semibold mb-2">My Tickets</h3>
+              <p className="text-slate-400 text-sm mb-3">
+                View and manage your purchased tickets
+              </p>
+              <div className="flex items-center text-navratri-orange text-sm font-medium">
+                <span>View Tickets</span>
+                <span className="ml-2">→</span>
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="bg-slate-800/50 rounded-xl p-6 border border-slate-600/30 cursor-pointer"
+              whileHover={{ scale: 1.02, y: -2 }}
+              onClick={fetchDashboardData}
+            >
+              <div className="text-3xl mb-3">🔄</div>
+              <h3 className="text-white font-semibold mb-2">Refresh Data</h3>
+              <p className="text-slate-400 text-sm mb-3">
+                Update your dashboard with latest information
+              </p>
+              <div className="flex items-center text-navratri-orange text-sm font-medium">
+                <span>Refresh Now</span>
+                <span className="ml-2">→</span>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Decorative elements */}
+          <div className="flex justify-center mt-8 space-x-4">
+            {["🎵", "💃", "🎉", "✨"].map((emoji, index) => (
+              <motion.div
+                key={index}
+                className="text-2xl"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  rotate: [0, 5, -5, 0],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  delay: index * 0.3,
+                }}
+              >
+                {emoji}
+              </motion.div>
+            ))}
+          </div>
         </div>
       </motion.div>
-      <div>
+
+      {/* Tickets Section */}
+      <div id="tickets-section">
         <TicketsDetails />
       </div>
-    </>
+
+      {/* Purchase Modal */}
+      {showPurchaseModal && (
+        <PurchaseTicketModal
+          event={event}
+          onClose={() => setShowPurchaseModal(false)}
+          onPurchase={handlePurchaseTickets}
+          purchasing={purchasing}
+        />
+      )}
+    </div>
   );
 };
 

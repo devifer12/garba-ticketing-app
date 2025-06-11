@@ -14,6 +14,7 @@ const TicketsDetails = () => {
   const [purchasing, setPurchasing] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (user && backendUser) {
@@ -21,9 +22,30 @@ const TicketsDetails = () => {
     }
   }, [user, backendUser]);
 
-  const fetchData = async () => {
+  // Listen for custom toast events
+  useEffect(() => {
+    const handleToast = (event) => {
+      const { message, type } = event.detail;
+      if (type === 'success') {
+        toast.success(message);
+      } else if (type === 'error') {
+        toast.error(message);
+      } else {
+        toast(message);
+      }
+    };
+
+    window.addEventListener('showToast', handleToast);
+    return () => window.removeEventListener('showToast', handleToast);
+  }, []);
+
+  const fetchData = async (showRefreshIndicator = false) => {
     try {
-      setLoading(true);
+      if (showRefreshIndicator) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       
       // Fetch user's tickets and event details in parallel
@@ -41,6 +63,10 @@ const TicketsDetails = () => {
       setTickets(ticketsResponse.data.tickets || []);
       setEvent(eventResponse.data.data);
       
+      if (showRefreshIndicator) {
+        toast.success('Data refreshed successfully!');
+      }
+      
     } catch (err) {
       console.error('Failed to fetch data:', err);
       const errorMessage = apiUtils.formatErrorMessage(err);
@@ -48,6 +74,7 @@ const TicketsDetails = () => {
       toast.error(`Failed to load data: ${errorMessage}`);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -58,7 +85,7 @@ const TicketsDetails = () => {
       const response = await ticketAPI.createBooking({ quantity });
       
       if (response.data.success) {
-        toast.success(`${quantity} ticket(s) purchased successfully! 🎉`);
+        toast.success(`🎉 ${quantity} ticket(s) purchased successfully!`);
         setShowPurchaseModal(false);
         
         // Refresh tickets and event data
@@ -115,6 +142,11 @@ const TicketsDetails = () => {
     }
   };
 
+  // Filter tickets by status
+  const activeTickets = tickets.filter(t => t.status === 'active');
+  const usedTickets = tickets.filter(t => t.status === 'used');
+  const cancelledTickets = tickets.filter(t => t.status === 'cancelled');
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -144,7 +176,7 @@ const TicketsDetails = () => {
             <h2 className="text-2xl font-bold text-white mb-4">Error Loading Tickets</h2>
             <p className="text-slate-400 mb-6">{error}</p>
             <motion.button
-              onClick={fetchData}
+              onClick={() => fetchData()}
               className="px-6 py-3 bg-navratri-orange text-white rounded-lg font-semibold hover:bg-navratri-orange/80 transition-colors"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -169,7 +201,29 @@ const TicketsDetails = () => {
           <h1 className="text-4xl md:text-5xl font-bold font-serif bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent mb-4">
             My Tickets
           </h1>
-          <div className="w-24 h-1 bg-gradient-to-r from-navratri-orange to-navratri-pink rounded-full mx-auto"></div>
+          <div className="w-24 h-1 bg-gradient-to-r from-navratri-orange to-navratri-pink rounded-full mx-auto mb-4"></div>
+          
+          {/* Quick Stats */}
+          <div className="flex justify-center gap-6 text-sm">
+            <div className="text-center">
+              <span className="text-slate-400">Total:</span>
+              <span className="text-white font-bold ml-1">{tickets.length}</span>
+            </div>
+            <div className="text-center">
+              <span className="text-green-400">Active:</span>
+              <span className="text-white font-bold ml-1">{activeTickets.length}</span>
+            </div>
+            <div className="text-center">
+              <span className="text-blue-400">Used:</span>
+              <span className="text-white font-bold ml-1">{usedTickets.length}</span>
+            </div>
+            {cancelledTickets.length > 0 && (
+              <div className="text-center">
+                <span className="text-red-400">Cancelled:</span>
+                <span className="text-white font-bold ml-1">{cancelledTickets.length}</span>
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {/* Event Information */}
@@ -205,24 +259,48 @@ const TicketsDetails = () => {
               </div>
             </div>
 
-            {/* Purchase Button */}
+            {/* Purchase Section */}
             <div className="text-center">
-              <motion.button
-                onClick={() => setShowPurchaseModal(true)}
-                className="px-8 py-4 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-xl shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 flex items-center gap-3 mx-auto"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                disabled={event.availableTickets === 0}
-              >
-                <span className="text-xl">🎫</span>
-                {event.availableTickets === 0 ? 'Sold Out' : `Buy Tickets - ₹${event.ticketPrice}`}
-              </motion.button>
-              
-              {event.availableTickets > 0 && (
-                <p className="text-slate-400 text-sm mt-2">
-                  {event.availableTickets} tickets remaining
+              <div className="bg-gradient-to-r from-navratri-orange/20 to-navratri-yellow/20 rounded-xl p-6 mb-6">
+                <h4 className="text-white font-bold text-xl mb-2">Ticket Price: ₹{event.ticketPrice}</h4>
+                <p className="text-slate-300 mb-4">
+                  {event.availableTickets > 0 
+                    ? `${event.availableTickets} tickets remaining` 
+                    : 'Sold Out!'
+                  }
                 </p>
-              )}
+                
+                <div className="flex justify-center gap-4">
+                  {event.availableTickets > 0 ? (
+                    <motion.button
+                      onClick={() => setShowPurchaseModal(true)}
+                      className="px-8 py-4 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-xl shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 flex items-center gap-3"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      disabled={purchasing}
+                    >
+                      <span className="text-xl">🎟️</span>
+                      {purchasing ? 'Processing...' : 'Buy More Tickets'}
+                    </motion.button>
+                  ) : (
+                    <div className="px-8 py-4 bg-red-600/50 text-red-200 font-bold rounded-xl border border-red-500/30">
+                      <span className="text-xl mr-2">😔</span>
+                      Event Sold Out
+                    </div>
+                  )}
+                  
+                  <motion.button
+                    onClick={() => fetchData(true)}
+                    disabled={refreshing}
+                    className="px-6 py-4 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-xl transition-all flex items-center gap-2"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <span className={refreshing ? 'animate-spin' : ''}>🔄</span>
+                    {refreshing ? 'Refreshing...' : 'Refresh'}
+                  </motion.button>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -234,36 +312,81 @@ const TicketsDetails = () => {
           transition={{ delay: 0.4 }}
         >
           {tickets.length > 0 ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold text-white">
-                  Your Tickets ({tickets.length})
-                </h3>
-                <motion.button
-                  onClick={fetchData}
-                  className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-lg transition-all flex items-center gap-2"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  🔄 Refresh
-                </motion.button>
-              </div>
+            <div className="space-y-8">
+              {/* Active Tickets */}
+              {activeTickets.length > 0 && (
+                <div>
+                  <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                    <span className="text-green-400">✅</span>
+                    Active Tickets ({activeTickets.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {activeTickets.map((ticket, index) => (
+                      <motion.div
+                        key={ticket.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 * index }}
+                      >
+                        <TicketCard 
+                          ticket={ticket} 
+                          onCancel={handleCancelTicket}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {tickets.map((ticket, index) => (
-                  <motion.div
-                    key={ticket.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index }}
-                  >
-                    <TicketCard 
-                      ticket={ticket} 
-                      onCancel={handleCancelTicket}
-                    />
-                  </motion.div>
-                ))}
-              </div>
+              {/* Used Tickets */}
+              {usedTickets.length > 0 && (
+                <div>
+                  <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                    <span className="text-blue-400">🎯</span>
+                    Used Tickets ({usedTickets.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {usedTickets.map((ticket, index) => (
+                      <motion.div
+                        key={ticket.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 * index }}
+                      >
+                        <TicketCard 
+                          ticket={ticket} 
+                          onCancel={handleCancelTicket}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cancelled Tickets */}
+              {cancelledTickets.length > 0 && (
+                <div>
+                  <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                    <span className="text-red-400">❌</span>
+                    Cancelled Tickets ({cancelledTickets.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {cancelledTickets.map((ticket, index) => (
+                      <motion.div
+                        key={ticket.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 * index }}
+                      >
+                        <TicketCard 
+                          ticket={ticket} 
+                          onCancel={handleCancelTicket}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <motion.div
