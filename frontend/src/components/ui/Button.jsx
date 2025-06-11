@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useState } from "react";
-import {useNavigate} from "react-router-dom"
+import { useNavigate } from "react-router-dom";
 
 const PrimaryButton = ({
   children,
@@ -10,16 +10,54 @@ const PrimaryButton = ({
   disabled = false,
   ...props
 }) => {
+  const { user, signInWithGoogle, loading } = useAuth();
+  const [localLoading, setLocalLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleClick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // If there's a custom onClick handler, use it
+    if (onClick) {
+      await onClick();
+      return;
+    }
+
+    try {
+      setLocalLoading(true);
+
+      // Check if user is authenticated
+      if (!user) {
+        console.log('User not authenticated, prompting sign-in...');
+        // Prompt user to sign in
+        await signInWithGoogle();
+        // After successful sign-in, redirect to dashboard
+        navigate('/dashboard');
+      } else {
+        console.log('User authenticated, redirecting to dashboard...');
+        // User is already authenticated, redirect to dashboard
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Primary button action failed:', error);
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  const isLoading = loading || localLoading;
+
   return (
     <motion.button
       className={`bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 px-8 py-4 rounded-full text-xl font-bold shadow-xl border border-navratri-orange/20 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
-      whileHover={!disabled ? {
+      whileHover={!disabled && !isLoading ? {
         scale: 1.02,
         boxShadow: "0 20px 40px rgba(255,165,0,0.3)",
         y: -2,
       } : {}}
-      whileTap={!disabled ? { scale: 0.98 } : {}}
-      animate={!disabled ? {
+      whileTap={!disabled && !isLoading ? { scale: 0.98 } : {}}
+      animate={!disabled && !isLoading ? {
         boxShadow: [
           "0 10px 30px rgba(255,165,0,0.2)",
           "0 15px 35px rgba(255,215,0,0.25)",
@@ -27,10 +65,17 @@ const PrimaryButton = ({
         ],
       } : {}}
       transition={{ duration: 2, repeat: Infinity }}
-      onClick={onClick}
-      disabled={disabled}
+      onClick={handleClick}
+      disabled={disabled || isLoading}
       {...props}>
-      {children}
+      {isLoading ? (
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+          <span>Loading...</span>
+        </div>
+      ) : (
+        children
+      )}
     </motion.button>
   );
 };
@@ -185,7 +230,6 @@ const GoogleSignInButton = ({
       )}
       
       {/* Success Message Display */}
-      
       {!displayError && !isLoading && !loading && !user && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -195,7 +239,6 @@ const GoogleSignInButton = ({
           Click to sign in with your Google account
         </motion.div>
       )}
-      {/* {dashboardDirection()} */}
     </div>
   );
 };

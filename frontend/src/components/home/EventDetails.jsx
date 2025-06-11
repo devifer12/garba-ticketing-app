@@ -4,7 +4,7 @@ import { PrimaryButton, GoogleSignInButton } from "../ui/Button";
 import { useAuth } from "../../context/AuthContext";
 
 const EventDetails = () => {
-  const { user, signInWithGoogle, signOut } = useAuth();
+  const { user } = useAuth();
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -31,35 +31,6 @@ const EventDetails = () => {
     venue: "Vrindavan hall, Kandivali",
     price: "₹399",
     capacity: "300 People Only",
-  };
-
-  // Handle ticket booking
-  const handleBookTicket = async () => {
-    if (!user) {
-      // If user is not signed in, prompt them to sign in first
-      try {
-        await signInWithGoogle();
-        // After successful sign-in, proceed with booking logic
-        console.log("User signed in, proceeding with booking...");
-        // Add your booking logic here
-      } catch (error) {
-        console.error("Sign-in failed:", error);
-      }
-    } else {
-      // User is already signed in, proceed with booking
-      console.log("Proceeding with ticket booking for:", user.displayName);
-      // Add your booking logic here
-    }
-  };
-
-  // Handle Google Sign-In
-  const handleGoogleSignIn = async () => {
-    try {
-      await signInWithGoogle();
-      console.log("Successfully signed in with Google");
-    } catch (error) {
-      console.error("Google Sign-In failed:", error);
-    }
   };
 
   return (
@@ -209,27 +180,17 @@ const EventDetails = () => {
         <motion.div
           variants={itemVariants}
           className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10">
-          <PrimaryButton
-            onClick={() => {
-              if (user) {
-                handleBookTicket();
-              } else {
-                handleGoogleSignIn();
-              }
-            }}>
+          
+          {/* Primary Buy Tickets Button - Updated */}
+          <PrimaryButton>
             🎟️ Book Your Tickets Now
           </PrimaryButton>
 
-          {!user ? (
-            <GoogleSignInButton onClick={handleGoogleSignIn}>
+          {/* Secondary Sign In Button - Only show if not authenticated */}
+          {!user && (
+            <GoogleSignInButton>
               📱 Sign In with Google
             </GoogleSignInButton>
-          ) : (
-            <button
-              onClick={signOut}
-              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors duration-300 flex items-center gap-2">
-              👋 Sign Out
-            </button>
           )}
         </motion.div>
 
