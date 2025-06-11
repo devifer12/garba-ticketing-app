@@ -86,14 +86,67 @@ const EventManager = () => {
   const validateForm = () => {
     const newErrors = {};
     
+    // Required field validations
     if (!formData.name?.trim()) newErrors.name = 'Event name is required';
     if (!formData.date) newErrors.date = 'Event date is required';
     if (!formData.venue?.trim()) newErrors.venue = 'Event venue is required';
     if (!formData.description?.trim()) newErrors.description = 'Event description is required';
     if (!formData.startTime?.trim()) newErrors.startTime = 'Start time is required';
     if (!formData.endTime?.trim()) newErrors.endTime = 'End time is required';
-    if (!formData.ticketPrice || formData.ticketPrice <= 0) newErrors.ticketPrice = 'Valid ticket price is required';
-    if (!formData.totalTickets || formData.totalTickets <= 0) newErrors.totalTickets = 'Valid total tickets count is required';
+    
+    // Numeric validations
+    const ticketPrice = parseFloat(formData.ticketPrice);
+    const totalTickets = parseInt(formData.totalTickets);
+    
+    if (!formData.ticketPrice || isNaN(ticketPrice) || ticketPrice <= 0) {
+      newErrors.ticketPrice = 'Valid ticket price is required (must be greater than 0)';
+    }
+    if (!formData.totalTickets || isNaN(totalTickets) || totalTickets <= 0) {
+      newErrors.totalTickets = 'Valid total tickets count is required (must be greater than 0)';
+    }
+    
+    // Date validation
+    if (formData.date) {
+      const selectedDate = new Date(formData.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (selectedDate < today) {
+        newErrors.date = 'Event date cannot be in the past';
+      }
+    }
+    
+    // Time format validation (HH:MM)
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    
+    if (formData.startTime && !timeRegex.test(formData.startTime)) {
+      newErrors.startTime = 'Start time must be in HH:MM format (e.g., 18:00)';
+    }
+    
+    if (formData.endTime && !timeRegex.test(formData.endTime)) {
+      newErrors.endTime = 'End time must be in HH:MM format (e.g., 22:00)';
+    }
+    
+    // Time logic validation
+    if (formData.startTime && formData.endTime && timeRegex.test(formData.startTime) && timeRegex.test(formData.endTime)) {
+      const [startHour, startMin] = formData.startTime.split(':').map(Number);
+      const [endHour, endMin] = formData.endTime.split(':').map(Number);
+      
+      const startMinutes = startHour * 60 + startMin;
+      const endMinutes = endHour * 60 + endMin;
+      
+      if (endMinutes <= startMinutes) {
+        newErrors.endTime = 'End time must be after start time';
+      }
+    }
+    
+    // URL validation for event image
+    if (formData.eventImage && formData.eventImage.trim()) {
+      const urlRegex = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
+      if (!urlRegex.test(formData.eventImage.trim())) {
+        newErrors.eventImage = 'Event image must be a valid image URL (jpg, jpeg, png, gif, webp)';
+      }
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -101,7 +154,7 @@ const EventManager = () => {
 
   const handleSubmit = async () => {
     if (!validateForm()) {
-      toast.error('Please fill in all required fields correctly');
+      toast.error('Please fix the validation errors before submitting');
       return;
     }
 
@@ -109,11 +162,20 @@ const EventManager = () => {
     try {
       // Prepare data for submission
       const submitData = {
-        ...formData,
+        name: formData.name.trim(),
+        venue: formData.venue.trim(),
+        description: formData.description.trim(),
+        date: formData.date,
+        startTime: formData.startTime.trim(),
+        endTime: formData.endTime.trim(),
         ticketPrice: parseFloat(formData.ticketPrice),
         totalTickets: parseInt(formData.totalTickets),
-        features: Array.isArray(formData.features) ? formData.features : []
+        eventImage: formData.eventImage?.trim() || '',
+        features: Array.isArray(formData.features) ? formData.features : [],
+        aboutText: formData.aboutText?.trim() || ''
       };
+
+      console.log('Submitting event data:', submitData);
 
       if (view === 'create') {
         await eventAPI.createEvent(submitData);
@@ -130,7 +192,20 @@ const EventManager = () => {
     } catch (err) {
       console.error('Event operation failed:', err);
       const errorMessage = apiUtils.formatErrorMessage(err);
-      toast.error(`Failed to ${view === 'create' ? 'create' : 'update'} event: ${errorMessage}`);
+      
+      // Handle validation errors specifically
+      if (err.response?.data?.details && Array.isArray(err.response.data.details)) {
+        const validationErrors = {};
+        err.response.data.details.forEach(detail => {
+          if (detail.field) {
+            validationErrors[detail.field] = detail.message;
+          }
+        });
+        setErrors(validationErrors);
+        toast.error('Please fix the validation errors');
+      } else {
+        toast.error(`Failed to ${view === 'create' ? 'create' : 'update'} event: ${errorMessage}`);
+      }
     } finally {
       setIsSubmitting(false);
       setShowConfirmModal(false);

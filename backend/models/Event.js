@@ -20,9 +20,12 @@ const eventSchema = new mongoose.Schema({
     required: [true, 'Event date is required'],
     validate: {
       validator: function(value) {
-        return value > new Date();
+        // Allow dates from today onwards (not strictly future)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return new Date(value) >= today;
       },
-      message: 'Event date must be in the future'
+      message: 'Event date must be today or in the future'
     }
   },
   
@@ -32,10 +35,11 @@ const eventSchema = new mongoose.Schema({
     trim: true,
     validate: {
       validator: function(value) {
-        const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM)$/i;
+        // More flexible time format validation
+        const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
         return timeRegex.test(value);
       },
-      message: 'Start time must be in format "HH:MM AM/PM" (e.g., "6:00 PM")'
+      message: 'Start time must be in format "HH:MM" (e.g., "18:00" or "6:00")'
     }
   },
   
@@ -45,10 +49,11 @@ const eventSchema = new mongoose.Schema({
     trim: true,
     validate: {
       validator: function(value) {
-        const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM)$/i;
+        // More flexible time format validation
+        const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
         return timeRegex.test(value);
       },
-      message: 'End time must be in format "HH:MM AM/PM" (e.g., "10:00 PM")'
+      message: 'End time must be in format "HH:MM" (e.g., "22:00" or "10:00")'
     }
   },
   
@@ -90,9 +95,10 @@ const eventSchema = new mongoose.Schema({
   eventImage: {
     type: String,
     trim: true,
+    default: '',
     validate: {
       validator: function(value) {
-        if (!value) return true; // Optional field
+        if (!value || value === '') return true; // Optional field
         const urlRegex = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
         return urlRegex.test(value);
       },
