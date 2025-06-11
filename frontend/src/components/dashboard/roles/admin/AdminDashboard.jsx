@@ -4,10 +4,13 @@ import { useAuth } from '../../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { eventAPI, adminAPI, apiUtils } from '../../../../services/api';
-import EventManager from './eventManager';
+import EventManager from './EventManager';
+import UserManagement from './UserManagement';
+import TicketManagement from './TicketManagement';
 
 const AdminDashboard = () => {
   const { user, backendUser } = useAuth();
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'event-manager', 'user-management', 'ticket-management'
   const [eventStatus, setEventStatus] = useState({
     exists: false,
     loading: true,
@@ -108,43 +111,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Fixed route handlers
-  const handleCreateEvent = () => {
-    navigate('/admin/event/create');
-  };
-
-  const handleEditEvent = () => {
-    if (eventStatus.eventData) {
-      navigate('/admin/event/edit', { state: { eventData: eventStatus.eventData } });
-    } else {
-      navigate('/admin/event/edit');
-    }
-  };
-
-  const handleViewEvent = () => {
-    if (eventStatus.eventData) {
-      navigate('/admin/event/manage', { state: { eventData: eventStatus.eventData } });
-    } else {
-      navigate('/admin/event/manage');
-    }
-  };
-
-  const handleManageUsers = () => {
-    navigate('/admin/users');
-  };
-
-  const handleManageTickets = () => {
-    navigate('/admin/tickets');
-  };
-
-  const handleViewAnalytics = () => {
-    navigate('/admin/analytics');
-  };
-
-  const handleViewSettings = () => {
-    navigate('/admin/settings');
-  };
-
   const refreshDashboard = async () => {
     await Promise.all([
       checkEventStatus(),
@@ -153,6 +119,66 @@ const AdminDashboard = () => {
     toast.success('Dashboard refreshed');
   };
 
+  // Navigation handlers
+  const handleViewChange = (view) => {
+    setCurrentView(view);
+  };
+
+  const handleBackToDashboard = () => {
+    setCurrentView('dashboard');
+    refreshDashboard(); // Refresh data when returning to dashboard
+  };
+
+  // Render different views based on currentView
+  if (currentView === 'event-manager') {
+    return (
+      <div>
+        <div className="mb-6">
+          <button
+            onClick={handleBackToDashboard}
+            className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-lg transition-all flex items-center gap-2"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+        <EventManager />
+      </div>
+    );
+  }
+
+  if (currentView === 'user-management') {
+    return (
+      <div>
+        <div className="mb-6">
+          <button
+            onClick={handleBackToDashboard}
+            className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-lg transition-all flex items-center gap-2"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+        <UserManagement />
+      </div>
+    );
+  }
+
+  if (currentView === 'ticket-management') {
+    return (
+      <div>
+        <div className="mb-6">
+          <button
+            onClick={handleBackToDashboard}
+            className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-lg transition-all flex items-center gap-2"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+        <TicketManagement />
+      </div>
+    );
+  }
+
+  // Main dashboard view
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -286,7 +312,7 @@ const AdminDashboard = () => {
             {stats.loading ? (
               <div className="animate-pulse bg-purple-700/30 h-8 w-16 rounded"></div>
             ) : (
-              <p className="text-white text-2xl font-bold">${stats.totalRevenue}</p>
+              <p className="text-white text-2xl font-bold">₹{stats.totalRevenue}</p>
             )}
           </motion.div>
         </motion.div>
@@ -367,7 +393,7 @@ const AdminDashboard = () => {
                       </div>
                       <div>
                         <span className="text-slate-400">Ticket Price:</span>
-                        <span className="text-white ml-2">${eventStatus.eventData.ticketPrice}</span>
+                        <span className="text-white ml-2">₹{eventStatus.eventData.ticketPrice}</span>
                       </div>
                     </div>
                   </div>
@@ -376,38 +402,15 @@ const AdminDashboard = () => {
               
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3">
-                {!eventStatus.exists ? (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleCreateEvent}
-                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-medium rounded-lg transition-all flex items-center gap-2"
-                  >
-                    <span>✨</span>
-                    Create Event
-                  </motion.button>
-                ) : (
-                  <>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleViewEvent}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-medium rounded-lg transition-all flex items-center gap-2"
-                    >
-                      <span>👀</span>
-                      Manage Event
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleEditEvent}
-                      className="px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white font-medium rounded-lg transition-all flex items-center gap-2"
-                    >
-                      <span>✏️</span>
-                      Edit Event
-                    </motion.button>
-                  </>
-                )}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleViewChange('event-manager')}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-medium rounded-lg transition-all flex items-center gap-2"
+                >
+                  <span>🎪</span>
+                  {eventStatus.exists ? 'Manage Event' : 'Create Event'}
+                </motion.button>
               </div>
             </div>
           )}
@@ -425,7 +428,7 @@ const AdminDashboard = () => {
             className="bg-gradient-to-br from-indigo-900/40 to-indigo-800/40 backdrop-blur-xl rounded-xl p-6 border border-indigo-700/30 cursor-pointer"
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
-            onClick={handleManageUsers}
+            onClick={() => handleViewChange('user-management')}
           >
             <div className="text-4xl mb-4">👥</div>
             <h3 className="text-xl font-bold text-white mb-2">Manage Users</h3>
@@ -443,7 +446,7 @@ const AdminDashboard = () => {
             className="bg-gradient-to-br from-emerald-900/40 to-emerald-800/40 backdrop-blur-xl rounded-xl p-6 border border-emerald-700/30 cursor-pointer"
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
-            onClick={handleManageTickets}
+            onClick={() => handleViewChange('ticket-management')}
           >
             <div className="text-4xl mb-4">🎫</div>
             <h3 className="text-xl font-bold text-white mb-2">Manage Tickets</h3>
@@ -461,7 +464,7 @@ const AdminDashboard = () => {
             className="bg-gradient-to-br from-violet-900/40 to-violet-800/40 backdrop-blur-xl rounded-xl p-6 border border-violet-700/30 cursor-pointer"
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
-            onClick={handleViewAnalytics}
+            onClick={() => toast.info('Analytics coming soon!')}
           >
             <div className="text-4xl mb-4">📊</div>
             <h3 className="text-xl font-bold text-white mb-2">Analytics</h3>
@@ -496,7 +499,7 @@ const AdminDashboard = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={handleViewSettings}
+              onClick={() => toast.info('Settings coming soon!')}
               className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 text-sm rounded-lg transition-all flex items-center gap-2"
             >
               <span>⚙️</span>

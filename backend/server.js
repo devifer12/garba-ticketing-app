@@ -67,6 +67,7 @@ const errorHandler = require("./middlewares/errorMiddleware");
 const authRoutes = require("./routes/authRoutes"); // Clean Google auth routes
 const ticketRoutes = require("./routes/ticketRoutes");
 const eventRoutes = require("./routes/eventRoutes");
+const adminRoutes = require("./routes/adminRoutes"); // NEW: Admin routes
 
 // Health check route
 app.get("/", (req, res) => {
@@ -78,6 +79,8 @@ app.get("/", (req, res) => {
     endpoints: {
       auth: "/api/auth",
       tickets: "/api/tickets",
+      event: "/api/event",
+      admin: "/api/admin", // NEW: Admin endpoints
     },
   });
 });
@@ -86,6 +89,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes); // All authentication routes
 app.use("/api/tickets", ticketRoutes); // Ticket routes (protected)
 app.use("/api/event", eventRoutes); // Note: Singular 'event' not 'events'
+app.use("/api/admin", adminRoutes); // NEW: Admin routes (protected)
 
 // Protected test route for debugging
 app.get("/api/protected", verifyFirebaseToken, (req, res) => {
@@ -130,6 +134,16 @@ app.get("/api/status", (req, res) => {
       admin: {
         allTickets: "GET /api/tickets/admin/all",
         updateTicketStatus: "PATCH /api/tickets/admin/:ticketId/status",
+        // NEW: Admin endpoints
+        userCount: "GET /api/admin/users/count",
+        allUsers: "GET /api/admin/users",
+        updateUserRole: "PATCH /api/admin/users/:userId/role",
+        ticketStats: "GET /api/admin/tickets/stats",
+        dashboardAnalytics: "GET /api/admin/analytics/dashboard",
+        ticketManagement: "GET /api/admin/tickets/management",
+        bulkUpdateTickets: "PATCH /api/admin/tickets/bulk-update",
+        exportTickets: "GET /api/admin/tickets/export",
+        systemHealth: "GET /api/admin/system/health",
       },
       event: {
         getEvent: "GET /api/event", // To fetch the current event
@@ -156,13 +170,15 @@ app.use("/api/*", (req, res) => {
       // Ticket endpoints
       "POST /api/tickets",
       "GET /api/tickets/my-tickets",
-
-      // Other
-      "GET /api/protected",
-
       // Event endpoints
       "GET /api/event",
       "POST /api/event",
+      // Admin endpoints
+      "GET /api/admin/users/count",
+      "GET /api/admin/tickets/stats",
+      "GET /api/admin/analytics/dashboard",
+      // Other
+      "GET /api/protected",
     ],
   });
 });
@@ -209,6 +225,7 @@ const server = app.listen(PORT, () => {
   console.log(`🔐 Authentication: Google Sign-In Only`);
   console.log(`📱 Auth endpoints: http://localhost:${PORT}/api/auth`);
   console.log(`🎫 Ticket endpoints: http://localhost:${PORT}/api/tickets`);
+  console.log(`👑 Admin endpoints: http://localhost:${PORT}/api/admin`);
   console.log(`💡 API status: http://localhost:${PORT}/api/status`);
   console.log(`🌐 CORS enabled for: ${corsOptions.origin.join(", ")}`);
 });

@@ -252,7 +252,7 @@ export const authAPI = {
   }
 };
 
-// Event API endpoints - NEW SECTION
+// Event API endpoints
 export const eventAPI = {
   // Get current event details (public)
   getCurrentEvent: async () => {
@@ -354,13 +354,13 @@ export const ticketAPI = {
   }
 };
 
-// Admin API endpoints - NEW SECTION
+// Admin API endpoints - ENHANCED
 export const adminAPI = {
   // Get all tickets (admin only)
-  getAllTickets: async () => {
+  getAllTickets: async (params = {}) => {
     try {
       console.log('Fetching all tickets...');
-      const response = await api.get('/tickets/admin/all');
+      const response = await api.get('/tickets/admin/all', { params });
       console.log('Get all tickets success:', response.data);
       return response;
     } catch (error) {
@@ -396,6 +396,32 @@ export const adminAPI = {
     }
   },
   
+  // Get all users with pagination and filtering
+  getAllUsers: async (params = {}) => {
+    try {
+      console.log('Fetching all users...', params);
+      const response = await api.get('/admin/users', { params });
+      console.log('Get all users success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Get all users failed:', error);
+      throw error;
+    }
+  },
+  
+  // Update user role (admin only)
+  updateUserRole: async (userId, role) => {
+    try {
+      console.log(`Updating user ${userId} role to ${role}...`);
+      const response = await api.patch(`/admin/users/${userId}/role`, { role });
+      console.log('Update user role success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Update user role failed:', error);
+      throw error;
+    }
+  },
+  
   // Get ticket statistics (for dashboard stats)
   getTicketStats: async () => {
     try {
@@ -422,13 +448,68 @@ export const adminAPI = {
       // Return default data if endpoint doesn't exist yet
       return { 
         data: { 
-          totalUsers: 0, 
-          totalTickets: 0, 
-          totalRevenue: 0,
-          recentBookings: [],
+          users: { total: 0, newToday: 0 },
+          tickets: { total: 0, soldToday: 0 },
+          revenue: { total: 0 },
+          event: null,
           salesChart: []
         } 
       };
+    }
+  },
+  
+  // Get ticket management data with filtering
+  getTicketManagement: async (params = {}) => {
+    try {
+      console.log('Fetching ticket management data...', params);
+      const response = await api.get('/admin/tickets/management', { params });
+      console.log('Get ticket management success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Get ticket management failed:', error);
+      throw error;
+    }
+  },
+  
+  // Bulk update tickets (admin only)
+  bulkUpdateTickets: async (ticketIds, status) => {
+    try {
+      console.log(`Bulk updating ${ticketIds.length} tickets to ${status}...`);
+      const response = await api.patch('/admin/tickets/bulk-update', { ticketIds, status });
+      console.log('Bulk update tickets success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Bulk update tickets failed:', error);
+      throw error;
+    }
+  },
+  
+  // Export tickets data
+  exportTickets: async (format = 'json') => {
+    try {
+      console.log(`Exporting tickets as ${format}...`);
+      const response = await api.get('/admin/tickets/export', { 
+        params: { format },
+        responseType: format === 'csv' ? 'text' : 'json'
+      });
+      console.log('Export tickets success');
+      return response;
+    } catch (error) {
+      console.error('Export tickets failed:', error);
+      throw error;
+    }
+  },
+  
+  // Get system health (admin only)
+  getSystemHealth: async () => {
+    try {
+      console.log('Fetching system health...');
+      const response = await api.get('/admin/system/health');
+      console.log('Get system health success:', response.data);
+      return response;
+    } catch (error) {
+      console.error('Get system health failed:', error);
+      throw error;
     }
   }
 };
