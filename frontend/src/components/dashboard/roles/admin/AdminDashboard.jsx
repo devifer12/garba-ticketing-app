@@ -4,6 +4,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { eventAPI, adminAPI, apiUtils } from '../../../../services/api';
+import EventManager from './eventManager';
 
 const AdminDashboard = () => {
   const { user, backendUser } = useAuth();
@@ -107,6 +108,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // Fixed route handlers
   const handleCreateEvent = () => {
     navigate('/admin/event/create');
   };
@@ -137,6 +139,10 @@ const AdminDashboard = () => {
 
   const handleViewAnalytics = () => {
     navigate('/admin/analytics');
+  };
+
+  const handleViewSettings = () => {
+    navigate('/admin/settings');
   };
 
   const refreshDashboard = async () => {
@@ -490,7 +496,7 @@ const AdminDashboard = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/admin/settings')}
+              onClick={handleViewSettings}
               className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 text-sm rounded-lg transition-all flex items-center gap-2"
             >
               <span>⚙️</span>

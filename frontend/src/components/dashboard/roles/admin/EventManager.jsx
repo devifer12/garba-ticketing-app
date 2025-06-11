@@ -1,181 +1,585 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import EventForm from './EventForm';
-import EventPreview from './EventPreview';
+import { toast } from 'react-toastify';
 
 const EventManager = () => {
-  const [eventExists, setEventExists] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Main state
+  const [view, setView] = useState('loading'); // 'loading', 'create', 'preview', 'edit'
+  const [event, setEvent] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [errors, setErrors] = useState({});
 
+  // Form data state
+  const [formData, setFormData] = useState({
+    name: '',
+    venue: '',
+    description: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    ticketPrice: '',
+    totalTickets: '',
+    category: '',
+    capacity: '',
+    organizer: '',
+    contactEmail: ''
+  });
+
+  // Check if event exists on component mount
   useEffect(() => {
-    axios.get('/api/event/exists')
-      .then(res => setEventExists(res.data.exists))
-      .catch(() => setError('Failed to fetch event status'))
-      .finally(() => setLoading(false));
+    const checkEventExists = async () => {
+      try {
+        const existsRes = await axios.get('/api/event/exists');
+        if (existsRes.data.exists) {
+          // Fetch event data
+          const eventRes = await axios.get('/api/event');
+          setEvent(eventRes.data.data);
+          setView('preview');
+        } else {
+          setView('create');
+        }
+      } catch (error) {
+        console.error('Error checking event:', error);
+        toast.error('Failed to load event information');
+        setView('create');
+      }
+    };
+
+    checkEventExists();
   }, []);
 
-  if (loading) {
-    return (
+  // Form handlers
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.name?.trim()) newErrors.name = 'Event name is required';
+    if (!formData.date) newErrors.date = 'Event date is required';
+    if (!formData.venue?.trim()) newErrors.venue = 'Event venue is required';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const endpoint = '/api/event';
+      if (view === 'create') {
+        await axios.post(endpoint, formData);
+        toast.success('Event created successfully! 🎉');
+      } else if (view === 'edit') {
+        await axios.put(endpoint, formData);
+        toast.success('Event updated successfully! ✨');
+      }
+      
+      // Reload to refresh data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err.response?.data?.message || 
+        `Failed to ${view === 'create' ? 'create' : 'update'} event`
+      );
+    } finally {
+      setIsSubmitting(false);
+      setShowConfirmModal(false);
+    }
+  };
+
+  const handleEdit = () => {
+    // Populate form with existing event data
+    setFormData({
+      name: event.name || '',
+      venue: event.venue || '',
+      description: event.description || '',
+      date: event.date ? event.date.split('T')[0] : '',
+      startTime: event.startTime || '',
+      endTime: event.endTime || '',
+      ticketPrice: event.ticketPrice || '',
+      totalTickets: event.totalTickets || '',
+      category: event.category || '',
+      capacity: event.capacity || '',
+      organizer: event.organizer || '',
+      contactEmail: event.contactEmail || ''
+    });
+    setView('edit');
+  };
+
+  // Utility functions
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return '';
+    const [hours, minutes] = timeString.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours), parseInt(minutes));
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Input field component
+  const InputField = ({ 
+    type = "text", 
+    name, 
+    placeholder, 
+    icon, 
+    required = false,
+    rows,
+    min,
+    step 
+  }) => (
+    <div className="space-y-2">
+      <label className="flex items-center gap-2 text-slate-300 font-medium text-sm">
+        <span className="text-lg">{icon}</span>
+        {placeholder}
+        {required && <span className="text-red-400">*</span>}
+      </label>
+      
+      <div className="relative">
+        {type === 'textarea' ? (
+          <textarea
+            name={name}
+            placeholder={`Enter ${placeholder.toLowerCase()}...`}
+            value={formData[name] || ''}
+            onChange={handleInputChange}
+            rows={rows || 4}
+            className={`w-full px-4 py-3 bg-slate-700/50 backdrop-blur-xl border rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-300 resize-none ${
+              errors[name] 
+                ? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500' 
+                : 'border-slate-600/30 focus:ring-purple-500/30 focus:border-purple-500 hover:border-slate-500/50'
+            }`}
+          />
+        ) : (
+          <input
+            type={type}
+            name={name}
+            placeholder={`Enter ${placeholder.toLowerCase()}...`}
+            value={formData[name] || ''}
+            onChange={handleInputChange}
+            min={min}
+            step={step}
+            className={`w-full px-4 py-3 bg-slate-700/50 backdrop-blur-xl border rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-300 ${
+              errors[name] 
+                ? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500' 
+                : 'border-slate-600/30 focus:ring-purple-500/30 focus:border-purple-500 hover:border-slate-500/50'
+            }`}
+          />
+        )}
+        
+        {errors[name] && (
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+            <span className="text-red-400 text-lg">⚠️</span>
+          </div>
+        )}
+      </div>
+      
+      {errors[name] && (
+        <p className="text-red-400 text-sm flex items-center gap-1">
+          <span className="text-xs">⚠️</span>
+          {errors[name]}
+        </p>
+      )}
+    </div>
+  );
+
+  // Confirmation Modal Component
+  const ConfirmModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="max-w-4xl mx-auto"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 p-8 rounded-2xl shadow-lg text-center max-w-sm w-full"
       >
-        <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-slate-700/30">
+        <h3 className="text-xl font-semibold text-white mb-6">
+          Are you sure you want to {view === 'create' ? 'create' : 'update'} this event?
+        </h3>
+        <div className="flex justify-center gap-6">
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-400 text-white font-semibold rounded-lg shadow-lg hover:shadow-green-500/20 transition-all text-sm disabled:opacity-50"
+          >
+            {isSubmitting ? 'Processing...' : 'Yes'}
+          </button>
+          <button
+            onClick={() => setShowConfirmModal(false)}
+            disabled={isSubmitting}
+            className="px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-red-500/20 transition-all text-sm disabled:opacity-50"
+          >
+            No
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+
+  // Loading view
+  if (view === 'loading') {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/30">
           <div className="flex flex-col items-center justify-center py-12">
-            <motion.div
-              className="text-6xl mb-6"
-              animate={{ 
-                rotate: [0, 360],
-                scale: [1, 1.1, 1]
-              }}
-              transition={{ 
-                duration: 2,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-            >
-              🎪
-            </motion.div>
+            <div className="text-6xl mb-6">🎪</div>
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500 mb-4"></div>
             <h2 className="text-2xl font-bold text-white mb-2">Loading Event Manager</h2>
             <p className="text-slate-400">Please wait while we fetch event information...</p>
           </div>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
-  if (error) {
+  // Event Preview view
+  if (view === 'preview' && event) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="max-w-4xl mx-auto"
-      >
-        <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-slate-700/30">
-          <div className="text-center">
-            <motion.div
-              className="text-6xl mb-6"
-              animate={{ 
-                rotate: [0, -10, 10, 0],
-                scale: [1, 1.1, 1]
-              }}
-              transition={{ 
-                duration: 2,
-                repeat: Infinity,
-                repeatType: "reverse"
-              }}
-            >
-              ⚠️
-            </motion.div>
-            <div className="bg-red-900/50 backdrop-blur-xl rounded-2xl p-6 border border-red-700/30 max-w-md mx-auto">
-              <h2 className="text-2xl font-bold text-red-300 mb-4">Error Loading Event</h2>
-              <p className="text-red-400 mb-6">{error}</p>
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
-                className="px-6 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white font-medium rounded-lg shadow-lg hover:shadow-red-500/20 transition-all"
-                onClick={() => window.location.reload()}
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/30">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="text-6xl mb-4">🎉</div>
+            <h1 className="text-4xl font-bold font-serif bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 bg-clip-text text-transparent mb-4">
+              Event Preview
+            </h1>
+            <div className="w-20 h-1 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full mx-auto mb-6"></div>
+          </div>
+
+          {/* Event Card */}
+          <div className="bg-slate-700/30 backdrop-blur-xl rounded-2xl p-8 border border-slate-600/30">
+            {/* Event Title */}
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-red-400 bg-clip-text text-transparent mb-4">
+                {event.name}
+              </h2>
+            </div>
+
+            {/* Event Details Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {/* Description */}
+              <div className="bg-slate-600/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-500/30">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-3xl">📋</span>
+                  <h3 className="text-xl font-bold text-white">Description</h3>
+                </div>
+                <p className="text-slate-300">
+                  {event.description || 'No description provided'}
+                </p>
+              </div>
+
+              {/* Date & Time */}
+              <div className="bg-slate-600/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-500/30">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-3xl">📅</span>
+                  <h3 className="text-xl font-bold text-white">Date & Time</h3>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-slate-300 text-lg font-medium">
+                    {formatDate(event.date)}
+                  </p>
+                  {event.startTime && (
+                    <p className="text-slate-400">
+                      🕐 {formatTime(event.startTime)} 
+                      {event.endTime && ` - ${formatTime(event.endTime)}`}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Venue */}
+              <div className="bg-slate-600/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-500/30 md:col-span-2">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-3xl">📍</span>
+                  <h3 className="text-xl font-bold text-white">Venue</h3>
+                </div>
+                <p className="text-slate-300 text-lg">{event.venue}</p>
+              </div>
+            </div>
+
+            {/* Additional Info */}
+            {(event.capacity || event.ticketPrice || event.category) && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                {event.capacity && (
+                  <div className="bg-blue-900/30 backdrop-blur-xl rounded-xl p-4 border border-blue-700/30 text-center">
+                    <span className="text-2xl block mb-2">👥</span>
+                    <p className="text-blue-300 font-medium">Capacity</p>
+                    <p className="text-white text-xl font-bold">{event.capacity}</p>
+                  </div>
+                )}
+                
+                {event.ticketPrice && (
+                  <div className="bg-green-900/30 backdrop-blur-xl rounded-xl p-4 border border-green-700/30 text-center">
+                    <span className="text-2xl block mb-2">💰</span>
+                    <p className="text-green-300 font-medium">Ticket Price</p>
+                    <p className="text-white text-xl font-bold">${event.ticketPrice}</p>
+                  </div>
+                )}
+                
+                {event.category && (
+                  <div className="bg-purple-900/30 backdrop-blur-xl rounded-xl p-4 border border-purple-700/30 text-center">
+                    <span className="text-2xl block mb-2">🏷️</span>
+                    <p className="text-purple-300 font-medium">Category</p>
+                    <p className="text-white text-xl font-bold">{event.category}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 border-t border-slate-600/30">
+              <button
+                onClick={handleEdit}
+                className="px-8 py-4 bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-yellow-500/25 transition-all duration-300 flex items-center justify-center gap-3 text-lg"
               >
-                Try Again
-              </motion.button>
+                <span className="text-xl">✏️</span>
+                Edit Event Details
+              </button>
+
+              <button
+                onClick={() => window.history.back()}
+                className="px-8 py-4 bg-slate-600/50 backdrop-blur-xl text-slate-300 font-medium rounded-xl border border-slate-500/30 hover:bg-slate-600/70 transition-all duration-300 flex items-center justify-center gap-3 text-lg"
+              >
+                <span className="text-xl">🏠</span>
+                Back to Dashboard
+              </button>
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
+  // Form view (create or edit)
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="max-w-6xl mx-auto"
-    >
-      <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-slate-700/30">
+    <div className="max-w-6xl mx-auto">
+      <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/30">
         {/* Header */}
-        <motion.div
-          className="text-center mb-8"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <motion.div
-            className="text-6xl mb-4"
-            animate={{ 
-              rotate: [0, 5, -5, 0],
-              scale: [1, 1.05, 1]
-            }}
-            transition={{ 
-              duration: 2,
-              repeat: Infinity,
-              repeatType: "reverse" 
-            }}
-          >
-            🎪
-          </motion.div>
-          
-          <h1 className="text-4xl md:text-5xl font-bold font-serif bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent mb-4">
-            Event Manager
-          </h1>
-          
-          <motion.div 
-            className="w-24 h-1 bg-gradient-to-r from-red-500 to-yellow-500 rounded-full mx-auto mb-6"
-            animate={{
-              scaleX: [1, 1.2, 1],
-              opacity: [0.7, 1, 0.7],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-            }}
-          />
-          
-          <div className="bg-slate-700/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30 mb-8">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <span className="text-2xl">
-                {eventExists ? '✨' : '🎯'}
-              </span>
-              <h2 className="text-2xl font-bold text-white">
-                {eventExists ? 'Event Preview & Management' : 'Create Your Event'}
-              </h2>
-            </div>
-            
-            <span className={`inline-flex px-4 py-2 rounded-full text-sm font-medium ${
-              eventExists 
-                ? 'bg-green-900/50 text-green-300 border border-green-700/30' 
-                : 'bg-blue-900/50 text-blue-300 border border-blue-700/30'
-            }`}>
-              {eventExists ? 'Event Configured' : 'Ready to Create'}
-            </span>
+        <div className="text-center mb-8">
+          <div className="text-6xl mb-4">
+            {view === 'edit' ? '✏️' : '🎯'}
           </div>
-        </motion.div>
+          <h1 className="text-4xl font-bold font-serif bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 bg-clip-text text-transparent mb-4">
+            {view === 'edit' ? 'Edit Your Event' : 'Create Amazing Event'}
+          </h1>
+          <div className="w-20 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-6"></div>
+          <p className="text-slate-300 max-w-2xl mx-auto text-lg">
+            {view === 'edit' 
+              ? 'Update your event details and make it even more spectacular!'
+              : 'Fill in the details below to create an unforgettable experience for your attendees.'
+            }
+          </p>
+        </div>
 
-        {/* Content Area */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-slate-700/30 backdrop-blur-xl rounded-2xl border border-slate-600/30 overflow-hidden"
-        >
-          {eventExists ? (
-            <div className="p-6">
-              <EventPreview />
+        {/* Form Container */}
+        <div className="bg-slate-700/40 backdrop-blur-xl rounded-2xl p-8 border border-slate-600/30">
+          <div className="space-y-8">
+            {/* Basic Information */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl">📝</span>
+                <h3 className="text-xl font-bold text-white">Basic Information</h3>
+                <div className="flex-1 h-px bg-gradient-to-r from-purple-500/50 to-transparent"></div>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <InputField
+                  name="name"
+                  placeholder="Event Name"
+                  icon="🎪"
+                  required
+                />
+                
+                <InputField
+                  name="venue"
+                  placeholder="Venue Location"
+                  icon="📍"
+                  required
+                />
+              </div>
+              
+              <InputField
+                type="textarea"
+                name="description"
+                placeholder="Event Description"
+                icon="📋"
+                rows={4}
+              />
             </div>
-          ) : (
-            <div className="p-6">
-              <EventForm mode="create" />
+
+            {/* Date & Time */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl">🗓️</span>
+                <h3 className="text-xl font-bold text-white">Date & Time</h3>
+                <div className="flex-1 h-px bg-gradient-to-r from-blue-500/50 to-transparent"></div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <InputField
+                  type="date"
+                  name="date"
+                  placeholder="Event Date"
+                  icon="📅"
+                  required
+                />
+                
+                <InputField
+                  type="time"
+                  name="startTime"
+                  placeholder="Start Time"
+                  icon="🕐"
+                />
+                
+                <InputField
+                  type="time"
+                  name="endTime"
+                  placeholder="End Time"
+                  icon="🕕"
+                />
+              </div>
             </div>
-          )}
-        </motion.div>
+
+            {/* Ticketing */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl">🎫</span>
+                <h3 className="text-xl font-bold text-white">Ticketing Information</h3>
+                <div className="flex-1 h-px bg-gradient-to-r from-green-500/50 to-transparent"></div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <InputField
+                  type="number"
+                  name="ticketPrice"
+                  placeholder="Ticket Price"
+                  icon="💰"
+                  min="0"
+                  step="0.01"
+                />
+                
+                <InputField
+                  type="number"
+                  name="totalTickets"
+                  placeholder="Total Tickets Available"
+                  icon="🎟️"
+                  min="1"
+                />
+              </div>
+            </div>
+
+            {/* Additional Details */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl">⚙️</span>
+                <h3 className="text-xl font-bold text-white">Additional Details</h3>
+                <div className="flex-1 h-px bg-gradient-to-r from-orange-500/50 to-transparent"></div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <InputField
+                  name="category"
+                  placeholder="Event Category"
+                  icon="🏷️"
+                />
+                
+                <InputField
+                  type="number"
+                  name="capacity"
+                  placeholder="Maximum Capacity"
+                  icon="👥"
+                  min="1"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <InputField
+                  name="organizer"
+                  placeholder="Event Organizer"
+                  icon="🎭"
+                />
+                
+                <InputField
+                  type="email"
+                  name="contactEmail"
+                  placeholder="Contact Email"
+                  icon="📧"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 mt-8 border-t border-slate-600/30">
+            <button
+              onClick={() => setShowConfirmModal(true)}
+              disabled={isSubmitting}
+              className="px-8 py-4 bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-purple-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <span className="text-xl">
+                    {view === 'edit' ? '💫' : '🚀'}
+                  </span>
+                  {view === 'edit' ? 'Update Event' : 'Create Event'}
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => view === 'edit' ? setView('preview') : window.history.back()}
+              disabled={isSubmitting}
+              className="px-8 py-4 bg-slate-600/50 backdrop-blur-xl text-slate-300 font-medium rounded-xl border border-slate-500/30 hover:bg-slate-600/70 transition-all duration-300 flex items-center justify-center gap-3 text-lg"
+            >
+              <span className="text-xl">↩️</span>
+              {view === 'edit' ? 'Cancel' : 'Back'}
+            </button>
+          </div>
+
+          {/* Helper Text */}
+          <div className="text-center mt-6 text-slate-400 text-sm">
+            <p className="flex items-center justify-center gap-2">
+              <span>💡</span>
+              Make sure all required fields are filled before submitting
+            </p>
+          </div>
+        </div>
       </div>
-    </motion.div>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && <ConfirmModal />}
+    </div>
   );
 };
 
