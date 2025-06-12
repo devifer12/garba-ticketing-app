@@ -78,23 +78,33 @@ const QrCheckerDashboard = () => {
 
     try {
       setLoading(true);
-      console.log('QR Code scanned:', qrCode);
+      console.log('🔍 QR Code scanned:', qrCode);
 
-      // Validate QR code format
-      if (!apiUtils.isValidQRCode(qrCode)) {
+      // Basic validation - more flexible now
+      if (!qrCode || typeof qrCode !== 'string' || qrCode.trim().length === 0) {
         setVerificationStatus('invalid');
         setCurrentTicket(null);
         setShowVerificationModal(true);
         addToScanHistory(qrCode, null, 'invalid');
-        toast.error('Invalid QR code format');
+        toast.error('Invalid QR code - empty or malformed');
         return;
       }
 
+      const trimmedQR = qrCode.trim();
+      console.log('📋 Trimmed QR Code:', trimmedQR);
+
       // Verify ticket with backend
-      const response = await ticketAPI.verifyQRCode(qrCode);
+      console.log('🌐 Sending verification request to backend...');
+      const response = await ticketAPI.verifyQRCode(trimmedQR);
+      console.log('📨 Backend response:', response.data);
       
       if (response.data.success) {
         const ticket = response.data.ticket;
+        console.log('✅ Valid ticket found:', {
+          ticketId: ticket.ticketId,
+          status: ticket.status,
+          userEmail: ticket.user?.email
+        });
         
         // Determine verification status
         let status = 'valid';
@@ -107,28 +117,48 @@ const QrCheckerDashboard = () => {
         setCurrentTicket(ticket);
         setVerificationStatus(status);
         setShowVerificationModal(true);
-        addToScanHistory(qrCode, ticket, status);
+        addToScanHistory(trimmedQR, ticket, status);
 
         // Show appropriate toast
         if (status === 'valid') {
-          toast.success(`Valid ticket for ${ticket.user?.name}`);
+          toast.success(`✅ Valid ticket for ${ticket.user?.name}`);
         } else if (status === 'used') {
-          toast.warning('Ticket already used');
+          toast.warning('⚠️ Ticket already used');
         } else if (status === 'cancelled') {
-          toast.error('Ticket has been cancelled');
+          toast.error('❌ Ticket has been cancelled');
         }
+      } else {
+        console.log('❌ Backend returned unsuccessful response');
+        setVerificationStatus('invalid');
+        setCurrentTicket(null);
+        setShowVerificationModal(true);
+        addToScanHistory(trimmedQR, null, 'invalid');
+        toast.error('Ticket verification failed');
       }
 
     } catch (error) {
-      console.error('QR verification error:', error);
+      console.error('❌ QR verification error:', error);
       const errorMessage = apiUtils.formatErrorMessage(error);
+      
+      console.log('🔍 Error details:', {
+        status: error.response?.status,
+        message: errorMessage,
+        serverResponse: error.response?.data
+      });
       
       setVerificationStatus('invalid');
       setCurrentTicket(null);
       setShowVerificationModal(true);
       addToScanHistory(qrCode, null, 'invalid');
       
-      toast.error(`Verification failed: ${errorMessage}`);
+      // More specific error messages
+      if (error.response?.status === 404) {
+        toast.error('🔍 Ticket not found in system');
+      } else if (error.response?.status === 400) {
+        toast.error('❌ Invalid QR code format');
+      } else {
+        toast.error(`❌ Verification failed: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -139,11 +169,13 @@ const QrCheckerDashboard = () => {
 
     try {
       setLoading(true);
+      console.log('🎯 Marking ticket as used:', currentTicket.ticketId);
       
       const response = await ticketAPI.markTicketAsUsed(currentTicket.qrCode);
+      console.log('✅ Mark as used response:', response.data);
       
       if (response.data.success) {
-        toast.success('Entry allowed! Ticket marked as used.');
+        toast.success('🎉 Entry allowed! Ticket marked as used.');
         
         // Update scan history to mark this entry as completed
         const updatedHistory = scanHistory.map(scan => 
@@ -166,25 +198,25 @@ const QrCheckerDashboard = () => {
       }
       
     } catch (error) {
-      console.error('Mark as used error:', error);
+      console.error('❌ Mark as used error:', error);
       const errorMessage = apiUtils.formatErrorMessage(error);
-      toast.error(`Failed to mark ticket as used: ${errorMessage}`);
+      toast.error(`❌ Failed to mark ticket as used: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
 
   const handleScanError = (error) => {
-    console.error('Scanner error:', error);
+    console.error('📷 Scanner error:', error);
     toast.error('Scanner error: ' + error.message);
   };
 
   const toggleScanner = () => {
     setScannerActive(!scannerActive);
     if (!scannerActive) {
-      toast.info('QR Scanner activated');
+      toast.info('📷 QR Scanner activated');
     } else {
-      toast.info('QR Scanner deactivated');
+      toast.info('⏹️ QR Scanner deactivated');
     }
   };
 
@@ -192,7 +224,7 @@ const QrCheckerDashboard = () => {
     setScanHistory([]);
     setStats({ totalScanned: 0, validEntries: 0, rejectedScans: 0 });
     localStorage.removeItem('qr_scan_history');
-    toast.success('Scan history cleared');
+    toast.success('🧹 Scan history cleared');
   };
 
   const formatDate = (dateString) => {
@@ -346,6 +378,19 @@ const QrCheckerDashboard = () => {
               </p>
             </div>
           )}
+
+          {/* Debug Info */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-3 bg-slate-700/50 rounded-lg">
+              <h4 className="text-white font-medium mb-2">Debug Info:</h4>
+              <div className="text-xs text-slate-300 space-y-1">
+                <p>Scanner Active: {scannerActive ? 'Yes' : 'No'}</p>
+                <p>Loading: {loading ? 'Yes' : 'No'}</p>
+                <p>User Role: {backendUser?.role || 'Unknown'}</p>
+                <p>Total Scans: {stats.totalScanned}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Scan History */}
@@ -403,9 +448,17 @@ const QrCheckerDashboard = () => {
                     <div className="text-sm">
                       <p className="text-white font-medium">{scan.ticket.user?.name}</p>
                       <p className="text-slate-400 text-xs">{scan.ticket.eventName}</p>
+                      <p className="text-slate-500 text-xs font-mono">
+                        QR: {scan.qrCode.substring(0, 15)}...
+                      </p>
                     </div>
                   ) : (
-                    <p className="text-red-400 text-sm">Invalid QR Code</p>
+                    <div className="text-sm">
+                      <p className="text-red-400 text-sm">Invalid QR Code</p>
+                      <p className="text-slate-500 text-xs font-mono">
+                        QR: {scan.qrCode.substring(0, 15)}...
+                      </p>
+                    </div>
                   )}
                 </motion.div>
               ))

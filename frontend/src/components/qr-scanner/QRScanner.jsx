@@ -12,143 +12,240 @@ const QRScanner = ({
 }) => {
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
-  const [hasCamera, setHasCamera] = useState(false);
+  const [hasCamera, setHasCamera] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState(null);
   const [cameras, setCameras] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(false);
 
+  // Check camera availability and initialize
   useEffect(() => {
-    const initializeScanner = async () => {
+    const checkCameraAndInit = async () => {
       try {
+        setIsInitializing(true);
+        setError(null);
+        
+        console.log('🔍 Checking camera availability...');
+        
         // Check if camera is available
-        const hasCamera = await QrScanner.hasCamera();
-        setHasCamera(hasCamera);
+        const cameraAvailable = await QrScanner.hasCamera();
+        console.log('📷 Camera available:', cameraAvailable);
+        setHasCamera(cameraAvailable);
 
-        if (!hasCamera) {
+        if (!cameraAvailable) {
           setError('No camera found on this device');
           return;
         }
 
         // Get available cameras
-        const cameras = await QrScanner.listCameras(true);
-        setCameras(cameras);
+        console.log('📋 Getting camera list...');
+        const cameraList = await QrScanner.listCameras(true);
+        console.log('📋 Available cameras:', cameraList);
+        setCameras(cameraList);
         
         // Prefer back camera for scanning
-        const backCamera = cameras.find(camera => 
+        const backCamera = cameraList.find(camera => 
           camera.label.toLowerCase().includes('back') || 
           camera.label.toLowerCase().includes('rear') ||
           camera.label.toLowerCase().includes('environment')
         );
-        setSelectedCamera(backCamera || cameras[0]);
+        const preferredCamera = backCamera || cameraList[0];
+        console.log('🎯 Selected camera:', preferredCamera);
+        setSelectedCamera(preferredCamera);
 
-        if (videoRef.current) {
-          // Initialize QR Scanner
-          scannerRef.current = new QrScanner(
-            videoRef.current,
-            (result) => {
-              if (onScan) {
-                onScan(result.data);
-              }
-            },
-            {
-              onDecodeError: (error) => {
-                // Silently handle decode errors (normal when no QR code is visible)
-                console.debug('QR decode error:', error);
-              },
-              preferredCamera: selectedCamera?.id || 'environment',
-              highlightScanRegion: true,
-              highlightCodeOutline: true,
-              maxScansPerSecond: 5,
+      } catch (err) {
+        console.error('❌ Camera check failed:', err);
+        setError('Failed to access camera: ' + err.message);
+        setHasCamera(false);
+        if (onError) onError(err);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    checkCameraAndInit();
+  }, [onError]);
+
+  // Initialize scanner when camera is selected
+  useEffect(() => {
+    if (!hasCamera || !selectedCamera || !videoRef.current) return;
+
+    const initScanner = async () => {
+      try {
+        console.log('🔧 Initializing QR Scanner...');
+        
+        // Clean up existing scanner
+        if (scannerRef.current) {
+          console.log('🧹 Cleaning up existing scanner...');
+          scannerRef.current.destroy();
+          scannerRef.current = null;
+        }
+
+        // Create new scanner instance
+        scannerRef.current = new QrScanner(
+          videoRef.current,
+          (result) => {
+            console.log('✅ QR Code detected:', result.data);
+            if (onScan) {
+              onScan(result.data);
             }
-          );
+          },
+          {
+            onDecodeError: (error) => {
+              // Silently handle decode errors (normal when no QR code is visible)
+              console.debug('🔍 QR decode error (normal):', error.message);
+            },
+            preferredCamera: selectedCamera.id,
+            highlightScanRegion: true,
+            highlightCodeOutline: true,
+            maxScansPerSecond: 5,
+            returnDetailedScanResult: true,
+          }
+        );
 
-          // Set overlay and scan region styling
+        console.log('✅ QR Scanner initialized successfully');
+
+        // Set overlay styling if scanner has overlay
+        if (scannerRef.current.$overlay) {
           scannerRef.current.$overlay.style.background = overlayColor;
-          scannerRef.current.$overlay.style.borderColor = scanBoxColor;
+          if (scannerRef.current.$overlay.style.borderColor !== undefined) {
+            scannerRef.current.$overlay.style.borderColor = scanBoxColor;
+          }
         }
 
       } catch (err) {
-        console.error('Scanner initialization error:', err);
-        setError('Failed to initialize camera: ' + err.message);
+        console.error('❌ Scanner initialization failed:', err);
+        setError('Failed to initialize scanner: ' + err.message);
         if (onError) onError(err);
       }
     };
 
-    initializeScanner();
+    initScanner();
 
+    // Cleanup on unmount
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.destroy();
+        console.log('🧹 Cleaning up scanner on unmount...');
+        try {
+          scannerRef.current.destroy();
+        } catch (err) {
+          console.warn('⚠️ Error during scanner cleanup:', err);
+        }
         scannerRef.current = null;
       }
     };
-  }, [selectedCamera, onScan, onError, overlayColor, scanBoxColor]);
+  }, [hasCamera, selectedCamera, onScan, onError, overlayColor, scanBoxColor]);
 
+  // Handle scanner start/stop based on isActive prop
   useEffect(() => {
-    if (scannerRef.current && hasCamera) {
-      if (isActive && !isScanning) {
-        startScanning();
-      } else if (!isActive && isScanning) {
-        stopScanning();
-      }
-    }
-  }, [isActive, hasCamera]);
+    if (!scannerRef.current || hasCamera === false) return;
 
-  const startScanning = async () => {
-    try {
-      if (scannerRef.current && !isScanning) {
-        await scannerRef.current.start();
-        setIsScanning(true);
-        setError(null);
-      }
-    } catch (err) {
-      console.error('Failed to start scanner:', err);
-      setError('Failed to start camera: ' + err.message);
-      if (onError) onError(err);
-    }
-  };
-
-  const stopScanning = () => {
-    try {
-      if (scannerRef.current && isScanning) {
-        scannerRef.current.stop();
+    const handleScannerState = async () => {
+      try {
+        if (isActive && !isScanning) {
+          console.log('▶️ Starting scanner...');
+          await scannerRef.current.start();
+          setIsScanning(true);
+          setError(null);
+          console.log('✅ Scanner started successfully');
+        } else if (!isActive && isScanning) {
+          console.log('⏹️ Stopping scanner...');
+          scannerRef.current.stop();
+          setIsScanning(false);
+          console.log('✅ Scanner stopped successfully');
+        }
+      } catch (err) {
+        console.error('❌ Scanner state change failed:', err);
+        setError('Failed to control camera: ' + err.message);
         setIsScanning(false);
+        if (onError) onError(err);
       }
-    } catch (err) {
-      console.error('Failed to stop scanner:', err);
-    }
-  };
+    };
+
+    // Add a small delay to ensure scanner is ready
+    const timer = setTimeout(handleScannerState, 100);
+    return () => clearTimeout(timer);
+  }, [isActive, isScanning, hasCamera, onError]);
 
   const switchCamera = async () => {
-    if (cameras.length <= 1) return;
+    if (cameras.length <= 1 || !scannerRef.current) return;
 
     try {
+      console.log('🔄 Switching camera...');
       const currentIndex = cameras.findIndex(cam => cam.id === selectedCamera?.id);
       const nextIndex = (currentIndex + 1) % cameras.length;
       const nextCamera = cameras[nextIndex];
       
+      console.log('📷 Switching to camera:', nextCamera);
       setSelectedCamera(nextCamera);
       
-      if (scannerRef.current) {
-        await scannerRef.current.setCamera(nextCamera.id);
+      // Stop current scanner
+      if (isScanning) {
+        scannerRef.current.stop();
+        setIsScanning(false);
       }
+      
+      // Set new camera
+      await scannerRef.current.setCamera(nextCamera.id);
+      
+      // Restart if it was active
+      if (isActive) {
+        await scannerRef.current.start();
+        setIsScanning(true);
+      }
+      
+      console.log('✅ Camera switched successfully');
     } catch (err) {
-      console.error('Failed to switch camera:', err);
-      setError('Failed to switch camera');
+      console.error('❌ Failed to switch camera:', err);
+      setError('Failed to switch camera: ' + err.message);
     }
   };
 
-  if (!hasCamera) {
+  // Show loading state during initialization
+  if (isInitializing || hasCamera === null) {
+    return (
+      <div className={`relative bg-slate-800 rounded-xl overflow-hidden ${className}`}>
+        <div className="aspect-square flex items-center justify-center p-8">
+          <div className="text-center">
+            <motion.div
+              className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            />
+            <h3 className="text-white font-bold text-xl mb-2">Initializing Camera</h3>
+            <p className="text-slate-400">
+              Checking camera permissions and availability...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show no camera message
+  if (hasCamera === false) {
     return (
       <div className={`relative bg-slate-800 rounded-xl overflow-hidden ${className}`}>
         <div className="aspect-square flex items-center justify-center p-8">
           <div className="text-center">
             <div className="text-6xl mb-4">📷</div>
             <h3 className="text-white font-bold text-xl mb-2">No Camera Available</h3>
-            <p className="text-slate-400">
-              Camera access is required to scan QR codes. Please ensure your device has a camera and grant permission.
+            <p className="text-slate-400 mb-4">
+              Camera access is required to scan QR codes. Please ensure:
             </p>
+            <ul className="text-slate-400 text-sm text-left space-y-1">
+              <li>• Your device has a camera</li>
+              <li>• Camera permissions are granted</li>
+              <li>• Camera is not being used by another app</li>
+              <li>• You're using HTTPS (required for camera access)</li>
+            </ul>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              Retry
+            </button>
           </div>
         </div>
       </div>
@@ -163,6 +260,7 @@ const QRScanner = ({
         className="w-full aspect-square object-cover"
         playsInline
         muted
+        autoPlay
       />
 
       {/* Scanner Controls Overlay */}
@@ -205,6 +303,11 @@ const QRScanner = ({
               : 'Camera is not active'
             }
           </p>
+          {selectedCamera && (
+            <p className="text-slate-300 text-xs mt-1">
+              Using: {selectedCamera.label}
+            </p>
+          )}
         </div>
       </div>
 
@@ -220,22 +323,32 @@ const QRScanner = ({
             <div className="text-center p-4">
               <div className="text-4xl mb-2">⚠️</div>
               <h4 className="text-white font-bold mb-2">Scanner Error</h4>
-              <p className="text-red-200 text-sm">{error}</p>
-              <motion.button
-                onClick={() => setError(null)}
-                className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Dismiss
-              </motion.button>
+              <p className="text-red-200 text-sm mb-3">{error}</p>
+              <div className="flex gap-2 justify-center">
+                <motion.button
+                  onClick={() => setError(null)}
+                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Dismiss
+                </motion.button>
+                <motion.button
+                  onClick={() => window.location.reload()}
+                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Reload
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Loading Overlay */}
-      {!isScanning && hasCamera && isActive && (
+      {/* Loading Overlay - Show when scanner should be active but isn't scanning yet */}
+      {isActive && !isScanning && !error && hasCamera && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
           <div className="text-center">
             <motion.div

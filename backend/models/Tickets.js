@@ -118,7 +118,7 @@ ticketSchema.index({ qrCode: 1 });
 ticketSchema.index({ status: 1 });
 ticketSchema.index({ scannedAt: 1 });
 
-// Static method to generate unique QR code data
+// Static method to generate unique QR code data - ENHANCED
 ticketSchema.statics.generateQRCode = function() {
   const timestamp = Date.now();
   const randomString = Math.random().toString(36).substr(2, 12).toUpperCase();
@@ -127,10 +127,28 @@ ticketSchema.statics.generateQRCode = function() {
   return `GARBA2025-${timestamp}-${randomString}-${uuid}`;
 };
 
-// Static method to validate QR code format
+// Static method to validate QR code format - ENHANCED
 ticketSchema.statics.isValidQRCode = function(qrCode) {
-  const qrPattern = /^GARBA2025-\d{13}-[A-Z0-9]{12}-[A-Z0-9]{8}$/;
-  return qrPattern.test(qrCode);
+  if (!qrCode || typeof qrCode !== 'string') {
+    console.log('❌ QR Code validation failed: Invalid input type');
+    return false;
+  }
+  
+  // More flexible pattern matching
+  const patterns = [
+    /^GARBA2025-\d{13}-[A-Z0-9]{12}-[A-Z0-9]{8}$/,  // Standard format
+    /^GARBA-\d{13}-[A-Z0-9]{9}$/,                    // Alternative format from ticketId
+    /^GARBA2025-.*$/                                  // Fallback for any GARBA2025 prefix
+  ];
+  
+  const isValid = patterns.some(pattern => pattern.test(qrCode));
+  console.log('🔍 QR Code validation:', {
+    qrCode: qrCode.substring(0, 20) + '...',
+    isValid,
+    length: qrCode.length
+  });
+  
+  return isValid;
 };
 
 // Instance method to mark ticket as used
@@ -177,7 +195,7 @@ ticketSchema.methods.getSafeTicketData = function() {
   };
 };
 
-// Pre-save middleware to ensure QR code uniqueness
+// Pre-save middleware to ensure QR code uniqueness - ENHANCED
 ticketSchema.pre('save', async function(next) {
   if (this.isNew && !this.qrCode) {
     let attempts = 0;
@@ -189,10 +207,12 @@ ticketSchema.pre('save', async function(next) {
       
       if (!existingTicket) {
         this.qrCode = qrCode;
+        console.log('✅ Generated unique QR code:', qrCode.substring(0, 20) + '...');
         break;
       }
       
       attempts++;
+      console.log(`⚠️ QR code collision, attempt ${attempts}/${maxAttempts}`);
     }
     
     if (!this.qrCode) {
@@ -203,9 +223,41 @@ ticketSchema.pre('save', async function(next) {
   next();
 });
 
-// Static method to find ticket by QR code
+// Static method to find ticket by QR code - ENHANCED
 ticketSchema.statics.findByQRCode = async function(qrCode) {
-  return await this.findOne({ qrCode }).populate('user', 'name email role');
+  console.log('🔍 Searching for ticket with QR code:', qrCode ? qrCode.substring(0, 20) + '...' : 'null');
+  
+  if (!qrCode) {
+    console.log('❌ No QR code provided to search');
+    return null;
+  }
+  
+  try {
+    // Try exact match first
+    let ticket = await this.findOne({ qrCode: qrCode }).populate('user', 'name email role');
+    
+    if (ticket) {
+      console.log('✅ Found ticket by exact QR match');
+      return ticket;
+    }
+    
+    // If no exact match, try case-insensitive search
+    ticket = await this.findOne({ 
+      qrCode: { $regex: `^${qrCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } 
+    }).populate('user', 'name email role');
+    
+    if (ticket) {
+      console.log('✅ Found ticket by case-insensitive QR match');
+      return ticket;
+    }
+    
+    console.log('❌ No ticket found with QR code');
+    return null;
+    
+  } catch (error) {
+    console.error('❌ Error searching for ticket by QR code:', error);
+    throw error;
+  }
 };
 
 // Static method to get user's active tickets

@@ -337,38 +337,77 @@ router.patch('/:ticketId/cancel', verifyToken, async (req, res) => {
   }
 });
 
-// QR Code verification endpoint (for checkers)
+// QR Code verification endpoint (for checkers) - FIXED
 router.post('/verify-qr', verifyToken, async (req, res) => {
   try {
     const { qrCode } = req.body;
     
+    console.log('🔍 QR Verification Request:', {
+      qrCode: qrCode ? qrCode.substring(0, 20) + '...' : 'null',
+      userUID: req.user.uid
+    });
+    
     if (!qrCode) {
+      console.log('❌ No QR code provided');
       return res.status(400).json({ 
         success: false,
         error: "QR code is required" 
       });
     }
 
-    // Validate QR code format
-    if (!Ticket.isValidQRCode(qrCode)) {
+    // Validate QR code format - FIXED: More flexible validation
+    console.log('🔍 Validating QR code format...');
+    const isValidFormat = Ticket.isValidQRCode(qrCode);
+    console.log('📋 QR Code format valid:', isValidFormat);
+    
+    if (!isValidFormat) {
+      console.log('❌ Invalid QR code format:', qrCode);
       return res.status(400).json({ 
         success: false,
         error: "Invalid QR code format" 
       });
     }
 
-    // Find ticket by QR code
-    const ticket = await Ticket.findByQRCode(qrCode);
+    // Find ticket by QR code - ENHANCED SEARCH
+    console.log('🔍 Searching for ticket with QR code...');
+    const ticket = await Ticket.findOne({ qrCode: qrCode })
+      .populate('user', 'name email role')
+      .populate('scannedBy', 'name email');
+    
+    console.log('🎫 Ticket search result:', ticket ? {
+      id: ticket._id,
+      ticketId: ticket.ticketId,
+      status: ticket.status,
+      userEmail: ticket.user?.email
+    } : 'Not found');
     
     if (!ticket) {
+      console.log('❌ Ticket not found in database');
+      
+      // Additional debugging: Check if any tickets exist
+      const totalTickets = await Ticket.countDocuments();
+      console.log('📊 Total tickets in database:', totalTickets);
+      
+      // Check for similar QR codes (for debugging)
+      const similarTickets = await Ticket.find({
+        qrCode: { $regex: qrCode.substring(0, 10), $options: 'i' }
+      }).limit(3);
+      console.log('🔍 Similar QR codes found:', similarTickets.length);
+      
       return res.status(404).json({ 
         success: false,
-        error: "Ticket not found" 
+        error: "Ticket not found",
+        debug: process.env.NODE_ENV === 'development' ? {
+          totalTickets,
+          searchedQR: qrCode.substring(0, 20) + '...',
+          similarFound: similarTickets.length
+        } : undefined
       });
     }
 
     // Check ticket status
     if (ticket.status === 'cancelled') {
+      console.log('❌ Ticket is cancelled');
       return res.status(400).json({ 
         success: false,
         error: "This ticket has been cancelled" 
@@ -376,6 +415,7 @@ router.post('/verify-qr', verifyToken, async (req, res) => {
     }
 
     if (ticket.status === 'used') {
+      console.log('⚠️ Ticket already used');
       return res.status(400).json({ 
         success: false,
         error: "This ticket has already been used",
@@ -388,12 +428,14 @@ router.post('/verify-qr', verifyToken, async (req, res) => {
     }
 
     // Return ticket information for verification
+    console.log('✅ Valid ticket found');
     res.status(200).json({
       success: true,
       message: "Valid ticket found",
       ticket: {
         id: ticket._id,
         ticketId: ticket.ticketId,
+        qrCode: ticket.qrCode,
         eventName: ticket.eventName,
         status: ticket.status,
         user: {
@@ -407,18 +449,24 @@ router.post('/verify-qr', verifyToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error("QR verification error:", error);
+    console.error("❌ QR verification error:", error);
     res.status(500).json({ 
       success: false,
-      error: "Failed to verify QR code" 
+      error: "Failed to verify QR code",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
 
-// Mark ticket as used (for checkers)
+// Mark ticket as used (for checkers) - ENHANCED
 router.post('/mark-used', verifyToken, async (req, res) => {
   try {
     const { qrCode } = req.body;
+    
+    console.log('🎯 Mark as used request:', {
+      qrCode: qrCode ? qrCode.substring(0, 20) + '...' : 'null',
+      userUID: req.user.uid
+    });
     
     if (!qrCode) {
       return res.status(400).json({ 
@@ -438,6 +486,7 @@ router.post('/mark-used', verifyToken, async (req, res) => {
 
     // Check if user has permission to mark tickets as used
     if (!['admin', 'qrchecker', 'manager'].includes(checker.role)) {
+      console.log('❌ Insufficient permissions:', checker.role);
       return res.status(403).json({ 
         success: false,
         error: "Insufficient permissions to mark tickets as used" 
@@ -445,9 +494,11 @@ router.post('/mark-used', verifyToken, async (req, res) => {
     }
 
     // Find ticket by QR code
-    const ticket = await Ticket.findByQRCode(qrCode);
+    const ticket = await Ticket.findOne({ qrCode: qrCode })
+      .populate('user', 'name email');
     
     if (!ticket) {
+      console.log('❌ Ticket not found for marking as used');
       return res.status(404).json({ 
         success: false,
         error: "Ticket not found" 
@@ -477,6 +528,7 @@ router.post('/mark-used', verifyToken, async (req, res) => {
 
     // Mark ticket as used
     await ticket.markAsUsed(checker._id);
+    console.log('✅ Ticket marked as used successfully');
 
     res.status(200).json({
       success: true,
@@ -499,10 +551,11 @@ router.post('/mark-used', verifyToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Mark ticket as used error:", error);
+    console.error("❌ Mark ticket as used error:", error);
     res.status(500).json({ 
       success: false,
-      error: "Failed to mark ticket as used" 
+      error: "Failed to mark ticket as used",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
