@@ -1,587 +1,157 @@
-// frontend/src/services/api.js
 import axios from 'axios';
 import { auth } from '../firebase';
+import { API_ENDPOINTS, ERROR_MESSAGES } from '../utils/constants.js';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
-  timeout: 30000, // Increased timeout
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-  withCredentials: true, // Enable credentials for CORS
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+  withCredentials: true,
 });
 
-// Request interceptor - Enhanced token handling
+// Request interceptor
 api.interceptors.request.use(
   async (config) => {
     try {
       const user = auth.currentUser;
-      
       if (user) {
-        // Get fresh Firebase ID token
         const token = await user.getIdToken(true);
         config.headers.Authorization = `Bearer ${token}`;
-        
-        // Add user context headers
         config.headers['X-User-UID'] = user.uid;
         config.headers['X-User-Email'] = user.email;
       }
-      
-      // Add request timestamp
       config.headers['X-Request-Time'] = new Date().toISOString();
       
-      // Add cache-busting for GET requests
       if (config.method === 'get') {
-        config.params = {
-          ...config.params,
-          _t: Date.now()
-        };
+        config.params = { ...config.params, _t: Date.now() };
       }
-      
-      // Log request in development
-      if (import.meta.env.DEV) {
-        console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
-          headers: config.headers,
-          data: config.data,
-          params: config.params
-        });
-      }
-      
     } catch (error) {
       console.error('Request interceptor error:', error);
-      // Continue without token if there's an error
     }
-    
     return config;
   },
-  (error) => {
-    console.error('Request interceptor failed:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor - Enhanced error handling
+// Response interceptor
 api.interceptors.response.use(
-  (response) => {
-    // Log successful responses in development
-    if (import.meta.env.DEV) {
-      console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`, {
-        status: response.status,
-        data: response.data
-      });
-    }
-    return response;
-  },
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
     
-    // Log error details
-    console.error('API Error:', {
-      url: originalRequest?.url,
-      method: originalRequest?.method,
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data
-    });
-    
-    // Handle 401 Unauthorized - Token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
       try {
         const user = auth.currentUser;
         if (user) {
-          console.log('Attempting token refresh...');
           const newToken = await user.getIdToken(true);
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          
-          console.log('Token refreshed, retrying request...');
           return api(originalRequest);
         } else {
-          console.log('No current user for token refresh');
-          // Redirect to login or trigger auth flow
           window.location.href = '/';
         }
       } catch (tokenError) {
-        console.error('Token refresh failed:', tokenError);
-        
-        // Force logout on token refresh failure
-        try {
-          await auth.signOut();
-          window.location.href = '/';
-        } catch (signOutError) {
-          console.error('Force logout failed:', signOutError);
-        }
+        await auth.signOut();
+        window.location.href = '/';
       }
     }
     
-    // Handle different error types
-    const errorResponse = {
-      ...error,
-      isNetworkError: !error.response,
-      isServerError: error.response?.status >= 500,
-      isClientError: error.response?.status >= 400 && error.response?.status < 500,
-      statusCode: error.response?.status,
-      serverMessage: error.response?.data?.message || error.response?.data?.error
-    };
-    
-    // Network errors
-    if (!error.response) {
-      console.error('Network error - no response received');
-      errorResponse.message = 'Network error. Please check your connection and try again.';
-    }
-    
-    // Server errors (5xx)
-    else if (error.response.status >= 500) {
-      console.error('Server error:', error.response.status, error.response.data);
-      errorResponse.message = 'Server error. Please try again later.';
-    }
-    
-    // Client errors (4xx)
-    else if (error.response.status >= 400) {
-      const serverMsg = error.response.data?.message || error.response.data?.error;
-      
-      switch (error.response.status) {
-        case 400:
-          errorResponse.message = serverMsg || 'Invalid request. Please check your input.';
-          break;
-        case 403:
-          errorResponse.message = serverMsg || 'Access forbidden. Please check your permissions.';
-          break;
-        case 404:
-          errorResponse.message = serverMsg || 'Resource not found.';
-          break;
-        case 409:
-          errorResponse.message = serverMsg || 'Conflict. Resource already exists.';
-          break;
-        case 429:
-          errorResponse.message = 'Too many requests. Please wait and try again.';
-          break;
-        default:
-          errorResponse.message = serverMsg || `Request failed (${error.response.status})`;
-      }
-    }
-    
-    return Promise.reject(errorResponse);
+    return Promise.reject(enhanceError(error));
   }
 );
 
-// Helper function to check API health
-export const checkAPIHealth = async () => {
-  try {
-    const response = await api.get('/status');
-    console.log('API Health Check:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('API Health Check Failed:', error);
-    throw error;
+const enhanceError = (error) => {
+  const enhanced = { ...error };
+  enhanced.isNetworkError = !error.response;
+  enhanced.isServerError = error.response?.status >= 500;
+  enhanced.isClientError = error.response?.status >= 400 && error.response?.status < 500;
+  enhanced.statusCode = error.response?.status;
+  enhanced.serverMessage = error.response?.data?.message || error.response?.data?.error;
+  
+  if (!error.response) {
+    enhanced.message = ERROR_MESSAGES.NETWORK;
+  } else if (error.response.status >= 500) {
+    enhanced.message = ERROR_MESSAGES.SERVER;
+  } else {
+    const serverMsg = error.response.data?.message || error.response.data?.error;
+    enhanced.message = serverMsg || getClientErrorMessage(error.response.status);
   }
+  
+  return enhanced;
 };
 
-// Auth API endpoints
-export const authAPI = {
-  // Google Sign-In with enhanced error handling
-  googleSignIn: async (userData) => {
-    try {
-      console.log('Calling Google Sign-In API...');
-      const response = await api.post('/auth/google-signin', userData);
-      console.log('Google Sign-In API Success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Google Sign-In API Error:', error);
-      throw error;
-    }
-  },
-  
-  // Get current user profile
-  getCurrentUser: async () => {
-    try {
-      const response = await api.get('/auth/me');
-      return response;
-    } catch (error) {
-      console.error('Get current user failed:', error);
-      throw error;
-    }
-  },
-  
-  // Alternative endpoint for profile
-  getProfile: async () => {
-    try {
-      const response = await api.get('/auth/profile');
-      return response;
-    } catch (error) {
-      console.error('Get profile failed:', error);
-      // Try alternative endpoint
-      return await api.get('/auth/me');
-    }
-  },
-  
-  // Update user profile
-  updateProfile: async (userData) => {
-    try {
-      const response = await api.put('/auth/profile', userData);
-      return response;
-    } catch (error) {
-      console.error('Update profile failed:', error);
-      throw error;
-    }
-  },
-  
-  // Assign admin role (temporary for testing)
-  assignAdminRole: async () => {
-    try {
-      console.log('Assigning admin role...');
-      const response = await api.post('/auth/assign-admin');
-      console.log('Admin role assigned:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Admin role assignment failed:', error);
-      throw error;
-    }
-  },
-  
-  // Logout user
-  logout: async () => {
-    try {
-      const response = await api.post('/auth/logout');
-      return response;
-    } catch (error) {
-      console.error('Logout API failed:', error);
-      // Don't throw error for logout API failure
-      return null;
-    }
-  }
+const getClientErrorMessage = (status) => {
+  const messages = {
+    400: ERROR_MESSAGES.INVALID_REQUEST,
+    403: ERROR_MESSAGES.ACCESS_FORBIDDEN,
+    404: ERROR_MESSAGES.NOT_FOUND,
+    409: ERROR_MESSAGES.CONFLICT,
+    429: ERROR_MESSAGES.TOO_MANY_REQUESTS
+  };
+  return messages[status] || `Request failed (${status})`;
 };
 
-// Event API endpoints
-export const eventAPI = {
-  // Get current event details (public)
-  getCurrentEvent: async () => {
-    try {
-      console.log('Fetching current event...');
-      const response = await api.get('/event');
-      console.log('Get current event success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Get current event failed:', error);
-      throw error;
-    }
-  },
+// API helper function
+const createAPI = (endpoints) => {
+  const apiMethods = {};
   
-  // Check if event exists
-  checkEventExists: async () => {
-    try {
-      console.log('Checking if event exists...');
-      const response = await api.get('/event/exists');
-      console.log('Check event exists success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Check event exists failed:', error);
-      throw error;
-    }
-  },
-  
-  // Create new event (admin only)
-  createEvent: async (eventData) => {
-    try {
-      console.log('Creating new event...', eventData);
-      const response = await api.post('/event', eventData);
-      console.log('Create event success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Create event failed:', error);
-      throw error;
-    }
-  },
-  
-  // Update existing event (admin only)
-  updateEvent: async (eventData) => {
-    try {
-      console.log('Updating event...', eventData);
-      const response = await api.put('/event', eventData);
-      console.log('Update event success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Update event failed:', error);
-      throw error;
-    }
-  }
-};
-
-// Ticket API endpoints - ENHANCED with QR code support
-export const ticketAPI = {
-  // Create new ticket booking with quantity support
-  createBooking: async (bookingData) => {
-    try {
-      console.log('Creating ticket booking...', bookingData);
-      const response = await api.post('/tickets', bookingData);
-      console.log('Create booking success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Create booking failed:', error);
-      throw error;
-    }
-  },
-  
-  // Get user's tickets
-  getMyTickets: async () => {
-    try {
-      console.log('Fetching user tickets...');
-      const response = await api.get('/tickets/my-tickets');
-      console.log('Get my tickets success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Get my tickets failed:', error);
-      throw error;
-    }
-  },
-  
-  // Get specific ticket
-  getTicket: async (ticketId) => {
-    try {
-      console.log(`Fetching ticket ${ticketId}...`);
-      const response = await api.get(`/tickets/${ticketId}`);
-      console.log('Get ticket success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Get ticket failed:', error);
-      throw error;
-    }
-  },
-  
-  // Cancel ticket
-  cancelTicket: async (ticketId) => {
-    try {
-      console.log(`Cancelling ticket ${ticketId}...`);
-      const response = await api.patch(`/tickets/${ticketId}/cancel`);
-      console.log('Cancel ticket success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Cancel ticket failed:', error);
-      throw error;
-    }
-  },
-  
-  // Verify QR code (for checkers)
-  verifyQRCode: async (qrCode) => {
-    try {
-      console.log('Verifying QR code...');
-      const response = await api.post('/tickets/verify-qr', { qrCode });
-      console.log('QR verification success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('QR verification failed:', error);
-      throw error;
-    }
-  },
-  
-  // Mark ticket as used (for checkers)
-  markTicketAsUsed: async (qrCode) => {
-    try {
-      console.log('Marking ticket as used...');
-      const response = await api.post('/tickets/mark-used', { qrCode });
-      console.log('Mark ticket as used success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Mark ticket as used failed:', error);
-      throw error;
-    }
-  }
-};
-
-// Admin API endpoints - ENHANCED with better error handling
-export const adminAPI = {
-  // Get all tickets (admin only)
-  getAllTickets: async (params = {}) => {
-    try {
-      console.log('Fetching all tickets...');
-      const response = await api.get('/tickets/admin/all', { params });
-      console.log('Get all tickets success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Get all tickets failed:', error);
-      throw error;
-    }
-  },
-  
-  // Update ticket status (admin only)
-  updateTicketStatus: async (ticketId, status) => {
-    try {
-      console.log(`Updating ticket ${ticketId} status to ${status}...`);
-      const response = await api.patch(`/tickets/admin/${ticketId}/status`, { status });
-      console.log('Update ticket status success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Update ticket status failed:', error);
-      throw error;
-    }
-  },
-  
-  // Get user count (for dashboard stats)
-  getUserCount: async () => {
-    try {
-      console.log('Fetching user count...');
-      const response = await api.get('/admin/users/count');
-      console.log('Get user count success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Get user count failed:', error);
-      // Return default data if endpoint fails
-      return { data: { count: 0 } };
-    }
-  },
-  
-  // Get all users with pagination and filtering
-  getAllUsers: async (params = {}) => {
-    try {
-      console.log('Fetching all users...', params);
-      const response = await api.get('/admin/users', { params });
-      console.log('Get all users success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Get all users failed:', error);
-      throw error;
-    }
-  },
-  
-  // Update user role (admin only)
-  updateUserRole: async (userId, role) => {
-    try {
-      console.log(`Updating user ${userId} role to ${role}...`);
-      const response = await api.patch(`/admin/users/${userId}/role`, { role });
-      console.log('Update user role success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Update user role failed:', error);
-      throw error;
-    }
-  },
-  
-  // Get ticket statistics (for dashboard stats)
-  getTicketStats: async () => {
-    try {
-      console.log('Fetching ticket stats...');
-      const response = await api.get('/tickets/admin/stats');
-      console.log('Get ticket stats success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Get ticket stats failed:', error);
-      // Return default data if endpoint fails
-      return { data: { total: 0, revenue: 0 } };
-    }
-  },
-  
-  // Get dashboard analytics
-  getDashboardAnalytics: async () => {
-    try {
-      console.log('Fetching dashboard analytics...');
-      const response = await api.get('/admin/analytics/dashboard');
-      console.log('Get dashboard analytics success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Get dashboard analytics failed:', error);
-      // Return default data if endpoint fails
-      return { 
-        data: { 
-          users: { total: 0, newToday: 0 },
-          tickets: { total: 0, soldToday: 0 },
-          revenue: { total: 0 },
-          event: null,
-          salesChart: []
-        } 
+  Object.entries(endpoints).forEach(([key, endpoint]) => {
+    if (typeof endpoint === 'string') {
+      apiMethods[key] = (data, config = {}) => {
+        const method = config.method || 'get';
+        return api[method](endpoint, method === 'get' ? { params: data } : data, config);
       };
     }
-  },
+  });
   
-  // Get ticket management data with filtering
-  getTicketManagement: async (params = {}) => {
-    try {
-      console.log('Fetching ticket management data...', params);
-      const response = await api.get('/admin/tickets/management');
-      console.log('Get ticket management success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Get ticket management failed:', error);
-      throw error;
-    }
-  },
-  
-  // Bulk update tickets (admin only)
-  bulkUpdateTickets: async (ticketIds, status) => {
-    try {
-      console.log(`Bulk updating ${ticketIds.length} tickets to ${status}...`);
-      const response = await api.patch('/admin/tickets/bulk-update', { ticketIds, status });
-      console.log('Bulk update tickets success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Bulk update tickets failed:', error);
-      throw error;
-    }
-  },
-  
-  // Export tickets data
-  exportTickets: async (format = 'json') => {
-    try {
-      console.log(`Exporting tickets as ${format}...`);
-      const response = await api.get('/admin/tickets/export', { 
-        params: { format },
-        responseType: format === 'csv' ? 'text' : 'json'
-      });
-      console.log('Export tickets success');
-      return response;
-    } catch (error) {
-      console.error('Export tickets failed:', error);
-      throw error;
-    }
-  },
-  
-  // Get system health (admin only)
-  getSystemHealth: async () => {
-    try {
-      console.log('Fetching system health...');
-      const response = await api.get('/admin/system/health');
-      console.log('Get system health success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Get system health failed:', error);
-      throw error;
-    }
-  }
+  return apiMethods;
 };
 
-// QR Code API endpoints - NEW
-export const qrAPI = {
-  // Verify QR code
-  verifyQR: async (qrCode) => {
-    try {
-      console.log('Verifying QR code...');
-      const response = await api.post('/tickets/verify-qr', { qrCode });
-      console.log('QR verification success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('QR verification failed:', error);
-      throw error;
-    }
-  },
-  
-  // Mark ticket as used via QR
-  markAsUsed: async (qrCode) => {
-    try {
-      console.log('Marking ticket as used via QR...');
-      const response = await api.post('/tickets/mark-used', { qrCode });
-      console.log('Mark as used success:', response.data);
-      return response;
-    } catch (error) {
-      console.error('Mark as used failed:', error);
-      throw error;
-    }
-  }
+// Auth API
+export const authAPI = {
+  googleSignIn: (userData) => api.post(API_ENDPOINTS.AUTH.GOOGLE_SIGNIN, userData),
+  getCurrentUser: () => api.get(API_ENDPOINTS.AUTH.ME),
+  getProfile: () => api.get(API_ENDPOINTS.AUTH.PROFILE).catch(() => api.get(API_ENDPOINTS.AUTH.ME)),
+  updateProfile: (userData) => api.put(API_ENDPOINTS.AUTH.PROFILE, userData),
+  assignAdminRole: () => api.post(API_ENDPOINTS.AUTH.ASSIGN_ADMIN),
+  logout: () => api.post(API_ENDPOINTS.AUTH.LOGOUT).catch(() => null)
+};
+
+// Event API
+export const eventAPI = {
+  getCurrentEvent: () => api.get(API_ENDPOINTS.EVENT.BASE),
+  checkEventExists: () => api.get(API_ENDPOINTS.EVENT.EXISTS),
+  createEvent: (eventData) => api.post(API_ENDPOINTS.EVENT.BASE, eventData),
+  updateEvent: (eventData) => api.put(API_ENDPOINTS.EVENT.BASE, eventData)
+};
+
+// Ticket API
+export const ticketAPI = {
+  createBooking: (bookingData) => api.post(API_ENDPOINTS.TICKETS.BASE, bookingData),
+  getMyTickets: () => api.get(API_ENDPOINTS.TICKETS.MY_TICKETS),
+  getTicket: (ticketId) => api.get(`${API_ENDPOINTS.TICKETS.BASE}/${ticketId}`),
+  cancelTicket: (ticketId) => api.patch(`${API_ENDPOINTS.TICKETS.BASE}/${ticketId}/cancel`),
+  verifyQRCode: (qrCode) => api.post(API_ENDPOINTS.TICKETS.VERIFY_QR, { qrCode }),
+  markTicketAsUsed: (qrCode) => api.post(API_ENDPOINTS.TICKETS.MARK_USED, { qrCode })
+};
+
+// Admin API
+export const adminAPI = {
+  getAllTickets: (params) => api.get(API_ENDPOINTS.TICKETS.ADMIN_ALL, { params }),
+  updateTicketStatus: (ticketId, status) => api.patch(`${API_ENDPOINTS.TICKETS.BASE}/admin/${ticketId}/status`, { status }),
+  getUserCount: () => api.get(API_ENDPOINTS.ADMIN.USER_COUNT).catch(() => ({ data: { count: 0 } })),
+  getAllUsers: (params) => api.get(API_ENDPOINTS.ADMIN.USERS, { params }),
+  updateUserRole: (userId, role) => api.patch(`${API_ENDPOINTS.ADMIN.USERS}/${userId}/role`, { role }),
+  getTicketStats: () => api.get(API_ENDPOINTS.TICKETS.ADMIN_STATS).catch(() => ({ data: { total: 0, revenue: 0 } })),
+  getDashboardAnalytics: () => api.get(API_ENDPOINTS.ADMIN.ANALYTICS),
+  getTicketManagement: (params) => api.get(API_ENDPOINTS.ADMIN.TICKET_MANAGEMENT, { params }),
+  bulkUpdateTickets: (ticketIds, status) => api.patch(API_ENDPOINTS.ADMIN.BULK_UPDATE, { ticketIds, status }),
+  exportTickets: (format) => api.get(API_ENDPOINTS.ADMIN.EXPORT, { params: { format }, responseType: format === 'csv' ? 'text' : 'json' }),
+  getSystemHealth: () => api.get(API_ENDPOINTS.ADMIN.SYSTEM_HEALTH)
 };
 
 // Utility functions
 export const apiUtils = {
-  // Test API connectivity
   testConnection: async () => {
     try {
       const response = await api.get('/status');
@@ -591,46 +161,15 @@ export const apiUtils = {
     }
   },
   
-  // Test protected endpoint
-  testProtectedEndpoint: async () => {
-    try {
-      const response = await api.get('/protected');
-      return { success: true, data: response.data };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-  
-  // Get API configuration
-  getConfig: () => ({
-    baseURL: api.defaults.baseURL,
-    timeout: api.defaults.timeout,
-    headers: api.defaults.headers
-  }),
-  
-  // Format error message for user display
   formatErrorMessage: (error) => {
-    if (error.serverMessage) {
-      return error.serverMessage;
-    }
-    if (error.response?.data?.message) {
-      return error.response.data.message;
-    }
-    if (error.response?.data?.error) {
-      return error.response.data.error;
-    }
-    if (error.message) {
-      return error.message;
-    }
-    return 'An unexpected error occurred';
+    return error.serverMessage || 
+           error.response?.data?.message || 
+           error.response?.data?.error || 
+           error.message || 
+           'An unexpected error occurred';
   },
   
-  // Validate QR code format
-  isValidQRCode: (qrCode) => {
-    const qrPattern = /^GARBA2025-\d{13}-[A-Z0-9]{12}-[A-Z0-9]{8}$/;
-    return qrPattern.test(qrCode);
-  }
+  isValidQRCode: (qrCode) => /^GARBA2025-\d{13}-[A-Z0-9]{12}-[A-Z0-9]{8}$/.test(qrCode)
 };
 
-// Export default api instance
 export default api;
