@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const AboutSection = () => {
+const AboutSection = ({ event }) => {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -83,19 +83,53 @@ const AboutSection = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-navratri-orange/5 via-transparent to-navratri-pink/5 rounded-3xl blur-3xl"></div>
             
             <div className="relative bg-slate-800/30 backdrop-blur-xl rounded-3xl p-6 sm:p-8 md:p-12 border border-slate-700/30">
-              <motion.p 
-                className="text-base sm:text-lg md:text-xl text-slate-300 leading-relaxed text-center mb-4 sm:mb-6"
+              {/* Event Description */}
+              <motion.div 
+                className="text-base sm:text-lg md:text-xl text-slate-300 leading-relaxed text-center mb-6 sm:mb-8"
                 variants={itemVariants}
               >
-                Experience the spirit of <span className="text-navratri-orange font-semibold">Navratri</span> come alive in all its glory—vibrant colors, electrifying energy, and the timeless rhythm of <span className="text-navratri-yellow font-semibold">Garba</span>. This celebration is more than just an event; it's a chance to immerse yourself in the magic of tradition, music, and dance before the official festivities begin.
-              </motion.p>
-              
-              <motion.p 
-                className="text-base sm:text-lg md:text-xl text-slate-300 leading-relaxed text-center"
-                variants={itemVariants}
-              >
-                Feel the joy, the unity, and the cultural richness as we come together to welcome Navratri in the most exhilarating way possible. Join us for an unforgettable night of <span className="text-navratri-pink font-semibold">celebration</span>, <span className="text-navratri-green font-semibold">community</span>, and <span className="text-navratri-blue font-semibold">culture</span>.
-              </motion.p>
+                {event?.aboutText ? (
+                  <p className="mb-4 sm:mb-6">{event.aboutText}</p>
+                ) : (
+                  <>
+                    <p className="mb-4 sm:mb-6">
+                      Experience the spirit of <span className="text-navratri-orange font-semibold">Navratri</span> come alive in all its glory—vibrant colors, electrifying energy, and the timeless rhythm of <span className="text-navratri-yellow font-semibold">Garba</span>. This celebration is more than just an event; it's a chance to immerse yourself in the magic of tradition, music, and dance before the official festivities begin.
+                    </p>
+                    
+                    <p>
+                      Feel the joy, the unity, and the cultural richness as we come together to welcome Navratri in the most exhilarating way possible. Join us for an unforgettable night of <span className="text-navratri-pink font-semibold">celebration</span>, <span className="text-navratri-green font-semibold">community</span>, and <span className="text-navratri-blue font-semibold">culture</span>.
+                    </p>
+                  </>
+                )}
+              </motion.div>
+
+              {/* Event Highlights */}
+              {event && (
+                <motion.div
+                  variants={itemVariants}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 sm:mb-8"
+                >
+                  <div className="bg-slate-700/50 rounded-xl p-4 sm:p-6">
+                    <div className="text-2xl sm:text-3xl mb-3">🎭</div>
+                    <h3 className="text-white font-bold text-lg mb-2">Event Details</h3>
+                    <div className="space-y-2 text-slate-300 text-sm sm:text-base">
+                      <p><span className="text-navratri-orange">Date:</span> {new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      <p><span className="text-navratri-yellow">Time:</span> {event.startTime} - {event.endTime}</p>
+                      <p><span className="text-navratri-pink">Venue:</span> {event.venue}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-700/50 rounded-xl p-4 sm:p-6">
+                    <div className="text-2xl sm:text-3xl mb-3">🎫</div>
+                    <h3 className="text-white font-bold text-lg mb-2">Ticket Information</h3>
+                    <div className="space-y-2 text-slate-300 text-sm sm:text-base">
+                      <p><span className="text-navratri-green">Price:</span> ₹{event.ticketPrice}</p>
+                      <p><span className="text-navratri-blue">Available:</span> {event.availableTickets} / {event.totalTickets}</p>
+                      <p><span className="text-navratri-violet">Status:</span> {event.availableTickets > 0 ? 'Available' : 'Sold Out'}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Decorative elements */}
               <div className="flex justify-center mt-6 sm:mt-8 space-x-3 sm:space-x-4">

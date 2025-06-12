@@ -2,8 +2,9 @@ import React from "react";
 import { motion } from "framer-motion";
 import { PrimaryButton, GoogleSignInButton } from "../ui/Button";
 import { useAuth } from "../../context/AuthContext";
+import { formatDate, formatTime } from "../../utils/helpers";
 
-const EventDetails = () => {
+const EventDetails = ({ event }) => {
   const { user } = useAuth();
 
   const containerVariants = {
@@ -25,13 +26,23 @@ const EventDetails = () => {
     },
   };
 
-  const eventDetails = {
+  // Default event details if no event data
+  const defaultEventDetails = {
     date: "August 15, 2025",
     time: "6:00 PM - 10:00 PM",
     venue: "Vrindavan hall, Kandivali",
     price: "₹399",
     capacity: "300 People Only",
   };
+
+  const eventDetails = event ? {
+    date: formatDate(event.date),
+    time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
+    venue: event.venue,
+    price: `₹${event.ticketPrice}`,
+    capacity: `${event.totalTickets} People Only`,
+    available: event.availableTickets
+  } : defaultEventDetails;
 
   return (
     <section className="flex flex-col justify-center items-center py-12 sm:py-20 relative">
@@ -89,14 +100,24 @@ const EventDetails = () => {
         />
       </div>
 
-      {/* Event Details Cards */}
+      {/* Event Image Placeholder */}
       <motion.div
         variants={itemVariants}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
-        className="mx-auto flex justify-center items-center h-32 sm:h-40 md:h-50 w-full max-w-sm sm:max-w-md md:max-w-lg bg-gray-700 rounded-xl mb-4 sm:mb-5">
-        <h1 className="text-xl sm:text-2xl md:text-3xl text-white">Venue image</h1>
+        className="mx-auto flex justify-center items-center h-32 sm:h-40 md:h-50 w-full max-w-sm sm:max-w-md md:max-w-lg rounded-xl mb-4 sm:mb-5 overflow-hidden">
+        {event?.eventImage ? (
+          <img 
+            src={event.eventImage} 
+            alt={event.name}
+            className="w-full h-full object-cover rounded-xl"
+          />
+        ) : (
+          <div className="bg-gray-700 w-full h-full rounded-xl flex items-center justify-center">
+            <h1 className="text-xl sm:text-2xl md:text-3xl text-white">Venue image</h1>
+          </div>
+        )}
       </motion.div>
 
       <motion.div
@@ -105,6 +126,15 @@ const EventDetails = () => {
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
         className="container mx-auto px-4">
+        
+        {/* Section Title */}
+        <motion.div variants={itemVariants} className="text-center mb-8 sm:mb-12">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-serif bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent mb-4">
+            Event Details
+          </h2>
+          <div className="w-16 sm:w-24 h-1 bg-gradient-to-r from-navratri-orange to-navratri-yellow rounded-full mx-auto"></div>
+        </motion.div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12 max-w-6xl mx-auto">
           {/* Date & Time Card */}
           <motion.div
@@ -174,6 +204,11 @@ const EventDetails = () => {
             <p className="text-xs sm:text-sm text-slate-400 relative z-10">
               {eventDetails.capacity}
             </p>
+            {event && (
+              <p className="text-xs sm:text-sm text-navratri-green relative z-10 mt-1">
+                {eventDetails.available} tickets remaining
+              </p>
+            )}
           </motion.div>
         </div>
 
@@ -204,7 +239,7 @@ const EventDetails = () => {
               scale: [1, 1.02, 1],
             }}
             transition={{ duration: 1.5, repeat: Infinity }}>
-            ⚡ Only {eventDetails.capacity.split(" ")[0]} Tickets Available!
+            ⚡ {event ? `Only ${event.availableTickets} Tickets Available!` : 'Only 300 Tickets Available!'}
           </motion.p>
         </motion.div>
       </motion.div>

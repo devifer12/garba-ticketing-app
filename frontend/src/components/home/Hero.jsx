@@ -1,12 +1,12 @@
-// frontend/src/components/home/Hero.jsx
 import React from "react";
 import { motion } from "framer-motion";
 import { PrimaryButton, GoogleSignInButton } from "../ui/Button";
 import { useAuth } from "../../context/AuthContext";
+import { formatDate, formatTime } from "../../utils/helpers";
 import hero1 from "../../assets/hero1.png";
 import Dandiya from "../../assets/dandiya.png";
 
-const Hero = () => {
+const Hero = ({ event }) => {
   const { user } = useAuth();
 
   const navratriColors = [
@@ -88,18 +88,54 @@ const Hero = () => {
                 repeat: Infinity,
                 repeatType: "loop",
               }}>
-              Dance to the
-              <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
-                Rhythm of Joy
-              </span>
+              {event ? (
+                <>
+                  {event.name}
+                  <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
+                    {formatDate(event.date, { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </span>
+                </>
+              ) : (
+                <>
+                  Dance to the
+                  <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
+                    Rhythm of Joy
+                  </span>
+                </>
+              )}
             </motion.h2>
 
             <motion.p
               className="text-lg sm:text-xl text-slate-300 leading-relaxed max-w-md mx-auto lg:mx-0"
               variants={itemVariants}>
-              Join us for an unforgettable evening of traditional Garba and
-              Raas, celebrating the vibrant colors and culture of Navratri.
+              {event?.description || "Join us for an unforgettable evening of traditional Garba and Raas, celebrating the vibrant colors and culture of Navratri."}
             </motion.p>
+
+            {/* Event Quick Info */}
+            {event && (
+              <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto lg:mx-0">
+                <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30">
+                  <div className="text-2xl mb-2">📅</div>
+                  <p className="text-slate-400 text-sm">Date</p>
+                  <p className="text-white font-semibold">{formatDate(event.date, { month: 'short', day: 'numeric' })}</p>
+                </div>
+                <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30">
+                  <div className="text-2xl mb-2">🕐</div>
+                  <p className="text-slate-400 text-sm">Time</p>
+                  <p className="text-white font-semibold">{formatTime(event.startTime)}</p>
+                </div>
+                <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30">
+                  <div className="text-2xl mb-2">📍</div>
+                  <p className="text-slate-400 text-sm">Venue</p>
+                  <p className="text-white font-semibold text-sm">{event.venue}</p>
+                </div>
+                <div className="bg-gradient-to-br from-navratri-orange/20 to-navratri-yellow/20 backdrop-blur-xl rounded-xl p-4 border border-navratri-orange/30">
+                  <div className="text-2xl mb-2">🎫</div>
+                  <p className="text-navratri-yellow text-sm">Price</p>
+                  <p className="text-white font-bold text-lg">₹{event.ticketPrice}</p>
+                </div>
+              </motion.div>
+            )}
 
             {/* Feature Highlights */}
             <motion.div variants={itemVariants} className="space-y-2 sm:space-y-3">
@@ -162,7 +198,7 @@ const Hero = () => {
                   scale: [1, 1.02, 1],
                 }}
                 transition={{ duration: 1.5, repeat: Infinity }}>
-                ⚡ Only 300 Tickets Available!
+                ⚡ {event ? `Only ${event.availableTickets} Tickets Available!` : 'Only 300 Tickets Available!'}
               </motion.p>
             </motion.div>
           </motion.div>
@@ -173,11 +209,19 @@ const Hero = () => {
               className="relative rounded-3xl overflow-hidden"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.3 }}>
-              <img
-                src={hero1}
-                alt="Garba Dancers"
-                className="w-full h-auto object-cover drop-shadow-xl drop-shadow-neutral-700 max-h-96 sm:max-h-none"
-              />
+              {event?.eventImage ? (
+                <img
+                  src={event.eventImage}
+                  alt={event.name}
+                  className="w-full h-auto object-cover drop-shadow-xl drop-shadow-neutral-700 max-h-96 sm:max-h-none"
+                />
+              ) : (
+                <img
+                  src={hero1}
+                  alt="Garba Dancers"
+                  className="w-full h-auto object-cover drop-shadow-xl drop-shadow-neutral-700 max-h-96 sm:max-h-none"
+                />
+              )}
 
               {/* Floating decorative elements around image */}
               <motion.div
