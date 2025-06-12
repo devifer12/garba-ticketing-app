@@ -149,15 +149,15 @@ const TicketsDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center px-4">
         <motion.div
           className="text-center"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
         >
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-navratri-orange mx-auto mb-4"></div>
-          <h2 className="text-xl font-bold text-white mb-2">Loading Tickets</h2>
-          <p className="text-slate-400">Please wait while we fetch your tickets...</p>
+          <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-navratri-orange mx-auto mb-4"></div>
+          <h2 className="text-lg sm:text-xl font-bold text-white mb-2">Loading Tickets</h2>
+          <p className="text-slate-400 text-sm sm:text-base">Please wait while we fetch your tickets...</p>
         </motion.div>
       </div>
     );
@@ -165,19 +165,19 @@ const TicketsDetails = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center px-4">
         <motion.div
-          className="text-center max-w-md mx-auto p-8"
+          className="text-center max-w-md mx-auto p-6 sm:p-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-8 border border-slate-700/30">
-            <div className="text-6xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-white mb-4">Error Loading Tickets</h2>
-            <p className="text-slate-400 mb-6">{error}</p>
+          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-slate-700/30">
+            <div className="text-4xl sm:text-6xl mb-4">⚠️</div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Error Loading Tickets</h2>
+            <p className="text-slate-400 mb-6 text-sm sm:text-base">{error}</p>
             <motion.button
               onClick={() => fetchData()}
-              className="px-6 py-3 bg-navratri-orange text-white rounded-lg font-semibold hover:bg-navratri-orange/80 transition-colors"
+              className="px-4 sm:px-6 py-2 sm:py-3 bg-navratri-orange text-white rounded-lg font-semibold hover:bg-navratri-orange/80 transition-colors text-sm sm:text-base"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -190,21 +190,21 @@ const TicketsDetails = () => {
   }
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="min-h-screen py-6 sm:py-8">
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Header */}
         <motion.div
-          className="text-center mb-8"
+          className="text-center mb-6 sm:mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-4xl md:text-5xl font-bold font-serif bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-serif bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent mb-4">
             My Tickets
           </h1>
-          <div className="w-24 h-1 bg-gradient-to-r from-navratri-orange to-navratri-pink rounded-full mx-auto mb-4"></div>
+          <div className="w-16 sm:w-24 h-1 bg-gradient-to-r from-navratri-orange to-navratri-pink rounded-full mx-auto mb-4"></div>
           
           {/* Quick Stats */}
-          <div className="flex justify-center gap-6 text-sm">
+          <div className="flex justify-center gap-4 sm:gap-6 text-xs sm:text-sm">
             <div className="text-center">
               <span className="text-slate-400">Total:</span>
               <span className="text-white font-bold ml-1">{tickets.length}</span>
@@ -229,62 +229,62 @@ const TicketsDetails = () => {
         {/* Event Information */}
         {event && (
           <motion.div
-            className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/30 mb-8"
+            className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 border border-slate-700/30 mb-6 sm:mb-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <div className="text-center mb-6">
-              <h2 className="text-3xl font-bold text-white mb-4">{event.name}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-slate-700/50 rounded-xl p-4">
-                  <div className="text-2xl mb-2">📅</div>
-                  <h3 className="text-white font-semibold mb-1">Date</h3>
-                  <p className="text-slate-300">{formatDate(event.date)}</p>
+            <div className="text-center mb-4 sm:mb-6">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">{event.name}</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+                <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4">
+                  <div className="text-xl sm:text-2xl mb-2">📅</div>
+                  <h3 className="text-white font-semibold mb-1 text-sm sm:text-base">Date</h3>
+                  <p className="text-slate-300 text-sm sm:text-base">{formatDate(event.date)}</p>
                 </div>
                 
-                <div className="bg-slate-700/50 rounded-xl p-4">
-                  <div className="text-2xl mb-2">🕐</div>
-                  <h3 className="text-white font-semibold mb-1">Time</h3>
-                  <p className="text-slate-300">
+                <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4">
+                  <div className="text-xl sm:text-2xl mb-2">🕐</div>
+                  <h3 className="text-white font-semibold mb-1 text-sm sm:text-base">Time</h3>
+                  <p className="text-slate-300 text-sm sm:text-base">
                     {formatTime(event.startTime)} - {formatTime(event.endTime)}
                   </p>
                 </div>
                 
-                <div className="bg-slate-700/50 rounded-xl p-4">
-                  <div className="text-2xl mb-2">📍</div>
-                  <h3 className="text-white font-semibold mb-1">Venue</h3>
-                  <p className="text-slate-300">{event.venue}</p>
+                <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4 sm:col-span-2 md:col-span-1">
+                  <div className="text-xl sm:text-2xl mb-2">📍</div>
+                  <h3 className="text-white font-semibold mb-1 text-sm sm:text-base">Venue</h3>
+                  <p className="text-slate-300 text-sm sm:text-base">{event.venue}</p>
                 </div>
               </div>
             </div>
 
             {/* Purchase Section */}
             <div className="text-center">
-              <div className="bg-gradient-to-r from-navratri-orange/20 to-navratri-yellow/20 rounded-xl p-6 mb-6">
-                <h4 className="text-white font-bold text-xl mb-2">Ticket Price: ₹{event.ticketPrice}</h4>
-                <p className="text-slate-300 mb-4">
+              <div className="bg-gradient-to-r from-navratri-orange/20 to-navratri-yellow/20 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
+                <h4 className="text-white font-bold text-lg sm:text-xl mb-2">Ticket Price: ₹{event.ticketPrice}</h4>
+                <p className="text-slate-300 mb-3 sm:mb-4 text-sm sm:text-base">
                   {event.availableTickets > 0 
                     ? `${event.availableTickets} tickets remaining` 
                     : 'Sold Out!'
                   }
                 </p>
                 
-                <div className="flex justify-center gap-4">
+                <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
                   {event.availableTickets > 0 ? (
                     <motion.button
                       onClick={() => setShowPurchaseModal(true)}
-                      className="px-8 py-4 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-xl shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 flex items-center gap-3"
+                      className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-xl shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 flex items-center gap-2 sm:gap-3 justify-center text-sm sm:text-base md:text-lg"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       disabled={purchasing}
                     >
-                      <span className="text-xl">🎟️</span>
+                      <span className="text-lg sm:text-xl">🎟️</span>
                       {purchasing ? 'Processing...' : 'Buy More Tickets'}
                     </motion.button>
                   ) : (
-                    <div className="px-8 py-4 bg-red-600/50 text-red-200 font-bold rounded-xl border border-red-500/30">
-                      <span className="text-xl mr-2">😔</span>
+                    <div className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-red-600/50 text-red-200 font-bold rounded-xl border border-red-500/30 text-sm sm:text-base">
+                      <span className="text-lg sm:text-xl mr-2">😔</span>
                       Event Sold Out
                     </div>
                   )}
@@ -292,7 +292,7 @@ const TicketsDetails = () => {
                   <motion.button
                     onClick={() => fetchData(true)}
                     disabled={refreshing}
-                    className="px-6 py-4 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-xl transition-all flex items-center gap-2"
+                    className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-xl transition-all flex items-center gap-2 justify-center text-sm sm:text-base"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -312,15 +312,15 @@ const TicketsDetails = () => {
           transition={{ delay: 0.4 }}
         >
           {tickets.length > 0 ? (
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8">
               {/* Active Tickets */}
               {activeTickets.length > 0 && (
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 flex items-center gap-2">
                     <span className="text-green-400">✅</span>
                     Active Tickets ({activeTickets.length})
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                     {activeTickets.map((ticket, index) => (
                       <motion.div
                         key={ticket.id}
@@ -341,11 +341,11 @@ const TicketsDetails = () => {
               {/* Used Tickets */}
               {usedTickets.length > 0 && (
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 flex items-center gap-2">
                     <span className="text-blue-400">🎯</span>
                     Used Tickets ({usedTickets.length})
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                     {usedTickets.map((ticket, index) => (
                       <motion.div
                         key={ticket.id}
@@ -366,11 +366,11 @@ const TicketsDetails = () => {
               {/* Cancelled Tickets */}
               {cancelledTickets.length > 0 && (
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 flex items-center gap-2">
                     <span className="text-red-400">❌</span>
                     Cancelled Tickets ({cancelledTickets.length})
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                     {cancelledTickets.map((ticket, index) => (
                       <motion.div
                         key={ticket.id}
@@ -390,25 +390,25 @@ const TicketsDetails = () => {
             </div>
           ) : (
             <motion.div
-              className="text-center py-12"
+              className="text-center py-8 sm:py-12"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
             >
-              <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-12 border border-slate-700/30">
-                <div className="text-6xl mb-6">🎫</div>
-                <h3 className="text-2xl font-bold text-white mb-4">No Tickets Yet</h3>
-                <p className="text-slate-400 mb-8 max-w-md mx-auto">
+              <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-slate-700/30">
+                <div className="text-4xl sm:text-6xl mb-4 sm:mb-6">🎫</div>
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">No Tickets Yet</h3>
+                <p className="text-slate-400 mb-6 sm:mb-8 max-w-md mx-auto text-sm sm:text-base">
                   You haven't purchased any tickets yet. Get your tickets now and join the celebration!
                 </p>
                 
                 {event && event.availableTickets > 0 && (
                   <motion.button
                     onClick={() => setShowPurchaseModal(true)}
-                    className="px-8 py-4 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-xl shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 flex items-center gap-3 mx-auto"
+                    className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-xl shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 flex items-center gap-2 sm:gap-3 mx-auto text-sm sm:text-base md:text-lg"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <span className="text-xl">🎟️</span>
+                    <span className="text-lg sm:text-xl">🎟️</span>
                     Buy Your First Ticket
                   </motion.button>
                 )}

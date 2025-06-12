@@ -58,7 +58,7 @@ const Dashboard = () => {
   // Loading state
   if (loading || isRedirecting || !userRole) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4">
         <motion.div
           className="text-center"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -66,14 +66,14 @@ const Dashboard = () => {
           transition={{ duration: 0.5 }}
         >
           <motion.div
-            className="w-16 h-16 border-4 border-navratri-orange border-t-transparent rounded-full mx-auto mb-6"
+            className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-navratri-orange border-t-transparent rounded-full mx-auto mb-4 sm:mb-6"
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           />
-          <h2 className="text-2xl font-bold text-white mb-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
             {isRedirecting ? 'Redirecting...' : 'Loading Dashboard...'}
           </h2>
-          <p className="text-slate-400">
+          <p className="text-slate-400 text-sm sm:text-base">
             {isRedirecting ? 'Taking you to your dashboard' : 'Please wait while we set up your dashboard'}
           </p>
         </motion.div>
@@ -90,28 +90,28 @@ const Dashboard = () => {
   const validRoles = ['admin', 'guest', 'manager', 'qrchecker'];
   if (!validRoles.includes(role || userRole)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4">
         <Navbar />
         <motion.div
-          className="text-center max-w-md mx-auto p-8"
+          className="text-center max-w-md mx-auto p-6 sm:p-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-8 border border-slate-700/30">
+          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-slate-700/30">
             <motion.div
-              className="text-6xl mb-4"
+              className="text-4xl sm:text-6xl mb-4"
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
             >
               ⚠️
             </motion.div>
-            <h2 className="text-2xl font-bold text-white mb-4">Invalid Role</h2>
-            <p className="text-slate-400 mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Invalid Role</h2>
+            <p className="text-slate-400 mb-6 text-sm sm:text-base">
               Your account role "{role || userRole}" is not recognized. Please contact support.
             </p>
             <motion.button
               onClick={() => navigate('/', { replace: true })}
-              className="px-6 py-3 bg-navratri-orange text-white rounded-lg font-semibold hover:bg-navratri-orange/80 transition-colors"
+              className="px-4 sm:px-6 py-2 sm:py-3 bg-navratri-orange text-white rounded-lg font-semibold hover:bg-navratri-orange/80 transition-colors text-sm sm:text-base"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -146,13 +146,13 @@ const Dashboard = () => {
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {/* Subtle geometric patterns */}
         <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-32 right-20 w-32 h-32 border border-navratri-orange rounded-full"></div>
-          <div className="absolute bottom-40 left-16 w-24 h-24 border border-navratri-pink rounded-full"></div>
+          <div className="absolute top-20 sm:top-32 right-10 sm:right-20 w-24 h-24 sm:w-32 sm:h-32 border border-navratri-orange rounded-full"></div>
+          <div className="absolute bottom-32 sm:bottom-40 left-8 sm:left-16 w-16 h-16 sm:w-24 sm:h-24 border border-navratri-pink rounded-full"></div>
         </div>
 
         {/* Floating orbs */}
         <motion.div
-          className="absolute w-16 h-16 bg-gradient-to-r from-navratri-yellow to-transparent rounded-full opacity-10 blur-xl"
+          className="absolute w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-navratri-yellow to-transparent rounded-full opacity-10 blur-xl"
           animate={{
             x: [0, 40, 0],
             y: [0, -20, 0],
@@ -167,7 +167,7 @@ const Dashboard = () => {
         />
 
         <motion.div
-          className="absolute w-20 h-20 bg-gradient-to-r from-navratri-green to-transparent rounded-full opacity-8 blur-xl"
+          className="absolute w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-navratri-green to-transparent rounded-full opacity-8 blur-xl"
           animate={{
             x: [0, -30, 0],
             y: [0, 25, 0],
@@ -186,7 +186,7 @@ const Dashboard = () => {
       <Navbar />
 
       {/* Main Dashboard Content */}
-      <main className="relative z-10 pt-24">
+      <main className="relative z-10 pt-20 sm:pt-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

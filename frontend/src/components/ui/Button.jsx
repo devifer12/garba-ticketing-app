@@ -50,7 +50,7 @@ const PrimaryButton = ({
 
   return (
     <motion.button
-      className={`bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 px-8 py-4 rounded-full text-xl font-bold shadow-xl border border-navratri-orange/20 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+      className={`bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 px-4 sm:px-6 md:px-8 py-3 sm:py-4 rounded-full text-base sm:text-lg md:text-xl font-bold shadow-xl border border-navratri-orange/20 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px] sm:min-w-[250px] ${className}`}
       whileHover={!disabled && !isLoading ? {
         scale: 1.02,
         boxShadow: "0 20px 40px rgba(255,165,0,0.3)",
@@ -70,11 +70,11 @@ const PrimaryButton = ({
       {...props}>
       {isLoading ? (
         <div className="flex items-center justify-center gap-2">
-          <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
-          <span>Loading...</span>
+          <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm sm:text-base">Loading...</span>
         </div>
       ) : (
-        children
+        <span className="text-sm sm:text-base md:text-lg">{children}</span>
       )}
     </motion.button>
   );
@@ -165,7 +165,7 @@ const GoogleSignInButton = ({
     }
   };
 
-  const baseClasses = "flex items-center justify-center gap-3 px-6 py-3 rounded-full font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]";
+  const baseClasses = "flex items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-full font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed min-w-[150px] sm:min-w-[200px] text-sm sm:text-base";
   
   const variants = {
     primary: "bg-white text-gray-800 hover:bg-gray-50 border border-gray-300 shadow-md hover:shadow-lg",
@@ -177,7 +177,7 @@ const GoogleSignInButton = ({
   const displayError = localError || error;
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-2 w-full sm:w-auto">
       <motion.button
         className={`${baseClasses} ${variants[variant]} ${className}`}
         onClick={handleSignIn}
@@ -188,13 +188,14 @@ const GoogleSignInButton = ({
       >
         {isLoading ? (
           <>
-            <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
-            <span>Signing in...</span>
+            <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+            <span className="hidden sm:inline">Signing in...</span>
+            <span className="sm:hidden">Signing in...</span>
           </>
         ) : (
           <>
             {/* Google Icon */}
-            <svg width="20" height="20" viewBox="0 0 24 24" className="flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" className="flex-shrink-0 sm:w-5 sm:h-5">
               <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -212,7 +213,7 @@ const GoogleSignInButton = ({
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            <span className="truncate">{children}</span>
+            <span className="truncate text-xs sm:text-sm md:text-base">{children}</span>
           </>
         )}
       </motion.button>
@@ -223,7 +224,7 @@ const GoogleSignInButton = ({
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="text-red-400 text-sm text-center max-w-xs px-2 py-1 bg-red-500/10 rounded-lg border border-red-500/20"
+          className="text-red-400 text-xs sm:text-sm text-center max-w-xs px-2 py-1 bg-red-500/10 rounded-lg border border-red-500/20"
         >
           {displayError}
         </motion.div>
@@ -234,7 +235,7 @@ const GoogleSignInButton = ({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.7 }}
-          className="text-slate-400 text-xs text-center"
+          className="text-slate-400 text-xs text-center hidden sm:block"
         >
           Click to sign in with your Google account
         </motion.div>
