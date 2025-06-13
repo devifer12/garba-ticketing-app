@@ -78,17 +78,15 @@ const eventSchema = new mongoose.Schema({
     max: [10000, 'Total tickets cannot exceed 10,000']
   },
   
-  availableTickets: {
+  soldTickets: {
     type: Number,
-    default: function() {
-      return this.totalTickets;
-    },
-    min: [0, 'Available tickets cannot be negative'],
+    default: 0,
+    min: [0, 'Sold tickets cannot be negative'],
     validate: {
       validator: function(value) {
         return value <= this.totalTickets;
       },
-      message: 'Available tickets cannot exceed total tickets'
+      message: 'Sold tickets cannot exceed total tickets'
     }
   },
   
@@ -180,14 +178,14 @@ eventSchema.virtual('timeRange').get(function() {
   return `${this.startTime} - ${this.endTime}`;
 });
 
-// Virtual field to get sold tickets count
-eventSchema.virtual('soldTickets').get(function() {
-  return this.totalTickets - this.availableTickets;
+// Virtual field to get available tickets (calculated)
+eventSchema.virtual('availableTickets').get(function() {
+  return Math.max(0, this.totalTickets - this.soldTickets);
 });
 
 // Virtual field to check if event is sold out
 eventSchema.virtual('isSoldOut').get(function() {
-  return this.availableTickets === 0;
+  return this.soldTickets >= this.totalTickets;
 });
 
 // Virtual field to check if event is today
@@ -211,19 +209,34 @@ eventSchema.statics.getCurrentEvent = async function() {
   return await this.findOne().populate('createdBy', 'name email');
 };
 
-// Instance method to update available tickets
-eventSchema.methods.updateAvailableTickets = async function(ticketsSold) {
-  if (ticketsSold > this.availableTickets) {
-    throw new Error('Not enough tickets available');
+// Instance method to sell tickets
+eventSchema.methods.sellTickets = async function(quantity) {
+  if (quantity <= 0) {
+    throw new Error('Quantity must be greater than 0');
   }
   
-  this.availableTickets -= ticketsSold;
+  if (this.soldTickets + quantity > this.totalTickets) {
+    throw new Error(`Not enough tickets available. Only ${this.totalTickets - this.soldTickets} tickets remaining`);
+  }
+  
+  this.soldTickets += quantity;
   return await this.save();
 };
 
 // Instance method to check if user can purchase tickets
 eventSchema.methods.canPurchaseTickets = function(quantity = 1) {
-  return this.isUpcoming && this.availableTickets >= quantity;
+  return this.isUpcoming && (this.soldTickets + quantity <= this.totalTickets);
+};
+
+// Instance method to get ticket availability info
+eventSchema.methods.getTicketAvailability = function() {
+  return {
+    totalTickets: this.totalTickets,
+    soldTickets: this.soldTickets,
+    availableTickets: this.totalTickets - this.soldTickets,
+    isSoldOut: this.soldTickets >= this.totalTickets,
+    soldPercentage: Math.round((this.soldTickets / this.totalTickets) * 100)
+  };
 };
 
 const Event = mongoose.model('Event', eventSchema);

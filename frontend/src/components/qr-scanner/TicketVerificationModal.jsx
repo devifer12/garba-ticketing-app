@@ -15,7 +15,6 @@ const TicketVerificationModal = ({
     const colors = {
       valid: 'bg-green-900/30 text-green-300 border-green-700/30',
       used: 'bg-blue-900/30 text-blue-300 border-blue-700/30',
-      cancelled: 'bg-red-900/30 text-red-300 border-red-700/30',
       invalid: 'bg-red-900/30 text-red-300 border-red-700/30'
     };
     return colors[status] || colors.invalid;
@@ -25,7 +24,6 @@ const TicketVerificationModal = ({
     const icons = {
       valid: '✅',
       used: '🎯',
-      cancelled: '❌',
       invalid: '⚠️'
     };
     return icons[status] || '❓';
@@ -94,7 +92,6 @@ const TicketVerificationModal = ({
                 <span className={`inline-block px-4 py-2 rounded-full text-sm font-medium border ${getStatusColor(verificationStatus)}`}>
                   {verificationStatus === 'valid' && 'Valid Ticket'}
                   {verificationStatus === 'used' && 'Already Used'}
-                  {verificationStatus === 'cancelled' && 'Cancelled Ticket'}
                   {verificationStatus === 'invalid' && 'Invalid Ticket'}
                 </span>
               </div>
@@ -163,15 +160,6 @@ const TicketVerificationModal = ({
                   <h4 className="text-blue-300 font-medium mb-2">🎯 Already Used</h4>
                   <p className="text-blue-200 text-sm">
                     This ticket has already been used for entry. Entry time: {ticket?.entryTime && formatDate(ticket.entryTime)}
-                  </p>
-                </div>
-              )}
-
-              {verificationStatus === 'cancelled' && (
-                <div className="bg-red-900/20 border border-red-700/30 rounded-lg p-4">
-                  <h4 className="text-red-300 font-medium mb-2">❌ Cancelled Ticket</h4>
-                  <p className="text-red-200 text-sm">
-                    This ticket has been cancelled and cannot be used for entry.
                   </p>
                 </div>
               )}

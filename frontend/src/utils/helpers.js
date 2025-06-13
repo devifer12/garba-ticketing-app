@@ -35,8 +35,7 @@ export const formatDateTime = (dateString) => {
 export const getStatusColor = (status) => {
   const colors = {
     active: 'bg-green-900/30 text-green-300 border-green-700/30',
-    used: 'bg-blue-900/30 text-blue-300 border-blue-700/30',
-    cancelled: 'bg-red-900/30 text-red-300 border-red-700/30'
+    used: 'bg-blue-900/30 text-blue-300 border-blue-700/30'
   };
   return colors[status] || colors.active;
 };
@@ -52,7 +51,7 @@ export const getRoleColor = (role) => {
 };
 
 export const getStatusIcon = (status) => {
-  const icons = { active: '✅', used: '🎯', cancelled: '❌' };
+  const icons = { active: '✅', used: '🎯' };
   return icons[status] || '🎫';
 };
 

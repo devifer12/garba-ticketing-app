@@ -101,22 +101,6 @@ const TicketsDetails = () => {
     }
   };
 
-  const handleCancelTicket = async (ticketId) => {
-    try {
-      const response = await ticketAPI.cancelTicket(ticketId);
-      
-      if (response.data.success) {
-        toast.success('Ticket cancelled successfully');
-        await fetchData(); // Refresh data
-      }
-      
-    } catch (err) {
-      console.error('Failed to cancel ticket:', err);
-      const errorMessage = apiUtils.formatErrorMessage(err);
-      toast.error(`Failed to cancel ticket: ${errorMessage}`);
-    }
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return 'TBD';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -145,7 +129,6 @@ const TicketsDetails = () => {
   // Filter tickets by status
   const activeTickets = tickets.filter(t => t.status === 'active');
   const usedTickets = tickets.filter(t => t.status === 'used');
-  const cancelledTickets = tickets.filter(t => t.status === 'cancelled');
 
   if (loading) {
     return (
@@ -217,12 +200,6 @@ const TicketsDetails = () => {
               <span className="text-blue-400">Used:</span>
               <span className="text-white font-bold ml-1">{usedTickets.length}</span>
             </div>
-            {cancelledTickets.length > 0 && (
-              <div className="text-center">
-                <span className="text-red-400">Cancelled:</span>
-                <span className="text-white font-bold ml-1">{cancelledTickets.length}</span>
-              </div>
-            )}
           </div>
         </motion.div>
 
@@ -328,10 +305,7 @@ const TicketsDetails = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 * index }}
                       >
-                        <TicketCard 
-                          ticket={ticket} 
-                          onCancel={handleCancelTicket}
-                        />
+                        <TicketCard ticket={ticket} />
                       </motion.div>
                     ))}
                   </div>
@@ -353,35 +327,7 @@ const TicketsDetails = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 * index }}
                       >
-                        <TicketCard 
-                          ticket={ticket} 
-                          onCancel={handleCancelTicket}
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Cancelled Tickets */}
-              {cancelledTickets.length > 0 && (
-                <div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 flex items-center gap-2">
-                    <span className="text-red-400">❌</span>
-                    Cancelled Tickets ({cancelledTickets.length})
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-                    {cancelledTickets.map((ticket, index) => (
-                      <motion.div
-                        key={ticket.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 * index }}
-                      >
-                        <TicketCard 
-                          ticket={ticket} 
-                          onCancel={handleCancelTicket}
-                        />
+                        <TicketCard ticket={ticket} />
                       </motion.div>
                     ))}
                   </div>

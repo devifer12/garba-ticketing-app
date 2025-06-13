@@ -13,14 +13,12 @@ export const USER_ROLES = {
 
 export const TICKET_STATUS = {
   ACTIVE: 'active',
-  USED: 'used',
-  CANCELLED: 'cancelled'
+  USED: 'used'
 };
 
 export const VERIFICATION_STATUS = {
   VALID: 'valid',
   USED: 'used',
-  CANCELLED: 'cancelled',
   INVALID: 'invalid'
 };
 
@@ -67,7 +65,6 @@ export const ERROR_MESSAGES = {
   INVALID_QR_CODE: 'Invalid QR code format.',
   TICKET_NOT_FOUND: 'Ticket not found.',
   TICKET_ALREADY_USED: 'This ticket has already been used.',
-  TICKET_CANCELLED: 'This ticket has been cancelled.',
   CAMERA_ACCESS_DENIED: 'Camera access denied. Please allow camera access to scan QR codes.',
   SCANNER_ERROR: 'Scanner error. Please try again.'
 };

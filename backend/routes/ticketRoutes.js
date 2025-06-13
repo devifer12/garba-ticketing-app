@@ -59,10 +59,11 @@ router.post('/', verifyToken, async (req, res) => {
     }
 
     // Check if enough tickets are available
-    if (event.availableTickets < quantity) {
+    const availableTickets = event.totalTickets - event.soldTickets;
+    if (availableTickets < quantity) {
       return res.status(400).json({ 
         success: false,
-        error: `Only ${event.availableTickets} tickets available` 
+        error: `Only ${availableTickets} tickets available` 
       });
     }
 
@@ -118,9 +119,8 @@ router.post('/', verifyToken, async (req, res) => {
     // Wait for all tickets to be created
     const createdTickets = await Promise.all(ticketCreationPromises);
 
-    // Update event available tickets
-    event.availableTickets -= quantity;
-    await event.save();
+    // Update event sold tickets count
+    await event.sellTickets(quantity);
 
     // Prepare response data
     const responseTickets = createdTickets.map(ticket => ({
@@ -138,16 +138,21 @@ router.post('/', verifyToken, async (req, res) => {
       }
     }));
 
+    // Get updated event data
+    const updatedEvent = await Event.findOne();
+
     res.status(201).json({
       success: true,
       message: `${quantity} ticket(s) booked successfully!`,
       tickets: responseTickets,
       totalAmount: event.ticketPrice * quantity,
       event: {
-        name: event.name,
-        date: event.date,
-        venue: event.venue,
-        availableTickets: event.availableTickets
+        name: updatedEvent.name,
+        date: updatedEvent.date,
+        venue: updatedEvent.venue,
+        totalTickets: updatedEvent.totalTickets,
+        soldTickets: updatedEvent.soldTickets,
+        availableTickets: updatedEvent.totalTickets - updatedEvent.soldTickets
       }
     });
 
@@ -279,65 +284,7 @@ router.get('/:ticketId', verifyToken, async (req, res) => {
   }
 });
 
-// Cancel ticket (protected route)
-router.patch('/:ticketId/cancel', verifyToken, async (req, res) => {
-  try {
-    const { ticketId } = req.params;
-    
-    // Find user by Firebase UID
-    const user = await User.findOne({ firebaseUID: req.user.uid });
-    if (!user) {
-      return res.status(404).json({ 
-        success: false,
-        error: "User not found" 
-      });
-    }
-
-    // Find ticket and ensure it belongs to the requesting user
-    const ticket = await Ticket.findOne({ 
-      _id: ticketId, 
-      user: user._id,
-      status: 'active' // Only active tickets can be cancelled
-    });
-
-    if (!ticket) {
-      return res.status(404).json({ 
-        success: false,
-        error: "Active ticket not found or already cancelled" 
-      });
-    }
-
-    // Cancel the ticket
-    await ticket.cancelTicket();
-
-    // Update event available tickets
-    const event = await Event.findOne();
-    if (event) {
-      event.availableTickets += 1;
-      await event.save();
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Ticket cancelled successfully",
-      ticket: {
-        id: ticket._id,
-        ticketId: ticket.ticketId,
-        status: ticket.status,
-        updatedAt: ticket.updatedAt
-      }
-    });
-
-  } catch (error) {
-    console.error("Cancel ticket error:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to cancel ticket" 
-    });
-  }
-});
-
-// QR Code verification endpoint (for checkers) - FIXED
+// QR Code verification endpoint (for checkers)
 router.post('/verify-qr', verifyToken, async (req, res) => {
   try {
     const { qrCode } = req.body;
@@ -355,7 +302,7 @@ router.post('/verify-qr', verifyToken, async (req, res) => {
       });
     }
 
-    // Validate QR code format - FIXED: More flexible validation
+    // Validate QR code format
     console.log('🔍 Validating QR code format...');
     const isValidFormat = Ticket.isValidQRCode(qrCode);
     console.log('📋 QR Code format valid:', isValidFormat);
@@ -368,7 +315,7 @@ router.post('/verify-qr', verifyToken, async (req, res) => {
       });
     }
 
-    // Find ticket by QR code - ENHANCED SEARCH
+    // Find ticket by QR code
     console.log('🔍 Searching for ticket with QR code...');
     const ticket = await Ticket.findOne({ qrCode: qrCode })
       .populate('user', 'name email role')
@@ -388,32 +335,17 @@ router.post('/verify-qr', verifyToken, async (req, res) => {
       const totalTickets = await Ticket.countDocuments();
       console.log('📊 Total tickets in database:', totalTickets);
       
-      // Check for similar QR codes (for debugging)
-      const similarTickets = await Ticket.find({
-        qrCode: { $regex: qrCode.substring(0, 10), $options: 'i' }
-      }).limit(3);
-      console.log('🔍 Similar QR codes found:', similarTickets.length);
-      
       return res.status(404).json({ 
         success: false,
         error: "Ticket not found",
         debug: process.env.NODE_ENV === 'development' ? {
           totalTickets,
-          searchedQR: qrCode.substring(0, 20) + '...',
-          similarFound: similarTickets.length
+          searchedQR: qrCode.substring(0, 20) + '...'
         } : undefined
       });
     }
 
     // Check ticket status
-    if (ticket.status === 'cancelled') {
-      console.log('❌ Ticket is cancelled');
-      return res.status(400).json({ 
-        success: false,
-        error: "This ticket has been cancelled" 
-      });
-    }
-
     if (ticket.status === 'used') {
       console.log('⚠️ Ticket already used');
       return res.status(400).json({ 
@@ -458,7 +390,7 @@ router.post('/verify-qr', verifyToken, async (req, res) => {
   }
 });
 
-// Mark ticket as used (for checkers) - ENHANCED
+// Mark ticket as used (for checkers)
 router.post('/mark-used', verifyToken, async (req, res) => {
   try {
     const { qrCode } = req.body;
@@ -515,14 +447,6 @@ router.post('/mark-used', verifyToken, async (req, res) => {
           usedAt: ticket.entryTime,
           scannedBy: ticket.scannedBy
         }
-      });
-    }
-
-    // Check if ticket is cancelled
-    if (ticket.status === 'cancelled') {
-      return res.status(400).json({ 
-        success: false,
-        error: "Cannot use a cancelled ticket" 
       });
     }
 
@@ -621,7 +545,7 @@ router.patch('/admin/:ticketId/status', verifyToken, isAdmin, async (req, res) =
     const { ticketId } = req.params;
     const { status } = req.body;
 
-    if (!['active', 'used', 'cancelled'].includes(status)) {
+    if (!['active', 'used'].includes(status)) {
       return res.status(400).json({ 
         success: false,
         error: "Invalid status" 

@@ -42,10 +42,10 @@ const ticketSchema = new mongoose.Schema({
     required: true 
   },
   
-  // Ticket status
+  // Ticket status - removed 'cancelled' option
   status: { 
     type: String, 
-    enum: ['active', 'used', 'cancelled'], 
+    enum: ['active', 'used'], 
     default: 'active' 
   },
   
@@ -118,7 +118,7 @@ ticketSchema.index({ qrCode: 1 });
 ticketSchema.index({ status: 1 });
 ticketSchema.index({ scannedAt: 1 });
 
-// Static method to generate unique QR code data - ENHANCED
+// Static method to generate unique QR code data
 ticketSchema.statics.generateQRCode = function() {
   const timestamp = Date.now();
   const randomString = Math.random().toString(36).substr(2, 12).toUpperCase();
@@ -127,7 +127,7 @@ ticketSchema.statics.generateQRCode = function() {
   return `GARBA2025-${timestamp}-${randomString}-${uuid}`;
 };
 
-// Static method to validate QR code format - ENHANCED
+// Static method to validate QR code format
 ticketSchema.statics.isValidQRCode = function(qrCode) {
   if (!qrCode || typeof qrCode !== 'string') {
     console.log('❌ QR Code validation failed: Invalid input type');
@@ -162,15 +162,6 @@ ticketSchema.methods.markAsUsed = async function(scannedByUserId = null) {
   return await this.save();
 };
 
-// Instance method to cancel ticket
-ticketSchema.methods.cancelTicket = async function() {
-  if (this.status === 'used') {
-    throw new Error('Cannot cancel a used ticket');
-  }
-  this.status = 'cancelled';
-  return await this.save();
-};
-
 // Instance method to get safe ticket data (for API responses)
 ticketSchema.methods.getSafeTicketData = function() {
   return {
@@ -195,7 +186,7 @@ ticketSchema.methods.getSafeTicketData = function() {
   };
 };
 
-// Pre-save middleware to ensure QR code uniqueness - ENHANCED
+// Pre-save middleware to ensure QR code uniqueness
 ticketSchema.pre('save', async function(next) {
   if (this.isNew && !this.qrCode) {
     let attempts = 0;
@@ -223,7 +214,7 @@ ticketSchema.pre('save', async function(next) {
   next();
 });
 
-// Static method to find ticket by QR code - ENHANCED
+// Static method to find ticket by QR code
 ticketSchema.statics.findByQRCode = async function(qrCode) {
   console.log('🔍 Searching for ticket with QR code:', qrCode ? qrCode.substring(0, 20) + '...' : 'null');
   
@@ -284,16 +275,13 @@ ticketSchema.statics.getTicketStats = async function() {
     total: 0,
     active: 0,
     used: 0,
-    cancelled: 0,
     totalRevenue: 0
   };
   
   stats.forEach(stat => {
     result.total += stat.count;
     result[stat._id] = stat.count;
-    if (stat._id !== 'cancelled') {
-      result.totalRevenue += stat.totalRevenue;
-    }
+    result.totalRevenue += stat.totalRevenue;
   });
   
   return result;
