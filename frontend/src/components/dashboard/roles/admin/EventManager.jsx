@@ -99,19 +99,25 @@ const EventManager = () => {
     const checkEventExists = async () => {
       try {
         setView('loading');
+        console.log('🔍 Checking if event exists...');
         
         const existsRes = await eventAPI.checkEventExists();
+        console.log('📋 Event exists response:', existsRes.data);
+        
         if (existsRes.data.exists) {
+          console.log('✅ Event exists, fetching details...');
           // Fetch event data
           const eventRes = await eventAPI.getCurrentEvent();
+          console.log('📊 Event data:', eventRes.data);
           const eventData = eventRes.data.data;
           setEvent(eventData);
           setView('preview');
         } else {
+          console.log('📝 No event exists, showing create form');
           setView('create');
         }
       } catch (error) {
-        console.error('Error checking event:', error);
+        console.error('❌ Error checking event:', error);
         const errorMessage = apiUtils.formatErrorMessage(error);
         toast.error(`Failed to load event information: ${errorMessage}`);
         setView('create');
@@ -242,22 +248,38 @@ const EventManager = () => {
         aboutText: formData.aboutText?.trim() || ''
       };
 
-      console.log('Submitting event data:', submitData);
+      console.log('📤 Submitting event data:', submitData);
 
+      let response;
       if (view === 'create') {
-        await eventAPI.createEvent(submitData);
+        console.log('🆕 Creating new event...');
+        response = await eventAPI.createEvent(submitData);
         toast.success('Event created successfully! 🎉');
       } else if (view === 'edit') {
-        await eventAPI.updateEvent(submitData);
+        console.log('✏️ Updating existing event...');
+        response = await eventAPI.updateEvent(submitData);
         toast.success('Event updated successfully! ✨');
       }
+      
+      console.log('✅ Event operation successful:', response.data);
       
       // Reload to refresh data
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     } catch (err) {
-      console.error('Event operation failed:', err);
+      console.error('❌ Event operation failed:', err);
+      console.error('Error details:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        config: {
+          url: err.config?.url,
+          method: err.config?.method,
+          baseURL: err.config?.baseURL
+        }
+      });
+      
       const errorMessage = apiUtils.formatErrorMessage(err);
       
       // Handle validation errors specifically

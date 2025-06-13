@@ -117,12 +117,12 @@ export const authAPI = {
   logout: () => api.post(API_ENDPOINTS.AUTH.LOGOUT).catch(() => null)
 };
 
-// Event API
+// Event API - Fixed endpoint configuration
 export const eventAPI = {
-  getCurrentEvent: () => api.get(API_ENDPOINTS.EVENT.BASE),
-  checkEventExists: () => api.get(API_ENDPOINTS.EVENT.EXISTS),
-  createEvent: (eventData) => api.post(API_ENDPOINTS.EVENT.BASE, eventData),
-  updateEvent: (eventData) => api.put(API_ENDPOINTS.EVENT.BASE, eventData)
+  getCurrentEvent: () => api.get('/event'),
+  checkEventExists: () => api.get('/event/exists'),
+  createEvent: (eventData) => api.post('/event', eventData),
+  updateEvent: (eventData) => api.put('/event', eventData)
 };
 
 // Ticket API
