@@ -1,7 +1,75 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { eventAPI, apiUtils } from '../../../../services/api';
+
+// Move InputField component outside to prevent recreation on every render
+const InputField = React.memo(({ 
+  type = "text", 
+  name, 
+  placeholder, 
+  icon, 
+  required = false,
+  rows,
+  min,
+  step,
+  value,
+  onChange,
+  error
+}) => (
+  <div className="space-y-2">
+    <label className="flex items-center gap-2 text-slate-300 font-medium text-sm">
+      <span className="text-lg">{icon}</span>
+      {placeholder}
+      {required && <span className="text-red-400">*</span>}
+    </label>
+    
+    <div className="relative">
+      {type === 'textarea' ? (
+        <textarea
+          name={name}
+          placeholder={`Enter ${placeholder.toLowerCase()}...`}
+          value={value || ''}
+          onChange={onChange}
+          rows={rows || 4}
+          className={`w-full px-4 py-3 bg-slate-700/50 backdrop-blur-xl border rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-300 resize-none ${
+            error 
+              ? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500' 
+              : 'border-slate-600/30 focus:ring-purple-500/30 focus:border-purple-500 hover:border-slate-500/50'
+          }`}
+        />
+      ) : (
+        <input
+          type={type}
+          name={name}
+          placeholder={`Enter ${placeholder.toLowerCase()}...`}
+          value={value || ''}
+          onChange={onChange}
+          min={min}
+          step={step}
+          className={`w-full px-4 py-3 bg-slate-700/50 backdrop-blur-xl border rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-300 ${
+            error 
+              ? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500' 
+              : 'border-slate-600/30 focus:ring-purple-500/30 focus:border-purple-500 hover:border-slate-500/50'
+          }`}
+        />
+      )}
+      
+      {error && (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+          <span className="text-red-400 text-lg">⚠️</span>
+        </div>
+      )}
+    </div>
+    
+    {error && (
+      <p className="text-red-400 text-sm flex items-center gap-1">
+        <span className="text-xs">⚠️</span>
+        {error}
+      </p>
+    )}
+  </div>
+));
 
 const EventManager = () => {
   // Main state
@@ -53,11 +121,10 @@ const EventManager = () => {
     checkEventExists();
   }, []);
 
-  // Form handlers - Fixed to prevent cursor jumping
-  const handleInputChange = (e) => {
+  // Memoized form handlers to prevent recreation on every render
+  const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
     
-    // Use functional update to prevent stale state issues
     setFormData(prevData => ({
       ...prevData,
       [name]: value
@@ -70,10 +137,10 @@ const EventManager = () => {
         [name]: null
       }));
     }
-  };
+  }, [errors]);
 
   // Handle features array separately
-  const handleFeaturesChange = (e) => {
+  const handleFeaturesChange = useCallback((e) => {
     const value = e.target.value;
     const featuresArray = value.split(',').map(f => f.trim()).filter(f => f);
     
@@ -81,9 +148,9 @@ const EventManager = () => {
       ...prevData,
       features: featuresArray
     }));
-  };
+  }, []);
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const newErrors = {};
     
     // Required field validations
@@ -150,7 +217,7 @@ const EventManager = () => {
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [formData]);
 
   const handleSubmit = async () => {
     if (!validateForm()) {
@@ -255,84 +322,6 @@ const EventManager = () => {
       return timeString;
     }
   };
-
-  // Input field component - Fixed to prevent re-rendering issues
-  const InputField = React.memo(({ 
-    type = "text", 
-    name, 
-    placeholder, 
-    icon, 
-    required = false,
-    rows,
-    min,
-    step 
-  }) => (
-    <div className="space-y-2">
-      <label className="flex items-center gap-2 text-slate-300 font-medium text-sm">
-        <span className="text-lg">{icon}</span>
-        {placeholder}
-        {required && <span className="text-red-400">*</span>}
-      </label>
-      
-      <div className="relative">
-        {type === 'textarea' ? (
-          <textarea
-            name={name}
-            placeholder={`Enter ${placeholder.toLowerCase()}...`}
-            value={formData[name] || ''}
-            onChange={handleInputChange}
-            rows={rows || 4}
-            className={`w-full px-4 py-3 bg-slate-700/50 backdrop-blur-xl border rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-300 resize-none ${
-              errors[name] 
-                ? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500' 
-                : 'border-slate-600/30 focus:ring-purple-500/30 focus:border-purple-500 hover:border-slate-500/50'
-            }`}
-          />
-        ) : name === 'features' ? (
-          <input
-            type="text"
-            name={name}
-            placeholder="Enter features separated by commas..."
-            value={Array.isArray(formData[name]) ? formData[name].join(', ') : ''}
-            onChange={handleFeaturesChange}
-            className={`w-full px-4 py-3 bg-slate-700/50 backdrop-blur-xl border rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-300 ${
-              errors[name] 
-                ? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500' 
-                : 'border-slate-600/30 focus:ring-purple-500/30 focus:border-purple-500 hover:border-slate-500/50'
-            }`}
-          />
-        ) : (
-          <input
-            type={type}
-            name={name}
-            placeholder={`Enter ${placeholder.toLowerCase()}...`}
-            value={formData[name] || ''}
-            onChange={handleInputChange}
-            min={min}
-            step={step}
-            className={`w-full px-4 py-3 bg-slate-700/50 backdrop-blur-xl border rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-300 ${
-              errors[name] 
-                ? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500' 
-                : 'border-slate-600/30 focus:ring-purple-500/30 focus:border-purple-500 hover:border-slate-500/50'
-            }`}
-          />
-        )}
-        
-        {errors[name] && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <span className="text-red-400 text-lg">⚠️</span>
-          </div>
-        )}
-      </div>
-      
-      {errors[name] && (
-        <p className="text-red-400 text-sm flex items-center gap-1">
-          <span className="text-xs">⚠️</span>
-          {errors[name]}
-        </p>
-      )}
-    </div>
-  ));
 
   // Confirmation Modal Component
   const ConfirmModal = () => (
@@ -554,6 +543,9 @@ const EventManager = () => {
                   placeholder="Event Name"
                   icon="🎪"
                   required
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  error={errors.name}
                 />
                 
                 <InputField
@@ -561,6 +553,9 @@ const EventManager = () => {
                   placeholder="Venue Location"
                   icon="📍"
                   required
+                  value={formData.venue}
+                  onChange={handleInputChange}
+                  error={errors.venue}
                 />
               </div>
               
@@ -571,6 +566,9 @@ const EventManager = () => {
                 icon="📋"
                 rows={4}
                 required
+                value={formData.description}
+                onChange={handleInputChange}
+                error={errors.description}
               />
             </div>
 
@@ -589,6 +587,9 @@ const EventManager = () => {
                   placeholder="Event Date"
                   icon="📅"
                   required
+                  value={formData.date}
+                  onChange={handleInputChange}
+                  error={errors.date}
                 />
                 
                 <InputField
@@ -597,6 +598,9 @@ const EventManager = () => {
                   placeholder="Start Time"
                   icon="🕐"
                   required
+                  value={formData.startTime}
+                  onChange={handleInputChange}
+                  error={errors.startTime}
                 />
                 
                 <InputField
@@ -605,6 +609,9 @@ const EventManager = () => {
                   placeholder="End Time"
                   icon="🕕"
                   required
+                  value={formData.endTime}
+                  onChange={handleInputChange}
+                  error={errors.endTime}
                 />
               </div>
             </div>
@@ -626,6 +633,9 @@ const EventManager = () => {
                   min="0"
                   step="1"
                   required
+                  value={formData.ticketPrice}
+                  onChange={handleInputChange}
+                  error={errors.ticketPrice}
                 />
                 
                 <InputField
@@ -635,6 +645,9 @@ const EventManager = () => {
                   icon="🎟️"
                   min="1"
                   required
+                  value={formData.totalTickets}
+                  onChange={handleInputChange}
+                  error={errors.totalTickets}
                 />
               </div>
             </div>
@@ -652,13 +665,28 @@ const EventManager = () => {
                   name="eventImage"
                   placeholder="Event Image URL (optional)"
                   icon="🖼️"
+                  value={formData.eventImage}
+                  onChange={handleInputChange}
+                  error={errors.eventImage}
                 />
                 
-                <InputField
-                  name="features"
-                  placeholder="Event Features (comma separated)"
-                  icon="✨"
-                />
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-slate-300 font-medium text-sm">
+                    <span className="text-lg">✨</span>
+                    Event Features (comma separated)
+                  </label>
+                  
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="features"
+                      placeholder="Enter features separated by commas..."
+                      value={Array.isArray(formData.features) ? formData.features.join(', ') : ''}
+                      onChange={handleFeaturesChange}
+                      className="w-full px-4 py-3 bg-slate-700/50 backdrop-blur-xl border border-slate-600/30 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 hover:border-slate-500/50 transition-all duration-300"
+                    />
+                  </div>
+                </div>
                 
                 <InputField
                   type="textarea"
@@ -666,6 +694,9 @@ const EventManager = () => {
                   placeholder="About the Event (optional)"
                   icon="📖"
                   rows={3}
+                  value={formData.aboutText}
+                  onChange={handleInputChange}
+                  error={errors.aboutText}
                 />
               </div>
             </div>
