@@ -126,7 +126,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                   className="mt-1 rounded border-slate-600 bg-slate-700 text-navratri-orange focus:ring-navratri-orange/30"
                 />
                 <span className="text-slate-300 text-xs sm:text-sm">
-                  I agree to the terms and conditions, cancellation policy, and understand that tickets are non-transferable.
+                  I agree to the terms and conditions and understand that tickets are non-transferable.
                 </span>
               </label>
             </div>
@@ -150,7 +150,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Cancel
+                Close
               </motion.button>
             </div>
           </div>

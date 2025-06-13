@@ -130,7 +130,6 @@ export const ticketAPI = {
   createBooking: (bookingData) => api.post(API_ENDPOINTS.TICKETS.BASE, bookingData),
   getMyTickets: () => api.get(API_ENDPOINTS.TICKETS.MY_TICKETS),
   getTicket: (ticketId) => api.get(`${API_ENDPOINTS.TICKETS.BASE}/${ticketId}`),
-  cancelTicket: (ticketId) => api.patch(`${API_ENDPOINTS.TICKETS.BASE}/${ticketId}/cancel`),
   verifyQRCode: (qrCode) => api.post(API_ENDPOINTS.TICKETS.VERIFY_QR, { qrCode }),
   markTicketAsUsed: (qrCode) => api.post(API_ENDPOINTS.TICKETS.MARK_USED, { qrCode })
 };

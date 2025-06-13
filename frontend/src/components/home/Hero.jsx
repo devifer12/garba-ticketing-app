@@ -92,7 +92,7 @@ const Hero = ({ event }) => {
                 <>
                   {event.name}
                   <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
-                    {formatDate(event.date, { weekday: 'long', month: 'long', day: 'numeric' })}
+                    {formatDate(event.date, { weekday: 'long', month: 'long', day: 'numeric', year: undefined })}
                   </span>
                 </>
               ) : (
@@ -122,7 +122,7 @@ const Hero = ({ event }) => {
                 <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30">
                   <div className="text-2xl mb-2">🕐</div>
                   <p className="text-slate-400 text-sm">Time</p>
-                  <p className="text-white font-semibold">{formatTime(event.startTime)}</p>
+                  <p className="text-white font-semibold">{formatTime(event.startTime)} - {formatTime(event.endTime)} </p>
                 </div>
                 <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30">
                   <div className="text-2xl mb-2">📍</div>
@@ -132,7 +132,8 @@ const Hero = ({ event }) => {
                 <div className="bg-gradient-to-br from-navratri-orange/20 to-navratri-yellow/20 backdrop-blur-xl rounded-xl p-4 border border-navratri-orange/30">
                   <div className="text-2xl mb-2">🎫</div>
                   <p className="text-navratri-yellow text-sm">Price</p>
-                  <p className="text-white font-bold text-lg">₹{event.ticketPrice}</p>
+                  <p className="text-white font-bold text-lg">₹{event.ticketPrice}/-</p>
+                  <p className="text-white/70 text-sm">250 tickets available</p>
                 </div>
               </motion.div>
             )}
@@ -156,7 +157,7 @@ const Hero = ({ event }) => {
                   transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
                 />
                 <span className="text-slate-300 text-sm sm:text-base">
-                  Professional Dance Instructors
+                  Rewards & Prizes For Winners 
                 </span>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 justify-center lg:justify-start">
@@ -166,7 +167,7 @@ const Hero = ({ event }) => {
                   transition={{ duration: 2, repeat: Infinity, delay: 1 }}
                 />
                 <span className="text-slate-300 text-sm sm:text-base">
-                  Authentic Gujarati Snacks & Refreshments
+                  Snacks & Refreshments Stalls
                 </span>
               </div>
             </motion.div>

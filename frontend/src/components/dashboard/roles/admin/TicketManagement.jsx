@@ -137,8 +137,7 @@ const TicketManagement = () => {
   const getStatusColor = (status) => {
     const colors = {
       active: 'bg-green-900/30 text-green-300 border-green-700/30',
-      used: 'bg-blue-900/30 text-blue-300 border-blue-700/30',
-      cancelled: 'bg-red-900/30 text-red-300 border-red-700/30'
+      used: 'bg-blue-900/30 text-blue-300 border-blue-700/30'
     };
     return colors[status] || colors.active;
   };
@@ -213,7 +212,6 @@ const TicketManagement = () => {
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
                 <option value="used">Used</option>
-                <option value="cancelled">Cancelled</option>
               </select>
 
               {selectedTickets.length > 0 && (
@@ -358,7 +356,6 @@ const TicketManagement = () => {
                         >
                           <option value="active">Active</option>
                           <option value="used">Used</option>
-                          <option value="cancelled">Cancelled</option>
                         </select>
                       </div>
                     </td>
@@ -426,7 +423,6 @@ const TicketManagement = () => {
                   <option value="">Select Status</option>
                   <option value="active">Active</option>
                   <option value="used">Used</option>
-                  <option value="cancelled">Cancelled</option>
                 </select>
               </div>
               
@@ -445,7 +441,7 @@ const TicketManagement = () => {
                   }}
                   className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all"
                 >
-                  Cancel
+                  Close
                 </button>
               </div>
             </div>

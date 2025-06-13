@@ -41,8 +41,8 @@ const FAQSection = () => {
       answer: "Yes! The venue has ample parking space for all attendees. Parking is free and the area is well-lit and secure. We also recommend carpooling or using public transport when possible."
     },
     {
-      question: "Can I get a refund if I can't attend?",
-      answer: "Tickets can be cancelled up to 24 hours before the event for a full refund. After that, tickets are non-refundable but can be transferred to another person by contacting our support team."
+      question: "What is the ticket policy?",
+      answer: "All tickets are final sale and non-transferable. Please ensure you can attend before purchasing. Tickets include entry to the event and access to all activities and entertainment."
     },
     {
       question: "Will there be dance instruction for beginners?",

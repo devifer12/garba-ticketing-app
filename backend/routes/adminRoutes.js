@@ -118,7 +118,6 @@ router.get('/tickets/stats', verifyToken, isManager, async (req, res) => {
     const totalTickets = await Ticket.countDocuments();
     const activeTickets = await Ticket.countDocuments({ status: 'active' });
     const usedTickets = await Ticket.countDocuments({ status: 'used' });
-    const cancelledTickets = await Ticket.countDocuments({ status: 'cancelled' });
     
     // Calculate total revenue
     const revenueResult = await Ticket.aggregate([
@@ -139,7 +138,6 @@ router.get('/tickets/stats', verifyToken, isManager, async (req, res) => {
       total: totalTickets,
       active: activeTickets,
       used: usedTickets,
-      cancelled: cancelledTickets,
       revenue: totalRevenue,
       recentBookings
     });
@@ -298,7 +296,7 @@ router.patch('/tickets/bulk-update', verifyToken, isAdmin, async (req, res) => {
       });
     }
     
-    const validStatuses = ['active', 'used', 'cancelled'];
+    const validStatuses = ['active', 'used'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
