@@ -43,7 +43,7 @@ const Hero = ({ event }) => {
   return (
     <section className="min-h-screen pt-32 sm:pt-40 md:pt-48 pb-8 sm:pb-16 relative">
       {/* Animated colorful dots */}
-      <motion.div
+      {/* <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -67,7 +67,7 @@ const Hero = ({ event }) => {
             />
           ))}
         </motion.div>
-      </motion.div>
+      </motion.div> */}
 
       {/* Hero Content with Image */}
       <motion.div
@@ -214,13 +214,13 @@ const Hero = ({ event }) => {
                 <img
                   src={event.eventImage}
                   alt={event.name}
-                  className="w-full h-auto object-cover drop-shadow-xl drop-shadow-neutral-700 max-h-96 sm:max-h-none"
+                  className="w-full h-auto object-fill drop-shadow-xl drop-shadow-neutral-700 max-h-96 sm:max-h-none"
                 />
               ) : (
                 <img
                   src={hero1}
                   alt="Garba Dancers"
-                  className="w-full h-auto object-cover drop-shadow-xl drop-shadow-neutral-700 max-h-96 sm:max-h-none"
+                  className="w-full h-auto object-contain drop-shadow-xl drop-shadow-neutral-700 max-h-96 sm:max-h-none"
                 />
               )}
 

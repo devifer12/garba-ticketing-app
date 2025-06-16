@@ -82,8 +82,7 @@ const Navbar = () => {
             <GoogleSignInButton
               variant="secondary"
               className="text-xs sm:text-sm px-3 py-2 sm:px-4">
-              <span className="hidden sm:inline">Sign In</span>
-              <span className="sm:hidden">Sign In</span>
+              <div className="hidden sm:inline">Sign In</div>
             </GoogleSignInButton>
           )}
         </div>
