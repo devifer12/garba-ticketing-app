@@ -218,14 +218,14 @@ const EventDetails = ({ event }) => {
           className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-6 sm:mb-10 px-4">
           
           {/* Primary Buy Tickets Button */}
-          <PrimaryButton className="w-full sm:w-auto text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4">
+          <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-7 sm:px-8 py-3 sm:py-4">
             🎟️ Book Your Tickets Now
           </PrimaryButton>
 
           {/* Secondary Sign In Button - Only show if not authenticated */}
           {!user && (
             <GoogleSignInButton 
-              className="w-full sm:w-auto text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4"
+              className="w-auto sm:w-auto text-base sm:text-xl px-10 sm:px-8 py-3 sm:py-4"
               showTextOnMobile={true}
             >
               📱 Sign In with Google

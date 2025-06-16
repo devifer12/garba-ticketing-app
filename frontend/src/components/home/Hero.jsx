@@ -42,33 +42,6 @@ const Hero = ({ event }) => {
 
   return (
     <section className="min-h-screen pt-32 sm:pt-40 md:pt-48 pb-8 sm:pb-16 relative">
-      {/* Animated colorful dots */}
-      {/* <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="text-center mb-8 sm:mb-12">
-        <motion.div
-          variants={itemVariants}
-          className="flex justify-center space-x-1 sm:space-x-2 mb-6 sm:mb-8 px-4">
-          {navratriColors.map((color, index) => (
-            <motion.div
-              key={color}
-              className={`w-2 h-2 sm:w-3 sm:h-3 bg-${color} rounded-full`}
-              animate={{
-                scale: [1, 1.3, 1],
-                rotate: [0, 180, 360],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                delay: index * 0.1,
-              }}
-            />
-          ))}
-        </motion.div>
-      </motion.div> */}
-
       {/* Hero Content with Image */}
       <motion.div
         variants={containerVariants}
@@ -133,13 +106,13 @@ const Hero = ({ event }) => {
                   <div className="text-2xl mb-2">🎫</div>
                   <p className="text-navratri-yellow text-sm">Price</p>
                   <p className="text-white font-bold text-lg">₹{event.ticketPrice}/-</p>
-                  <p className="text-white/70 text-sm">250 tickets available</p>
+                  <p className="text-white/70 text-sm">250 people only</p>
                 </div>
               </motion.div>
             )}
 
             {/* Feature Highlights */}
-            <motion.div variants={itemVariants} className="space-y-2 sm:space-y-3">
+            <motion.div variants={itemVariants} className="text-start space-y-2 sm:space-y-3">
               <div className="flex items-center gap-2 sm:gap-3 justify-center lg:justify-start">
                 <motion.div
                   className="w-2 h-2 bg-navratri-orange rounded-full"
@@ -178,13 +151,16 @@ const Hero = ({ event }) => {
               className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 items-center lg:items-start">
               
               {/* Primary Buy Tickets Button */}
-              <PrimaryButton className="w-full sm:w-auto text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4">
+              <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-8 sm:px-8 py-3 sm:py-4">
                 🎟️ Book Your Tickets Now
               </PrimaryButton>
 
               {/* Secondary Sign In Button - Only show if not authenticated */}
               {!user && (
-                <GoogleSignInButton className="w-full sm:w-auto text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4">
+                <GoogleSignInButton 
+                className="w-auto sm:w-auto text-base sm:text-xl px-10 sm:px-12 py-3 sm:py-4"
+                showTextOnMobile={true}
+                >
                   📱 Sign In with Google
                 </GoogleSignInButton>
               )}
