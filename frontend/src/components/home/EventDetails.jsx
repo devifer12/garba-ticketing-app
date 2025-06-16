@@ -100,7 +100,7 @@ const EventDetails = ({ event }) => {
         />
       </div>
 
-      {/* Event Image Placeholder */}
+      {/* Event Image - Updated to use backend image */}
       <motion.div
         variants={itemVariants}
         initial="hidden"
@@ -108,14 +108,20 @@ const EventDetails = ({ event }) => {
         viewport={{ once: true, amount: 0.3 }}
         className="mx-auto flex justify-center items-center h-32 sm:h-40 md:h-50 w-full max-w-sm sm:max-w-md md:max-w-lg rounded-xl mb-4 sm:mb-5 overflow-hidden">
         {event?.eventImage ? (
-          <img 
+          <motion.img 
             src={event.eventImage} 
-            alt={event.name}
-            className="w-full h-full object-cover rounded-xl"
+            alt={`${event.name} venue`}
+            className="w-full h-full object-cover rounded-xl shadow-lg"
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.3 }}
           />
         ) : (
-          <div className="bg-gray-700 w-full h-full rounded-xl flex items-center justify-center">
-            <h1 className="text-xl sm:text-2xl md:text-3xl text-white">Venue image</h1>
+          <div className="bg-slate-700/50 backdrop-blur-xl w-full h-full rounded-xl flex items-center justify-center border border-slate-600/30">
+            <div className="text-center p-4">
+              <div className="text-3xl sm:text-4xl mb-2">🏢</div>
+              <h3 className="text-white font-medium text-lg sm:text-xl mb-1">Venue Image</h3>
+              <p className="text-slate-400 text-sm">Image will be displayed here</p>
+            </div>
           </div>
         )}
       </motion.div>

@@ -107,7 +107,7 @@ const AboutSection = ({ event }) => {
               {event && (
                 <motion.div
                   variants={itemVariants}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 sm:mb-8"
+                  className="grid grid-cols-1 mb-6 sm:mb-8"
                 >
                   <div className="bg-slate-700/50 grid items-center justify-center rounded-xl p-4 sm:p-6">
                     <div className="text-center justify-center text-2xl sm:text-3xl mb-3">🎭</div>
