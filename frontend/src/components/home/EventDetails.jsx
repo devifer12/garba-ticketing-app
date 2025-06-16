@@ -224,7 +224,10 @@ const EventDetails = ({ event }) => {
 
           {/* Secondary Sign In Button - Only show if not authenticated */}
           {!user && (
-            <GoogleSignInButton className="w-full sm:w-auto text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4">
+            <GoogleSignInButton 
+              className="w-full sm:w-auto text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4"
+              showTextOnMobile={true}
+            >
               📱 Sign In with Google
             </GoogleSignInButton>
           )}

@@ -103,7 +103,7 @@ const AboutSection = ({ event }) => {
                 )}
               </motion.div>
 
-              {/* Event Highlights */}
+              {/* Event Highlights - Only show if event data is available */}
               {event && (
                 <motion.div
                   variants={itemVariants}
@@ -111,21 +111,21 @@ const AboutSection = ({ event }) => {
                 >
                   <div className="bg-slate-700/50 rounded-xl p-4 sm:p-6">
                     <div className="text-2xl sm:text-3xl mb-3">🎭</div>
-                    <h3 className="text-white font-bold text-lg mb-2">Event Details</h3>
+                    <h3 className="text-white font-bold text-lg mb-2">Cultural Experience</h3>
                     <div className="space-y-2 text-slate-300 text-sm sm:text-base">
-                      <p><span className="text-navratri-orange">Date:</span> {new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                      <p><span className="text-navratri-yellow">Time:</span> {event.startTime} - {event.endTime}</p>
-                      <p><span className="text-navratri-pink">Venue:</span> {event.venue}</p>
+                      <p><span className="text-navratri-orange">Traditional:</span> Authentic Garba & Raas</p>
+                      <p><span className="text-navratri-yellow">Music:</span> Live DJ & Folk Songs</p>
+                      <p><span className="text-navratri-pink">Dance:</span> Competitions & Prizes</p>
                     </div>
                   </div>
 
                   <div className="bg-slate-700/50 rounded-xl p-4 sm:p-6">
-                    <div className="text-2xl sm:text-3xl mb-3">🎫</div>
-                    <h3 className="text-white font-bold text-lg mb-2">Ticket Information</h3>
+                    <div className="text-2xl sm:text-3xl mb-3">🍽️</div>
+                    <h3 className="text-white font-bold text-lg mb-2">Food & Refreshments</h3>
                     <div className="space-y-2 text-slate-300 text-sm sm:text-base">
-                      <p><span className="text-navratri-green">Price:</span> ₹{event.ticketPrice}</p>
-                      <p><span className="text-navratri-blue">Available:</span> {event.availableTickets} / {event.totalTickets}</p>
-                      <p><span className="text-navratri-violet">Status:</span> {event.availableTickets > 0 ? 'Available' : 'Sold Out'}</p>
+                      <p><span className="text-navratri-green">Snacks:</span> Gujarati Delicacies</p>
+                      <p><span className="text-navratri-blue">Drinks:</span> Fresh & Refreshing</p>
+                      <p><span className="text-navratri-violet">Special:</span> Traditional Sweets</p>
                     </div>
                   </div>
                 </motion.div>

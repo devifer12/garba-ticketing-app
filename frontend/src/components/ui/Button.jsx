@@ -86,6 +86,7 @@ const GoogleSignInButton = ({
   variant = "primary",
   onClick,
   disabled = false,
+  showTextOnMobile = false, // New prop to control text visibility on mobile
   ...props
 }) => {
   const { signInWithGoogle, user, loading, error } = useAuth();
@@ -165,11 +166,11 @@ const GoogleSignInButton = ({
     }
   };
 
-  const baseClasses = "flex items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-full font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed min-w-[150px] sm:min-w-[200px] text-sm sm:text-base";
+  const baseClasses = "flex items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-full font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base";
   
   const variants = {
-    primary: "bg-white text-gray-800 hover:bg-gray-50 border border-gray-300 shadow-md hover:shadow-lg",
-    secondary: "bg-slate-800/50 backdrop-blur-xl text-white border border-slate-600/50 hover:border-slate-500/50 hover:bg-slate-700/50"
+    primary: "bg-white text-gray-800 hover:bg-gray-50 border border-gray-300 shadow-md hover:shadow-lg min-w-[150px] sm:min-w-[200px]",
+    secondary: "bg-slate-800/50 backdrop-blur-xl text-white border border-slate-600/50 hover:border-slate-500/50 hover:bg-slate-700/50 min-w-[40px] sm:min-w-[180px]"
   };
 
   const isDisabled = disabled || loading || localLoading;
@@ -189,8 +190,9 @@ const GoogleSignInButton = ({
         {isLoading ? (
           <>
             <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
-            <span className="hidden sm:inline">Signing in...</span>
-            <span className="sm:hidden">Signing in...</span>
+            <span className={`${showTextOnMobile ? 'block' : 'hidden'} sm:inline text-xs sm:text-sm`}>
+              Signing in...
+            </span>
           </>
         ) : (
           <>
@@ -213,7 +215,9 @@ const GoogleSignInButton = ({
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            <span className="truncate text-xs sm:text-sm md:text-base">{children}</span>
+            <span className={`truncate text-xs sm:text-sm md:text-base ${showTextOnMobile ? 'block' : 'hidden'} sm:inline`}>
+              {children}
+            </span>
           </>
         )}
       </motion.button>
@@ -235,7 +239,7 @@ const GoogleSignInButton = ({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.7 }}
-          className="text-slate-400 text-xs text-center hidden sm:block"
+          className="text-slate-400 text-xs text-center hidden lg:block"
         >
           Click to sign in with your Google account
         </motion.div>

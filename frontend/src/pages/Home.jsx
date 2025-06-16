@@ -5,7 +5,7 @@ import Navbar from '../components/common/navbar/Navbar';
 import Hero from '../components/home/Hero';
 import AboutSection from '../components/home/AboutSection';
 import EventDetails from '../components/home/EventDetails';
-import TicketSection from '../components/home/TicketSection';
+import CountdownSection from '../components/home/CountdownSection';
 import FeaturesSection from '../components/home/FeaturesSection';
 import VenueSection from '../components/home/VenueSection';
 import FAQSection from '../components/home/FAQSection';
@@ -104,8 +104,8 @@ const Home = () => {
         {/* Event Details Section */}
         <EventDetails event={event} />
 
-        {/* Ticket Section */}
-        <TicketSection event={event} />
+        {/* Countdown Section */}
+        <CountdownSection event={event} />
 
         {/* Features Section */}
         {event?.features && event.features.length > 0 && (

@@ -74,16 +74,16 @@ const Navbar = () => {
           {loading ? (
             <div className="flex items-center gap-2 text-slate-400">
               <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-sm hidden sm:inline">Loading...</span>
+              <span className="text-sm hidden lg:inline">Loading...</span>
             </div>
           ) : user ? (
             <UserProfile />
           ) : (
             <GoogleSignInButton
               variant="secondary"
-              className="text-xs sm:text-sm px-3 py-2 sm:px-4">
-              <div className="hidden sm:inline">Sign In</div>
-            </GoogleSignInButton>
+              className="text-xs sm:text-sm"
+              showTextOnMobile={false}
+            />
           )}
         </div>
 
