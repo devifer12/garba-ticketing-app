@@ -131,7 +131,7 @@ const VenueSection = ({ event }) => {
                 <h4 className="text-white font-bold text-xl mb-4 text-center">
                   🌟 Venue Highlights
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[
                     { icon: "🎵", text: "Professional Sound System" },
                     { icon: "💡", text: "LED Lighting Setup" },
@@ -139,12 +139,10 @@ const VenueSection = ({ event }) => {
                     { icon: "🍽️", text: "Food & Beverage Area" },
                     { icon: "🚻", text: "Clean Restroom Facilities" },
                     { icon: "🔒", text: "Secure Environment" },
-                    { icon: "♿", text: "Wheelchair Accessible" },
-                    { icon: "📶", text: "Free WiFi Available" }
                   ].map((item, index) => (
                     <motion.div
                       key={index}
-                      className="flex items-center gap-2"
+                      className="flex items-center lg:pl-[26%] gap-2"
                       initial={{ opacity: 0, x: -20 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.1 }}
@@ -169,11 +167,11 @@ const VenueSection = ({ event }) => {
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <motion.button
-                    className="px-6 py-3 bg-navratri-blue/20 text-navratri-blue border border-navratri-blue/30 rounded-lg hover:bg-navratri-blue/30 transition-colors"
+                    className="px-6 py-3 bg-navratri-blue/20 text-indigo-400 border border-navratri-blue/30 rounded-lg hover:bg-navratri-blue/30 transition-colors"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(event.venue)}`, '_blank')}
-                  >
+                    >
                     📍 View on Google Maps
                   </motion.button>
                   
@@ -181,6 +179,7 @@ const VenueSection = ({ event }) => {
                     className="px-6 py-3 bg-navratri-green/20 text-navratri-green border border-navratri-green/30 rounded-lg hover:bg-navratri-green/30 transition-colors"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(event.venue)}`, '_blank')}
                   >
                     🚗 Get Directions
                   </motion.button>

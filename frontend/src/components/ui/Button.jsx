@@ -81,7 +81,7 @@ const PrimaryButton = ({
 };
 
 const GoogleSignInButton = ({ 
-  children = "Sign In with Google",
+  children = "Sign In",
   className = "",
   variant = "primary",
   onClick,

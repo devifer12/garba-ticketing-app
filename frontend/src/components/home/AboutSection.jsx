@@ -22,7 +22,7 @@ const AboutSection = ({ event }) => {
   };
 
   return (
-    <section className="py-12 sm:py-20 relative overflow-hidden">
+    <section id="about-section" className="py-12 sm:py-20 relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-4 sm:left-10 w-24 sm:w-32 h-24 sm:h-32 border border-navratri-orange/10 rounded-full"></div>

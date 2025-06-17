@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { eventAPI } from '../services/api';
 import Navbar from '../components/common/navbar/Navbar';
+import Footer from '../components/common/footer/Footer';
 import Hero from '../components/home/Hero';
 import AboutSection from '../components/home/AboutSection';
 import EventDetails from '../components/home/EventDetails';
@@ -133,6 +134,9 @@ const Home = () => {
           </motion.div>
         )}
       </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };

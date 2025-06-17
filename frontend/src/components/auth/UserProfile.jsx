@@ -26,12 +26,12 @@ const UserProfile = ({ className = "" }) => {
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`flex items-center gap-2 sm:gap-4 cursor-pointer ${className}`}
+      className={`flex items-center gap-2 sm:gap-4 cursor-pointer pointer-events-auto ${className}`}
       onClick={travelToDashboard}
       >
       {/* User Avatar */}
       <motion.div
-        className="flex items-center gap-2 sm:gap-3 bg-slate-800/50 backdrop-blur-xl rounded-full px-2 sm:px-4 py-1 sm:py-2 border border-slate-700/30"
+        className="flex items-center gap-2 sm:gap-3 bg-slate-800/50 backdrop-blur-xl rounded-full px-2 sm:px-4 py-1 sm:py-2 border w-auto min-w-11 border-slate-700/30"
         whileHover={{ scale: 1.02 }}>
         {user.photoURL ? (
           <img
@@ -57,7 +57,7 @@ const UserProfile = ({ className = "" }) => {
       <GoogleSignInButton
         onClick={handleLogout}
         disabled={loading}
-        className="text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2 cursor-pointer">
+        className="text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2 min-w-auto cursor-pointer">
         {loading ? "Signing out..." : "Sign Out"}
       </GoogleSignInButton>
     </motion.div>

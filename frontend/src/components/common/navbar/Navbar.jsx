@@ -26,71 +26,80 @@ const Navbar = () => {
   }, []);
 
   // Calculate scale and opacity based on scroll
-  const titleScale = Math.max(0.7, 1 - scrollY * 0.002);
+  const titleScale = Math.max(0.8, 1 - scrollY * 0.002);
   const subtitleOpacity = Math.max(0, 1 - scrollY * 0.008);
   const subtitleY = scrollY * 0.5;
 
   return (
     <>
-      {/* Fixed Navbar Container - FIXED: Proper z-index and positioning */}
+      {/* Fixed Navbar Container */}
       <motion.nav
         className="fixed top-0 left-0 right-0 z-40 transition-all duration-300 pointer-events-none"
         initial={{ y: -50 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6 }}>
-        {/* Mobile Menu Toggle - FIXED: Proper pointer events */}
-        <div className="md:hidden absolute top-4 left-4 z-50 pointer-events-auto">
-          <motion.button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 bg-slate-800/50 backdrop-blur-xl rounded-lg border border-slate-700/30 text-white"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}>
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24">
-              {isMobileMenuOpen ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
+        
+        {/* Top Bar with Controls */}
+        <div className="absolute top-0 left-0 right-0 z-50 p-4 pointer-events-auto">
+          <div className="flex justify-between">
+            {/* Mobile Menu Toggle - Left Side */}
+            <div className="md:hidden mt-6">
+              <motion.button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2 bg-slate-800/50 backdrop-blur-xl rounded-lg border border-slate-700/30 text-white"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}>
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24">
+                  {isMobileMenuOpen ? (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  ) : (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  )}
+                </svg>
+              </motion.button>
+            </div>
+
+            {/* Spacer for center alignment */}
+            <div className="flex-1"></div>
+
+            {/* Authentication Section - Right Side */}
+            <div className="flex items-center mt-8">
+              {loading ? (
+                <div className="flex items-center gap-2 text-slate-400">
+                  <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm hidden lg:inline">Loading...</span>
+                </div>
+              ) : user ? (
+                <UserProfile />
               ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
+                <GoogleSignInButton
+                  variant="secondary"
+                  className="text-xs sm:text-sm w-auto min-w-auto"
+                  showTextOnMobile={false}
                 />
               )}
-            </svg>
-          </motion.button>
-        </div>
-
-        {/* Authentication Section - Top Right - FIXED: Proper pointer events */}
-        <div className="absolute top-12 right-4 z-50 pointer-events-auto">
-          {loading ? (
-            <div className="flex items-center gap-2 text-slate-400">
-              <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-sm hidden lg:inline">Loading...</span>
             </div>
-          ) : user ? (
-            <UserProfile />
-          ) : (
-            <GoogleSignInButton
-              variant="secondary"
-              className="text-xs sm:text-sm"
-              showTextOnMobile={false}
-            />
-          )}
+          </div>
         </div>
 
-        {/* Main Navbar Content - FIXED: Allow pointer events only where needed */}
-        <div className="container mx-auto px-4 py-6 sm:py-8 pt-8 sm:pt-12 pointer-events-none">
+        {/* Main Navbar Content - Centered */}
+        <div className="container mx-auto px-4 lg:pt-8 md:pt-10 sm:py-8 pt-12 pointer-events-none">
           <div className="flex flex-col items-center">
-            {/* Main Title with glassmorphism background on scroll - FIXED: Clickable when needed */}
+            {/* Main Title with glassmorphism background on scroll */}
             <motion.div
               className={`flex justify-center items-center transition-all duration-300 rounded-full px-4 sm:px-6 py-2 sm:py-3 cursor-pointer pointer-events-auto ${
                 isScrolled
@@ -102,7 +111,7 @@ const Navbar = () => {
                 transformOrigin: "center center",
               }}
               onClick={() => {
-                if (location.pathname == "/") {
+                if (location.pathname === "/") {
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 } else {
                   navigate("/");
@@ -126,7 +135,7 @@ const Navbar = () => {
               </motion.h1>
             </motion.div>
 
-            {/* Subtitle - slides away on scroll - FIXED: No pointer events needed */}
+            {/* Subtitle - slides away on scroll */}
             <motion.p
               className="text-sm sm:text-lg md:text-xl text-slate-300 font-light text-center mt-2 sm:mt-4 px-4 pointer-events-none"
               style={{
@@ -139,7 +148,7 @@ const Navbar = () => {
         </div>
       </motion.nav>
 
-      {/* Mobile Menu Overlay - FIXED: Proper z-index */}
+      {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -150,7 +159,7 @@ const Navbar = () => {
         />
       )}
 
-      {/* Mobile Menu - FIXED: Proper z-index and positioning */}
+      {/* Mobile Menu */}
       <motion.div
         initial={{ x: -300 }}
         animate={{ x: isMobileMenuOpen ? 0 : -300 }}
@@ -167,6 +176,58 @@ const Navbar = () => {
               className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
               Home
             </button>
+            
+            <button
+              onClick={() => {
+                const aboutSection = document.getElementById('about-section');
+                if (aboutSection) {
+                  aboutSection.scrollIntoView({ behavior: 'smooth' });
+                }
+                setIsMobileMenuOpen(false);
+              }}
+              className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
+              About
+            </button>
+            
+            <button
+              onClick={() => {
+                const faqSection = document.getElementById('faq-section');
+                if (faqSection) {
+                  faqSection.scrollIntoView({ behavior: 'smooth' });
+                }
+                setIsMobileMenuOpen(false);
+              }}
+              className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
+              FAQ
+            </button>
+            
+            <button
+              onClick={() => {
+                navigate("/privacy-policy");
+                setIsMobileMenuOpen(false);
+              }}
+              className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
+              Privacy Policy
+            </button>
+            
+            <button
+              onClick={() => {
+                navigate("/cancellation-policy");
+                setIsMobileMenuOpen(false);
+              }}
+              className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
+              Cancellation Policy
+            </button>
+            
+            <button
+              onClick={() => {
+                navigate("/refund-policy");
+                setIsMobileMenuOpen(false);
+              }}
+              className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
+              Refund Policy
+            </button>
+
             {user && (
               <button
                 onClick={() => {
