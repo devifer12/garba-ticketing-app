@@ -4,7 +4,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { adminAPI, apiUtils } from '../../../../services/api';
 import { toast } from 'react-toastify';
 
-const UserManagement = () => {
+const UserManagement = ({ userRole }) => {
   const { backendUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,9 @@ const UserManagement = () => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [roleUpdateData, setRoleUpdateData] = useState({ userId: null, newRole: '' });
+
+  // Check if current user can change roles (only admins can)
+  const canChangeRoles = userRole === 'admin';
 
   useEffect(() => {
     fetchUsers();
@@ -57,6 +60,11 @@ const UserManagement = () => {
   };
 
   const handleRoleUpdate = async (userId, newRole) => {
+    if (!canChangeRoles) {
+      toast.error('Only administrators can change user roles');
+      return;
+    }
+
     try {
       await adminAPI.updateUserRole(userId, newRole);
       toast.success('User role updated successfully');
@@ -71,6 +79,10 @@ const UserManagement = () => {
   };
 
   const openRoleModal = (userId, currentRole) => {
+    if (!canChangeRoles) {
+      toast.error('Only administrators can change user roles');
+      return;
+    }
     setRoleUpdateData({ userId, newRole: currentRole });
     setShowRoleModal(true);
   };
@@ -145,6 +157,16 @@ const UserManagement = () => {
             User Management
           </h1>
           <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full mx-auto mb-6"></div>
+          
+          {/* Role Permission Notice */}
+          {!canChangeRoles && (
+            <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-4 mb-6">
+              <p className="text-yellow-300 text-sm">
+                <span className="font-medium">Manager Access:</span> You can view all users but cannot change user roles. 
+                Only administrators can modify user permissions.
+              </p>
+            </div>
+          )}
         </motion.div>
 
         {/* Filters and Search */}
@@ -286,10 +308,15 @@ const UserManagement = () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => openRoleModal(user._id, user.role)}
-                          className="px-3 py-1 bg-blue-600/50 hover:bg-blue-600/70 text-white text-xs rounded transition-all"
-                          disabled={user._id === backendUser?._id}
+                          className={`px-3 py-1 text-xs rounded transition-all ${
+                            canChangeRoles 
+                              ? 'bg-blue-600/50 hover:bg-blue-600/70 text-white cursor-pointer' 
+                              : 'bg-gray-600/30 text-gray-400 cursor-not-allowed'
+                          }`}
+                          disabled={user._id === backendUser?._id || !canChangeRoles}
+                          title={!canChangeRoles ? 'Only administrators can change roles' : ''}
                         >
-                          Change Role
+                          {canChangeRoles ? 'Change Role' : 'View Role'}
                         </button>
                       </div>
                     </td>
@@ -341,38 +368,46 @@ const UserManagement = () => {
             className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 p-8 rounded-2xl shadow-lg max-w-sm w-full mx-4"
           >
             <h3 className="text-xl font-bold text-white mb-6 text-center">
-              Update User Role
+              {canChangeRoles ? 'Update User Role' : 'View User Role'}
             </h3>
             
             <div className="space-y-4">
               <div>
                 <label className="block text-slate-300 text-sm font-medium mb-2">
-                  Select New Role
+                  {canChangeRoles ? 'Select New Role' : 'Current Role'}
                 </label>
                 <select
                   value={roleUpdateData.newRole}
                   onChange={(e) => setRoleUpdateData(prev => ({ ...prev, newRole: e.target.value }))}
-                  className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  disabled={!canChangeRoles}
+                  className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="guest">Guest</option>
                   <option value="qrchecker">QR Checker</option>
                   <option value="manager">Manager</option>
                   <option value="admin">Admin</option>
                 </select>
+                {!canChangeRoles && (
+                  <p className="text-yellow-400 text-xs mt-2">
+                    Only administrators can modify user roles
+                  </p>
+                )}
               </div>
               
               <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => handleRoleUpdate(roleUpdateData.userId, roleUpdateData.newRole)}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all"
-                >
-                  Update Role
-                </button>
+                {canChangeRoles && (
+                  <button
+                    onClick={() => handleRoleUpdate(roleUpdateData.userId, roleUpdateData.newRole)}
+                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all"
+                  >
+                    Update Role
+                  </button>
+                )}
                 <button
                   onClick={() => setShowRoleModal(false)}
                   className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all"
                 >
-                  Cancel
+                  {canChangeRoles ? 'Cancel' : 'Close'}
                 </button>
               </div>
             </div>

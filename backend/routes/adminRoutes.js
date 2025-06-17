@@ -71,7 +71,7 @@ router.get('/users', verifyToken, isManager, async (req, res) => {
   }
 });
 
-// Update user role (admin only)
+// Update user role (admin only - managers cannot change roles)
 router.patch('/users/:userId/role', verifyToken, isAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -112,14 +112,14 @@ router.patch('/users/:userId/role', verifyToken, isAdmin, async (req, res) => {
   }
 });
 
-// Get ticket statistics for dashboard
+// Get ticket statistics for dashboard - ENHANCED with better revenue calculation
 router.get('/tickets/stats', verifyToken, isManager, async (req, res) => {
   try {
     const totalTickets = await Ticket.countDocuments();
     const activeTickets = await Ticket.countDocuments({ status: 'active' });
     const usedTickets = await Ticket.countDocuments({ status: 'used' });
     
-    // Calculate total revenue
+    // FIXED: Calculate total revenue from ALL tickets (active + used)
     const revenueResult = await Ticket.aggregate([
       { $match: { status: { $in: ['active', 'used'] } } },
       { $group: { _id: null, total: { $sum: '$price' } } }
@@ -150,7 +150,7 @@ router.get('/tickets/stats', verifyToken, isManager, async (req, res) => {
   }
 });
 
-// Get dashboard analytics
+// ENHANCED: Get comprehensive dashboard analytics with sales trends
 router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
   try {
     // Get user statistics
@@ -165,20 +165,31 @@ router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
       createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
     });
     
-    // Calculate revenue
+    // ENHANCED: Calculate comprehensive revenue data
     const revenueResult = await Ticket.aggregate([
       { $match: { status: { $in: ['active', 'used'] } } },
       { $group: { _id: null, total: { $sum: '$price' } } }
     ]);
     const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
     
-    // Get sales chart data (last 7 days)
+    // Revenue today
+    const revenueTodayResult = await Ticket.aggregate([
+      { 
+        $match: { 
+          status: { $in: ['active', 'used'] },
+          createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+        } 
+      },
+      { $group: { _id: null, total: { $sum: '$price' } } }
+    ]);
+    const revenueToday = revenueTodayResult.length > 0 ? revenueTodayResult[0].total : 0;
+    
+    // ENHANCED: Get sales chart data (last 30 days with trend analysis)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const salesChart = await Ticket.aggregate([
       {
         $match: {
-          createdAt: { 
-            $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) 
-          }
+          createdAt: { $gte: thirtyDaysAgo }
         }
       },
       {
@@ -196,15 +207,43 @@ router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
       { $sort: { _id: 1 } }
     ]);
     
+    // ENHANCED: Calculate sales trends
+    const salesTrend = calculateSalesTrend(salesChart);
+    
+    // ENHANCED: Get hourly sales data for today
+    const todayHourlySales = await Ticket.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+        }
+      },
+      {
+        $group: {
+          _id: { 
+            $hour: "$createdAt"
+          },
+          count: { $sum: 1 },
+          revenue: { $sum: '$price' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+    
     // Get event statistics
     const event = await Event.findOne();
     const eventStats = event ? {
       name: event.name,
       totalTickets: event.totalTickets,
-      availableTickets: event.availableTickets,
-      soldTickets: event.totalTickets - event.availableTickets,
-      ticketPrice: event.ticketPrice
+      soldTickets: event.soldTickets,
+      availableTickets: event.totalTickets - event.soldTickets,
+      ticketPrice: event.ticketPrice,
+      soldPercentage: Math.round((event.soldTickets / event.totalTickets) * 100)
     } : null;
+    
+    // ENHANCED: Peak sales analysis
+    const peakSalesHour = todayHourlySales.reduce((peak, current) => 
+      current.count > (peak?.count || 0) ? current : peak, null
+    );
     
     res.status(200).json({
       success: true,
@@ -218,10 +257,19 @@ router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
           soldToday: ticketsToday
         },
         revenue: {
-          total: totalRevenue
+          total: totalRevenue,
+          today: revenueToday,
+          trend: salesTrend
         },
         event: eventStats,
-        salesChart
+        salesChart,
+        hourlySales: todayHourlySales,
+        peakSalesHour,
+        analytics: {
+          averageTicketValue: totalTickets > 0 ? Math.round(totalRevenue / totalTickets) : 0,
+          conversionRate: totalUsers > 0 ? Math.round((totalTickets / totalUsers) * 100) : 0,
+          salesVelocity: calculateSalesVelocity(salesChart)
+        }
       }
     });
   } catch (error) {
@@ -232,6 +280,34 @@ router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
     });
   }
 });
+
+// Helper function to calculate sales trend
+function calculateSalesTrend(salesData) {
+  if (salesData.length < 2) return { direction: 'stable', percentage: 0 };
+  
+  const recent = salesData.slice(-7); // Last 7 days
+  const previous = salesData.slice(-14, -7); // Previous 7 days
+  
+  const recentTotal = recent.reduce((sum, day) => sum + day.revenue, 0);
+  const previousTotal = previous.reduce((sum, day) => sum + day.revenue, 0);
+  
+  if (previousTotal === 0) return { direction: 'stable', percentage: 0 };
+  
+  const percentage = Math.round(((recentTotal - previousTotal) / previousTotal) * 100);
+  const direction = percentage > 5 ? 'rising' : percentage < -5 ? 'falling' : 'stable';
+  
+  return { direction, percentage: Math.abs(percentage) };
+}
+
+// Helper function to calculate sales velocity
+function calculateSalesVelocity(salesData) {
+  if (salesData.length < 2) return 0;
+  
+  const totalDays = salesData.length;
+  const totalSales = salesData.reduce((sum, day) => sum + day.count, 0);
+  
+  return Math.round(totalSales / totalDays * 10) / 10; // Average sales per day
+}
 
 // Get detailed ticket management data
 router.get('/tickets/management', verifyToken, isManager, async (req, res) => {

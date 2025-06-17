@@ -32,16 +32,16 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Fixed Navbar Container */}
+      {/* Fixed Navbar Container - FIXED: Removed pointer-events-none */}
       <motion.nav
-        className="fixed top-0 left-0 right-0 z-40 transition-all duration-300 pointer-events-none"
+        className="fixed top-0 left-0 right-0 z-40 transition-all duration-300"
         initial={{ y: -50 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6 }}>
         
-        {/* Top Bar with Controls */}
-        <div className="absolute top-0 left-0 right-0 z-50 p-4 pointer-events-auto">
-          <div className="flex justify-between">
+        {/* Top Bar with Controls - FIXED: Better pointer event management */}
+        <div className="absolute top-0 left-0 right-0 z-50 p-4">
+          <div className="flex justify-between items-start">
             {/* Mobile Menu Toggle - Left Side */}
             <div className="md:hidden mt-6">
               <motion.button
@@ -96,12 +96,12 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Main Navbar Content - Centered */}
-        <div className="container mx-auto px-4 lg:pt-8 md:pt-10 sm:py-8 pt-12 pointer-events-none">
+        {/* Main Navbar Content - Centered - FIXED: Proper pointer events */}
+        <div className="container mx-auto px-4 lg:pt-8 md:pt-10 sm:py-8 pt-12">
           <div className="flex flex-col items-center">
-            {/* Main Title with glassmorphism background on scroll */}
+            {/* Main Title with glassmorphism background on scroll - FIXED: Clickable logo */}
             <motion.div
-              className={`flex justify-center items-center transition-all duration-300 rounded-full px-4 sm:px-6 py-2 sm:py-3 cursor-pointer pointer-events-auto ${
+              className={`flex justify-center items-center transition-all duration-300 rounded-full px-4 sm:px-6 py-2 sm:py-3 cursor-pointer ${
                 isScrolled
                   ? "bg-slate-800/30 backdrop-blur-xl border border-slate-700/30 shadow-lg"
                   : "bg-transparent"
@@ -116,13 +116,12 @@ const Navbar = () => {
                 } else {
                   navigate("/");
                 }
-              }}>
+              }}
+              whileHover={{ scale: titleScale * 1.02 }}
+              whileTap={{ scale: titleScale * 0.98 }}
+            >
               <motion.h1
                 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-serif bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent text-center whitespace-nowrap"
-                style={{
-                  transform: `scale(${titleScale})`,
-                  transformOrigin: "center center",
-                }}
                 animate={{
                   backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                 }}
@@ -135,7 +134,7 @@ const Navbar = () => {
               </motion.h1>
             </motion.div>
 
-            {/* Subtitle - slides away on scroll */}
+            {/* Subtitle - slides away on scroll - FIXED: Non-interactive */}
             <motion.p
               className="text-sm sm:text-lg md:text-xl text-slate-300 font-light text-center mt-2 sm:mt-4 px-4 pointer-events-none"
               style={{

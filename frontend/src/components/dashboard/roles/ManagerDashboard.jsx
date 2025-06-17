@@ -1,9 +1,18 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const ManagerDashboard = () => {
   const { user, backendUser } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect managers to admin dashboard since they have full access now
+  React.useEffect(() => {
+    if (backendUser?.role === 'manager') {
+      navigate('/dashboard/admin', { replace: true });
+    }
+  }, [backendUser, navigate]);
 
   return (
     <motion.div
@@ -53,10 +62,10 @@ const ManagerDashboard = () => {
           
           <div className="bg-slate-700/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30">
             <h2 className="text-2xl font-bold text-white mb-4">
-              Event Management Hub
+              Redirecting to Admin Dashboard
             </h2>
             <p className="text-lg text-slate-300 mb-4">
-              You are <span className="text-blue-400 font-semibold">Manager</span>
+              You are <span className="text-blue-400 font-semibold">Manager</span> with full access
             </p>
             
             {/* User Info */}
@@ -91,17 +100,8 @@ const ManagerDashboard = () => {
                 whileHover={{ scale: 1.02 }}
               >
                 <div className="text-2xl mb-2">🎫</div>
-                <h3 className="text-white font-semibold mb-1">Ticket Oversight</h3>
-                <p className="text-slate-400 text-sm">Monitor ticket sales</p>
-              </motion.div>
-              
-              <motion.div
-                className="bg-slate-800/50 rounded-xl p-4 border border-slate-600/30"
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="text-2xl mb-2">🎪</div>
-                <h3 className="text-white font-semibold mb-1">Event Planning</h3>
-                <p className="text-slate-400 text-sm">Manage event logistics</p>
+                <h3 className="text-white font-semibold mb-1">Full Ticket Access</h3>
+                <p className="text-slate-400 text-sm">Complete ticket management</p>
               </motion.div>
               
               <motion.div
@@ -109,9 +109,23 @@ const ManagerDashboard = () => {
                 whileHover={{ scale: 1.02 }}
               >
                 <div className="text-2xl mb-2">👥</div>
-                <h3 className="text-white font-semibold mb-1">Team Coordination</h3>
-                <p className="text-slate-400 text-sm">Coordinate staff & volunteers</p>
+                <h3 className="text-white font-semibold mb-1">User Management</h3>
+                <p className="text-slate-400 text-sm">View all users (no role changes)</p>
               </motion.div>
+              
+              <motion.div
+                className="bg-slate-800/50 rounded-xl p-4 border border-slate-600/30"
+                whileHover={{ scale: 1.02 }}
+              >
+                <div className="text-2xl mb-2">📊</div>
+                <h3 className="text-white font-semibold mb-1">Analytics Access</h3>
+                <p className="text-slate-400 text-sm">Full analytics dashboard</p>
+              </motion.div>
+            </div>
+
+            <div className="mt-6 text-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500 mx-auto mb-2"></div>
+              <p className="text-slate-400 text-sm">Taking you to the admin dashboard...</p>
             </div>
           </div>
         </motion.div>

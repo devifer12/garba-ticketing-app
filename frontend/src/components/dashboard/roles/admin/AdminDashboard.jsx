@@ -6,22 +6,31 @@ import { eventAPI, adminAPI, authAPI } from '../../../../services/api';
 import { useApi } from '../../../../hooks/useApi';
 import { ANIMATION_VARIANTS } from '../../../../utils/constants.js';
 import LoadingSpinner from '../../../ui/LoadingSpinner';
-import ErrorDisplay from '../../../ui/ErrorDisplay';
 import UserAvatar from '../../../ui/UserAvatar';
 import EventManager from './EventManager';
 import UserManagement from './UserManagement';
 import TicketManagement from './TicketManagement';
+import AnalyticsDashboard from './AnalyticsDashboard';
 
 const AdminDashboard = () => {
   const { user, backendUser, refreshUserData } = useAuth();
   const { loading, error, execute } = useApi();
   const [currentView, setCurrentView] = useState('dashboard');
   const [eventStatus, setEventStatus] = useState({ exists: false, loading: true, eventData: null });
-  const [stats, setStats] = useState({ totalUsers: 0, totalTickets: 0, totalRevenue: 0, loading: true });
+  const [stats, setStats] = useState({ 
+    totalUsers: 0, 
+    totalTickets: 0, 
+    totalRevenue: 0, 
+    revenueToday: 0,
+    salesTrend: { direction: 'stable', percentage: 0 },
+    loading: true 
+  });
   const [roleCheckLoading, setRoleCheckLoading] = useState(false);
   const navigate = useNavigate();
 
   const isAdmin = backendUser?.role === 'admin';
+  const isManager = backendUser?.role === 'manager';
+  const hasAdminAccess = isAdmin || isManager;
 
   const checkEventStatus = async () => {
     await execute(async () => {
@@ -44,15 +53,29 @@ const AdminDashboard = () => {
 
   const fetchDashboardStats = async () => {
     await execute(async () => {
-      const [usersResponse, ticketStatsResponse] = await Promise.all([
+      const [usersResponse, analyticsResponse] = await Promise.all([
         adminAPI.getUserCount().catch(() => ({ data: { count: 0 } })),
-        adminAPI.getTicketStats().catch(() => ({ data: { total: 0, revenue: 0 } }))
+        adminAPI.getDashboardAnalytics().catch(() => ({ 
+          data: { 
+            data: { 
+              users: { total: 0 }, 
+              tickets: { total: 0 }, 
+              revenue: { total: 0, today: 0, trend: { direction: 'stable', percentage: 0 } } 
+            } 
+          } 
+        }))
       ]);
+      
+      const analyticsData = analyticsResponse.data.data;
       
       setStats({
         totalUsers: usersResponse.data.count || 0,
-        totalTickets: ticketStatsResponse.data.total || 0,
-        totalRevenue: ticketStatsResponse.data.revenue || 0,
+        totalTickets: analyticsData.tickets?.total || 0,
+        totalRevenue: analyticsData.revenue?.total || 0,
+        revenueToday: analyticsData.revenue?.today || 0,
+        salesTrend: analyticsData.revenue?.trend || { direction: 'stable', percentage: 0 },
+        averageTicketValue: analyticsData.analytics?.averageTicketValue || 0,
+        conversionRate: analyticsData.analytics?.conversionRate || 0,
         loading: false
       });
     });
@@ -78,14 +101,14 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (backendUser) {
-      if (backendUser.role !== 'admin') {
+      if (!hasAdminAccess) {
         handleAssignAdminRole();
       }
       Promise.all([checkEventStatus(), fetchDashboardStats()]);
     }
   }, [backendUser]);
 
-  if (backendUser && !isAdmin) {
+  if (backendUser && !hasAdminAccess) {
     return <AdminAccessRequired 
       user={user || backendUser} 
       onAssignRole={handleAssignAdminRole}
@@ -98,6 +121,7 @@ const AdminDashboard = () => {
     return <SubView 
       view={currentView} 
       onBack={() => setCurrentView('dashboard')}
+      userRole={backendUser?.role}
     />;
   }
 
@@ -109,10 +133,10 @@ const AdminDashboard = () => {
       className="max-w-6xl mx-auto"
     >
       <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-slate-700/30">
-        <AdminHeader user={user || backendUser} />
+        <AdminHeader user={user || backendUser} userRole={backendUser?.role} />
         <StatsCards stats={stats} />
         <EventStatusCard eventStatus={eventStatus} onManageEvent={() => setCurrentView('event-manager')} />
-        <ManagementCards onViewChange={setCurrentView} />
+        <ManagementCards onViewChange={setCurrentView} userRole={backendUser?.role} />
       </div>
     </motion.div>
   );
@@ -167,33 +191,48 @@ const AdminAccessRequired = ({ user, onAssignRole, loading, onNavigateGuest }) =
   </motion.div>
 );
 
-const AdminHeader = ({ user }) => (
+const AdminHeader = ({ user, userRole }) => (
   <motion.div variants={ANIMATION_VARIANTS.item} className="text-center mb-8">
     <motion.div
       className="text-6xl mb-4"
       animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
       transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
     >
-      👑
+      {userRole === 'admin' ? '👑' : '📋'}
     </motion.div>
     
     <h1 className="text-4xl md:text-5xl font-bold font-serif bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent mb-4">
-      Admin Dashboard
+      {userRole === 'admin' ? 'Admin Dashboard' : 'Manager Dashboard'}
     </h1>
     
     <div className="bg-slate-700/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30">
-      <h2 className="text-2xl font-bold text-white mb-4">Welcome, Administrator!</h2>
+      <h2 className="text-2xl font-bold text-white mb-4">
+        Welcome, {userRole === 'admin' ? 'Administrator' : 'Manager'}!
+      </h2>
       <UserAvatar user={user} />
     </div>
   </motion.div>
 );
 
 const StatsCards = ({ stats }) => (
-  <motion.div variants={ANIMATION_VARIANTS.item} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  <motion.div variants={ANIMATION_VARIANTS.item} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     {[
       { icon: "👥", title: "Total Users", value: stats.totalUsers, color: "blue" },
       { icon: "🎫", title: "Tickets Sold", value: stats.totalTickets, color: "green" },
-      { icon: "💰", title: "Total Revenue", value: `₹${stats.totalRevenue}`, color: "purple" }
+      { 
+        icon: "💰", 
+        title: "Total Revenue", 
+        value: `₹${stats.totalRevenue.toLocaleString()}`, 
+        color: "purple",
+        subtitle: `₹${stats.revenueToday} today`
+      },
+      { 
+        icon: stats.salesTrend.direction === 'rising' ? "📈" : stats.salesTrend.direction === 'falling' ? "📉" : "📊", 
+        title: "Sales Trend", 
+        value: `${stats.salesTrend.percentage}%`, 
+        color: stats.salesTrend.direction === 'rising' ? "green" : stats.salesTrend.direction === 'falling' ? "red" : "blue",
+        subtitle: stats.salesTrend.direction
+      }
     ].map((stat, index) => (
       <motion.div
         key={index}
@@ -205,7 +244,12 @@ const StatsCards = ({ stats }) => (
         {stats.loading ? (
           <div className={`animate-pulse bg-${stat.color}-700/30 h-8 w-16 rounded`}></div>
         ) : (
-          <p className="text-white text-2xl font-bold">{stat.value}</p>
+          <>
+            <p className="text-white text-2xl font-bold">{stat.value}</p>
+            {stat.subtitle && (
+              <p className={`text-${stat.color}-400 text-sm mt-1`}>{stat.subtitle}</p>
+            )}
+          </>
         )}
       </motion.div>
     ))}
@@ -254,37 +298,66 @@ const EventStatusCard = ({ eventStatus, onManageEvent }) => (
   </motion.div>
 );
 
-const ManagementCards = ({ onViewChange }) => (
-  <motion.div variants={ANIMATION_VARIANTS.item} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {[
-      { icon: "👥", title: "Manage Users", description: "View and manage registered users, permissions, and user activity.", view: "user-management", color: "indigo" },
-      { icon: "🎫", title: "Manage Tickets", description: "View ticket sales, process refunds, and manage ticket inventory.", view: "ticket-management", color: "emerald" },
-      { icon: "📊", title: "Analytics", description: "View detailed reports, charts, and insights about event performance.", view: "analytics", color: "violet" }
-    ].map((card, index) => (
-      <motion.div
-        key={index}
-        className={`bg-gradient-to-br from-${card.color}-900/40 to-${card.color}-800/40 backdrop-blur-xl rounded-xl p-6 border border-${card.color}-700/30 cursor-pointer`}
-        whileHover={{ scale: 1.02, y: -2 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => onViewChange(card.view)}
-      >
-        <div className="text-4xl mb-4">{card.icon}</div>
-        <h3 className="text-xl font-bold text-white mb-2">{card.title}</h3>
-        <p className={`text-${card.color}-300 text-sm mb-4`}>{card.description}</p>
-        <div className={`flex items-center text-${card.color}-400 text-sm font-medium`}>
-          <span>Open {card.title}</span>
-          <span className="ml-2">→</span>
-        </div>
-      </motion.div>
-    ))}
-  </motion.div>
-);
+const ManagementCards = ({ onViewChange, userRole }) => {
+  const cards = [
+    { 
+      icon: "👥", 
+      title: "Manage Users", 
+      description: "View and manage registered users, permissions, and user activity.", 
+      view: "user-management", 
+      color: "indigo",
+      adminOnly: false
+    },
+    { 
+      icon: "🎫", 
+      title: "Manage Tickets", 
+      description: "View ticket sales, process refunds, and manage ticket inventory.", 
+      view: "ticket-management", 
+      color: "emerald",
+      adminOnly: false
+    },
+    { 
+      icon: "📊", 
+      title: "Analytics", 
+      description: "View detailed reports, charts, and insights about event performance.", 
+      view: "analytics", 
+      color: "violet",
+      adminOnly: false
+    }
+  ];
 
-const SubView = ({ view, onBack }) => {
+  // Show all cards for both admin and manager
+  const visibleCards = cards;
+
+  return (
+    <motion.div variants={ANIMATION_VARIANTS.item} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {visibleCards.map((card, index) => (
+        <motion.div
+          key={index}
+          className={`bg-gradient-to-br from-${card.color}-900/40 to-${card.color}-800/40 backdrop-blur-xl rounded-xl p-6 border border-${card.color}-700/30 cursor-pointer`}
+          whileHover={{ scale: 1.02, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => onViewChange(card.view)}
+        >
+          <div className="text-4xl mb-4">{card.icon}</div>
+          <h3 className="text-xl font-bold text-white mb-2">{card.title}</h3>
+          <p className={`text-${card.color}-300 text-sm mb-4`}>{card.description}</p>
+          <div className={`flex items-center text-${card.color}-400 text-sm font-medium`}>
+            <span>Open {card.title}</span>
+            <span className="ml-2">→</span>
+          </div>
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+};
+
+const SubView = ({ view, onBack, userRole }) => {
   const components = {
     'event-manager': EventManager,
     'user-management': UserManagement,
-    'ticket-management': TicketManagement
+    'ticket-management': TicketManagement,
+    'analytics': AnalyticsDashboard
   };
   
   const Component = components[view];
@@ -299,7 +372,7 @@ const SubView = ({ view, onBack }) => {
           ← Back to Dashboard
         </button>
       </div>
-      {Component && <Component />}
+      {Component && <Component userRole={userRole} />}
     </div>
   );
 };
