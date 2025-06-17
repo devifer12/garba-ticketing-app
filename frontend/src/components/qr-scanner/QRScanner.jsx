@@ -19,6 +19,7 @@ const QRScanner = ({
   const [selectedCamera, setSelectedCamera] = useState(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [lastScanTime, setLastScanTime] = useState(0);
+  const [scannerReady, setScannerReady] = useState(false);
 
   // Check camera availability and initialize
   useEffect(() => {
@@ -68,7 +69,7 @@ const QRScanner = ({
     checkCameraAndInit();
   }, [onError]);
 
-  // Initialize scanner when camera is selected
+  // Initialize scanner when camera is selected and video element is ready
   useEffect(() => {
     if (!hasCamera || !selectedCamera || !videoRef.current) return;
 
@@ -79,9 +80,17 @@ const QRScanner = ({
         // Clean up existing scanner
         if (scannerRef.current) {
           console.log('🧹 Cleaning up existing scanner...');
-          scannerRef.current.destroy();
+          try {
+            scannerRef.current.destroy();
+          } catch (cleanupError) {
+            console.warn('⚠️ Error during scanner cleanup:', cleanupError);
+          }
           scannerRef.current = null;
+          setScannerReady(false);
         }
+
+        // Wait a bit to ensure video element is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Create new scanner instance with throttling
         scannerRef.current = new QrScanner(
@@ -109,12 +118,13 @@ const QRScanner = ({
             preferredCamera: selectedCamera.id,
             highlightScanRegion: true,
             highlightCodeOutline: true,
-            maxScansPerSecond: 2, // Reduced from 5 to prevent rapid scanning
+            maxScansPerSecond: 2,
             returnDetailedScanResult: true,
           }
         );
 
         console.log('✅ QR Scanner initialized successfully');
+        setScannerReady(true);
 
         // Set overlay styling if scanner has overlay
         if (scannerRef.current.$overlay) {
@@ -127,6 +137,7 @@ const QRScanner = ({
       } catch (err) {
         console.error('❌ Scanner initialization failed:', err);
         setError('Failed to initialize scanner: ' + err.message);
+        setScannerReady(false);
         if (onError) onError(err);
       }
     };
@@ -143,13 +154,14 @@ const QRScanner = ({
           console.warn('⚠️ Error during scanner cleanup:', err);
         }
         scannerRef.current = null;
+        setScannerReady(false);
       }
     };
   }, [hasCamera, selectedCamera, onScan, onError, overlayColor, scanBoxColor]);
 
-  // Handle scanner start/stop based on isActive prop
+  // Handle scanner start/stop based on isActive prop - FIXED: Only start when scanner is ready
   useEffect(() => {
-    if (!scannerRef.current || hasCamera === false) return;
+    if (!scannerRef.current || hasCamera === false || !scannerReady) return;
 
     const handleScannerState = async () => {
       try {
@@ -173,13 +185,13 @@ const QRScanner = ({
       }
     };
 
-    // Add a small delay to ensure scanner is ready
-    const timer = setTimeout(handleScannerState, 100);
+    // Add a delay to ensure scanner is fully ready
+    const timer = setTimeout(handleScannerState, 200);
     return () => clearTimeout(timer);
-  }, [isActive, isScanning, hasCamera, onError]);
+  }, [isActive, isScanning, hasCamera, onError, scannerReady]);
 
   const switchCamera = async () => {
-    if (cameras.length <= 1 || !scannerRef.current) return;
+    if (cameras.length <= 1 || !scannerRef.current || !scannerReady) return;
 
     try {
       console.log('🔄 Switching camera...');
@@ -188,7 +200,6 @@ const QRScanner = ({
       const nextCamera = cameras[nextIndex];
       
       console.log('📷 Switching to camera:', nextCamera);
-      setSelectedCamera(nextCamera);
       
       // Stop current scanner
       if (isScanning) {
@@ -196,11 +207,16 @@ const QRScanner = ({
         setIsScanning(false);
       }
       
+      // Wait a bit before switching
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Set new camera
       await scannerRef.current.setCamera(nextCamera.id);
+      setSelectedCamera(nextCamera);
       
       // Restart if it was active
       if (isActive) {
+        await new Promise(resolve => setTimeout(resolve, 100));
         await scannerRef.current.start();
         setIsScanning(true);
       }
@@ -284,13 +300,13 @@ const QRScanner = ({
               transition={{ duration: 1, repeat: Infinity }}
             />
             <span className="text-white text-sm font-medium">
-              {isScanning ? 'Scanning...' : 'Camera Off'}
+              {isScanning ? 'Scanning...' : scannerReady ? 'Ready' : 'Initializing...'}
             </span>
           </div>
         </div>
 
         {/* Camera Switch Button */}
-        {cameras.length > 1 && (
+        {cameras.length > 1 && scannerReady && (
           <motion.button
             onClick={switchCamera}
             className="bg-black/50 backdrop-blur-sm rounded-lg p-2 text-white hover:bg-black/70 transition-colors"
@@ -310,7 +326,9 @@ const QRScanner = ({
           <p className="text-white text-sm">
             {isScanning 
               ? 'Point camera at QR code to scan ticket'
-              : 'Camera is not active'
+              : scannerReady 
+                ? 'Camera ready - click Start Scanner to begin'
+                : 'Preparing camera...'
             }
           </p>
           {selectedCamera && (
@@ -357,8 +375,8 @@ const QRScanner = ({
         )}
       </AnimatePresence>
 
-      {/* Loading Overlay - Show when scanner should be active but isn't scanning yet */}
-      {isActive && !isScanning && !error && hasCamera && (
+      {/* Loading Overlay - Show when scanner should be active but isn't ready yet */}
+      {isActive && !isScanning && !error && hasCamera && !scannerReady && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
           <div className="text-center">
             <motion.div
@@ -366,7 +384,7 @@ const QRScanner = ({
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             />
-            <p className="text-white text-sm">Starting camera...</p>
+            <p className="text-white text-sm">Preparing scanner...</p>
           </div>
         </div>
       )}

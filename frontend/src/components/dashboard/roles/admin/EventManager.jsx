@@ -15,7 +15,8 @@ const InputField = React.memo(({
   step,
   value,
   onChange,
-  error
+  error,
+  accept
 }) => (
   <div className="space-y-2">
     <label className="flex items-center gap-2 text-slate-300 font-medium text-sm">
@@ -33,6 +34,18 @@ const InputField = React.memo(({
           onChange={onChange}
           rows={rows || 4}
           className={`w-full px-4 py-3 bg-slate-700/50 backdrop-blur-xl border rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-300 resize-none ${
+            error 
+              ? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500' 
+              : 'border-slate-600/30 focus:ring-purple-500/30 focus:border-purple-500 hover:border-slate-500/50'
+          }`}
+        />
+      ) : type === 'file' ? (
+        <input
+          type="file"
+          name={name}
+          accept={accept}
+          onChange={onChange}
+          className={`w-full px-4 py-3 bg-slate-700/50 backdrop-blur-xl border rounded-xl text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 focus:outline-none focus:ring-2 transition-all duration-300 ${
             error 
               ? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500' 
               : 'border-slate-600/30 focus:ring-purple-500/30 focus:border-purple-500 hover:border-slate-500/50'
@@ -78,6 +91,9 @@ const EventManager = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [errors, setErrors] = useState({});
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Form data state - Initialize with empty strings to prevent controlled/uncontrolled issues
   const [formData, setFormData] = useState({
@@ -126,6 +142,70 @@ const EventManager = () => {
 
     checkEventExists();
   }, []);
+
+  // Image upload handler
+  const handleImageUpload = useCallback(async (file) => {
+    if (!file) return null;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      return null;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast.error('Image file size must be less than 5MB');
+      return null;
+    }
+
+    try {
+      setUploadingImage(true);
+      
+      // Convert to base64 for now (in production, you'd upload to a cloud service)
+      const reader = new FileReader();
+      return new Promise((resolve, reject) => {
+        reader.onload = (e) => {
+          const base64 = e.target.result;
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    } catch (error) {
+      console.error('Image upload error:', error);
+      toast.error('Failed to process image');
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  }, []);
+
+  // Handle file input change
+  const handleFileChange = useCallback(async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload image and get URL
+    const imageUrl = await handleImageUpload(file);
+    if (imageUrl) {
+      setFormData(prevData => ({
+        ...prevData,
+        eventImage: imageUrl
+      }));
+    }
+  }, [handleImageUpload]);
 
   // Memoized form handlers to prevent recreation on every render
   const handleInputChange = useCallback((e) => {
@@ -210,14 +290,6 @@ const EventManager = () => {
       
       if (endMinutes <= startMinutes) {
         newErrors.endTime = 'End time must be after start time';
-      }
-    }
-    
-    // URL validation for event image
-    if (formData.eventImage && formData.eventImage.trim()) {
-      const urlRegex = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
-      if (!urlRegex.test(formData.eventImage.trim())) {
-        newErrors.eventImage = 'Event image must be a valid image URL (jpg, jpeg, png, gif, webp)';
       }
     }
     
@@ -316,6 +388,12 @@ const EventManager = () => {
       features: event.features || [],
       aboutText: event.aboutText || ''
     });
+    
+    // Set image preview if exists
+    if (event.eventImage) {
+      setImagePreview(event.eventImage);
+    }
+    
     setView('edit');
   };
 
@@ -414,6 +492,17 @@ const EventManager = () => {
                 {event.name}
               </h2>
             </div>
+
+            {/* Event Image */}
+            {event.eventImage && (
+              <div className="mb-8 text-center">
+                <img
+                  src={event.eventImage}
+                  alt={event.name}
+                  className="max-w-md mx-auto rounded-xl shadow-lg"
+                />
+              </div>
+            )}
 
             {/* Event Details Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -683,14 +772,36 @@ const EventManager = () => {
               </div>
               
               <div className="grid grid-cols-1 gap-6">
-                <InputField
-                  name="eventImage"
-                  placeholder="Event Image URL (optional)"
-                  icon="🖼️"
-                  value={formData.eventImage}
-                  onChange={handleInputChange}
-                  error={errors.eventImage}
-                />
+                {/* Event Image Upload */}
+                <div className="space-y-4">
+                  <InputField
+                    type="file"
+                    name="eventImage"
+                    placeholder="Event Image"
+                    icon="🖼️"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    error={errors.eventImage}
+                  />
+                  
+                  {uploadingImage && (
+                    <div className="flex items-center gap-2 text-blue-400">
+                      <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-sm">Processing image...</span>
+                    </div>
+                  )}
+                  
+                  {imagePreview && (
+                    <div className="mt-4">
+                      <p className="text-slate-300 text-sm mb-2">Image Preview:</p>
+                      <img
+                        src={imagePreview}
+                        alt="Event preview"
+                        className="max-w-xs rounded-lg shadow-lg"
+                      />
+                    </div>
+                  )}
+                </div>
                 
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-slate-300 font-medium text-sm">
@@ -728,13 +839,18 @@ const EventManager = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 mt-8 border-t border-slate-600/30">
             <button
               onClick={() => setShowConfirmModal(true)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || uploadingImage}
               className="px-8 py-4 bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-purple-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg"
             >
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
                   Processing...
+                </>
+              ) : uploadingImage ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                  Uploading Image...
                 </>
               ) : (
                 <>
@@ -748,7 +864,7 @@ const EventManager = () => {
 
             <button
               onClick={() => view === 'edit' ? setView('preview') : window.history.back()}
-              disabled={isSubmitting}
+              disabled={isSubmitting || uploadingImage}
               className="px-8 py-4 bg-slate-600/50 backdrop-blur-xl text-slate-300 font-medium rounded-xl border border-slate-500/30 hover:bg-slate-600/70 transition-all duration-300 flex items-center justify-center gap-3 text-lg"
             >
               <span className="text-xl">↩️</span>
@@ -761,6 +877,9 @@ const EventManager = () => {
             <p className="flex items-center justify-center gap-2">
               <span>💡</span>
               Make sure all required fields are filled before submitting
+            </p>
+            <p className="mt-2 text-xs">
+              Supported image formats: JPEG, PNG, GIF, WebP (max 5MB)
             </p>
           </div>
         </div>
