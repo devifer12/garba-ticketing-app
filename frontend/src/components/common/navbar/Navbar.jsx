@@ -26,7 +26,7 @@ const Navbar = () => {
   }, []);
 
   // Calculate scale and opacity based on scroll
-  const titleScale = Math.max(0.8, 1 - scrollY * 0.002);
+  const titleScale = Math.max(0.7, 1 - scrollY * 0.002);
   const subtitleOpacity = Math.max(0, 1 - scrollY * 0.008);
   const subtitleY = scrollY * 0.5;
 
@@ -34,13 +34,13 @@ const Navbar = () => {
     <>
       {/* Fixed Navbar Container - FIXED: Removed pointer-events-none */}
       <motion.nav
-        className="fixed top-0 left-0 right-0 z-40 transition-all duration-300"
+        className="fixed top-0 left-0 right-0 z-40 transition-all duration-300 pointer-events-none"
         initial={{ y: -50 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6 }}>
         
         {/* Top Bar with Controls - FIXED: Better pointer event management */}
-        <div className="absolute top-0 left-0 right-0 z-50 p-4">
+        <div className="absolute top-0 left-0 right-0 z-50 p-4 pointer-events-none">
           <div className="flex justify-between items-start">
             {/* Mobile Menu Toggle - Left Side */}
             <div className="md:hidden mt-6">
@@ -77,7 +77,7 @@ const Navbar = () => {
             <div className="flex-1"></div>
 
             {/* Authentication Section - Right Side */}
-            <div className="flex items-center mt-8">
+            <div className="flex items-center mt-8 pointer-events-auto">
               {loading ? (
                 <div className="flex items-center gap-2 text-slate-400">
                   <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
@@ -97,8 +97,8 @@ const Navbar = () => {
         </div>
 
         {/* Main Navbar Content - Centered - FIXED: Proper pointer events */}
-        <div className="container mx-auto px-4 lg:pt-8 md:pt-10 sm:py-8 pt-12">
-          <div className="flex flex-col items-center">
+        <div className="container mx-auto px-4 lg:pt-8 md:pt-10 sm:py-8 pt-12 pointer-events-none">
+          <div className="flex flex-col items-center pointer-events-none">
             {/* Main Title with glassmorphism background on scroll - FIXED: Clickable logo */}
             <motion.div
               className={`flex justify-center items-center transition-all duration-300 rounded-full px-4 sm:px-6 py-2 sm:py-3 cursor-pointer ${
@@ -117,13 +117,15 @@ const Navbar = () => {
                   navigate("/");
                 }
               }}
-              whileHover={{ scale: titleScale * 1.02 }}
-              whileTap={{ scale: titleScale * 0.98 }}
             >
               <motion.h1
-                className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-serif bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent text-center whitespace-nowrap"
+                className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-serif bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent text-center whitespace-nowrap pointer-events-auto"
                 animate={{
                   backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                }}
+                style={{
+                  transform: `scale(${titleScale})`,
+                  transformOrigin: "center center",
                 }}
                 transition={{
                   duration: 4,

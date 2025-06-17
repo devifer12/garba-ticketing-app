@@ -4,14 +4,10 @@ import { toast } from "react-toastify";
 import { useAuth } from "../../../context/AuthContext";
 import { ticketAPI, apiUtils } from "../../../services/api";
 import QRScanner from "../../qr-scanner/QRScanner";
-import TicketVerificationModal from "../../qr-scanner/TicketVerificationModal";
 
 const QrCheckerDashboard = () => {
   const { user, backendUser } = useAuth();
   const [scannerActive, setScannerActive] = useState(false);
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [currentTicket, setCurrentTicket] = useState(null);
-  const [verificationStatus, setVerificationStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [scanHistory, setScanHistory] = useState([]);
   const [stats, setStats] = useState({
@@ -82,9 +78,6 @@ const QrCheckerDashboard = () => {
 
       // Basic validation - more flexible now
       if (!qrCode || typeof qrCode !== 'string' || qrCode.trim().length === 0) {
-        setVerificationStatus('invalid');
-        setCurrentTicket(null);
-        setShowVerificationModal(true);
         addToScanHistory(qrCode, null, 'invalid');
         toast.error('Invalid QR code - empty or malformed');
         return;
@@ -106,34 +99,41 @@ const QrCheckerDashboard = () => {
           userEmail: ticket.user?.email
         });
         
-        // Determine verification status
-        let status = 'valid';
+        // Check ticket status
         if (ticket.status === 'used') {
-          status = 'used';
-        } else if (ticket.status === 'cancelled') {
-          status = 'cancelled';
+          addToScanHistory(trimmedQR, ticket, 'used');
+          toast.warning('⚠️ Ticket already used');
+          return;
         }
 
-        setCurrentTicket(ticket);
-        setVerificationStatus(status);
-        setShowVerificationModal(true);
-        addToScanHistory(trimmedQR, ticket, status);
-
-        // Show appropriate toast
-        if (status === 'valid') {
-          toast.success(`✅ Valid ticket for ${ticket.user?.name}`);
-        } else if (status === 'used') {
-          toast.warning('⚠️ Ticket already used');
-        } else if (status === 'cancelled') {
-          toast.error('❌ Ticket has been cancelled');
+        // FIXED: Auto-mark valid tickets as used immediately
+        if (ticket.status === 'active') {
+          console.log('🎯 Auto-marking valid ticket as used...');
+          
+          try {
+            const markResponse = await ticketAPI.markTicketAsUsed(trimmedQR);
+            console.log('✅ Ticket marked as used successfully:', markResponse.data);
+            
+            addToScanHistory(trimmedQR, ticket, 'valid', true);
+            toast.success(`✅ Entry Allowed! Welcome ${ticket.user?.name}`, {
+              duration: 4000,
+              style: {
+                background: '#10b981',
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 'bold'
+              }
+            });
+          } catch (markError) {
+            console.error('❌ Failed to mark ticket as used:', markError);
+            addToScanHistory(trimmedQR, ticket, 'valid', false);
+            toast.error('Failed to mark ticket as used. Please try again.');
+          }
         }
       } else {
         console.log('❌ Backend returned unsuccessful response');
-        setVerificationStatus('invalid');
-        setCurrentTicket(null);
-        setShowVerificationModal(true);
         addToScanHistory(trimmedQR, null, 'invalid');
-        toast.error('Ticket verification failed');
+        toast.error('❌ Invalid Ticket - Not found in system');
       }
 
     } catch (error) {
@@ -146,9 +146,6 @@ const QrCheckerDashboard = () => {
         serverResponse: error.response?.data
       });
       
-      setVerificationStatus('invalid');
-      setCurrentTicket(null);
-      setShowVerificationModal(true);
       addToScanHistory(qrCode, null, 'invalid');
       
       // More specific error messages
@@ -164,48 +161,6 @@ const QrCheckerDashboard = () => {
     }
   };
 
-  const handleMarkAsUsed = async () => {
-    if (!currentTicket || verificationStatus !== 'valid') return;
-
-    try {
-      setLoading(true);
-      console.log('🎯 Marking ticket as used:', currentTicket.ticketId);
-      
-      const response = await ticketAPI.markTicketAsUsed(currentTicket.qrCode);
-      console.log('✅ Mark as used response:', response.data);
-      
-      if (response.data.success) {
-        toast.success('🎉 Entry allowed! Ticket marked as used.');
-        
-        // Update scan history to mark this entry as completed
-        const updatedHistory = scanHistory.map(scan => 
-          scan.qrCode === currentTicket.qrCode && scan.status === 'valid'
-            ? { ...scan, marked: true }
-            : scan
-        );
-        setScanHistory(updatedHistory);
-        saveScanHistory(updatedHistory);
-        
-        // Update stats
-        setStats(prev => ({
-          ...prev,
-          validEntries: prev.validEntries + 1
-        }));
-        
-        setShowVerificationModal(false);
-        setCurrentTicket(null);
-        setVerificationStatus(null);
-      }
-      
-    } catch (error) {
-      console.error('❌ Mark as used error:', error);
-      const errorMessage = apiUtils.formatErrorMessage(error);
-      toast.error(`❌ Failed to mark ticket as used: ${errorMessage}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleScanError = (error) => {
     console.error('📷 Scanner error:', error);
     toast.error('Scanner error: ' + error.message);
@@ -214,7 +169,7 @@ const QrCheckerDashboard = () => {
   const toggleScanner = () => {
     setScannerActive(!scannerActive);
     if (!scannerActive) {
-      toast.info('📷 QR Scanner activated');
+      toast.info('📷 QR Scanner activated - Point camera at ticket QR code');
     } else {
       toast.info('⏹️ QR Scanner deactivated');
     }
@@ -284,11 +239,14 @@ const QrCheckerDashboard = () => {
 
           <div className="bg-slate-700/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30">
             <h2 className="text-2xl font-bold text-white mb-4">
-              Entry Verification Station
+              Auto Entry Verification Station
             </h2>
             <p className="text-lg text-slate-300 mb-4">
               You are{" "}
               <span className="text-green-400 font-semibold">QR Checker</span>!
+            </p>
+            <p className="text-sm text-slate-400 mb-4">
+              📱 Scan QR codes to automatically verify and allow entry
             </p>
 
             {/* User Info */}
@@ -345,7 +303,7 @@ const QrCheckerDashboard = () => {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-bold text-white flex items-center gap-2">
               <span className="text-2xl">📷</span>
-              QR Code Scanner
+              Auto QR Scanner
             </h3>
             
             <motion.button
@@ -362,6 +320,15 @@ const QrCheckerDashboard = () => {
             </motion.button>
           </div>
 
+          {/* Auto-scan notice */}
+          {scannerActive && (
+            <div className="mb-4 p-3 bg-green-900/20 border border-green-700/30 rounded-lg">
+              <p className="text-green-300 text-sm text-center">
+                🚀 <strong>Auto-Entry Mode:</strong> Valid tickets will be automatically marked as used upon scanning
+              </p>
+            </div>
+          )}
+
           <QRScanner
             onScan={handleQRScan}
             onError={handleScanError}
@@ -374,8 +341,18 @@ const QrCheckerDashboard = () => {
           {!scannerActive && (
             <div className="mt-4 text-center">
               <p className="text-slate-400 text-sm">
-                Click "Start Scanner" to begin scanning QR codes
+                Click "Start Scanner" to begin automatic QR code verification
               </p>
+            </div>
+          )}
+
+          {/* Loading indicator */}
+          {loading && (
+            <div className="mt-4 text-center">
+              <div className="inline-flex items-center gap-2 text-blue-400">
+                <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm">Processing ticket...</span>
+              </div>
             </div>
           )}
 
@@ -385,7 +362,7 @@ const QrCheckerDashboard = () => {
               <h4 className="text-white font-medium mb-2">Debug Info:</h4>
               <div className="text-xs text-slate-300 space-y-1">
                 <p>Scanner Active: {scannerActive ? 'Yes' : 'No'}</p>
-                <p>Loading: {loading ? 'Yes' : 'No'}</p>
+                <p>Processing: {loading ? 'Yes' : 'No'}</p>
                 <p>User Role: {backendUser?.role || 'Unknown'}</p>
                 <p>Total Scans: {stats.totalScanned}</p>
               </div>
@@ -433,10 +410,9 @@ const QrCheckerDashboard = () => {
                         : 'bg-red-900/30 text-red-300'
                     }`}>
                       {scan.status === 'valid' 
-                        ? scan.marked ? 'Entry Allowed' : 'Valid (Pending)'
-                        : scan.status === 'used' ? 'Already Used'
-                        : scan.status === 'cancelled' ? 'Cancelled'
-                        : 'Invalid'
+                        ? scan.marked ? '✅ Entry Allowed' : 'Valid (Pending)'
+                        : scan.status === 'used' ? '🎯 Already Used'
+                        : '❌ Invalid'
                       }
                     </span>
                     <span className="text-slate-400 text-xs">
@@ -472,20 +448,6 @@ const QrCheckerDashboard = () => {
           </div>
         </div>
       </div>
-
-      {/* Verification Modal */}
-      <TicketVerificationModal
-        isOpen={showVerificationModal}
-        onClose={() => {
-          setShowVerificationModal(false);
-          setCurrentTicket(null);
-          setVerificationStatus(null);
-        }}
-        ticket={currentTicket}
-        verificationStatus={verificationStatus}
-        onMarkAsUsed={handleMarkAsUsed}
-        loading={loading}
-      />
     </motion.div>
   );
 };

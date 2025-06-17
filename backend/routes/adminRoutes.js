@@ -150,7 +150,7 @@ router.get('/tickets/stats', verifyToken, isManager, async (req, res) => {
   }
 });
 
-// ENHANCED: Get comprehensive dashboard analytics with sales trends
+// ENHANCED: Get comprehensive dashboard analytics - REMOVED sales trend analysis
 router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
   try {
     // Get user statistics
@@ -184,7 +184,7 @@ router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
     ]);
     const revenueToday = revenueTodayResult.length > 0 ? revenueTodayResult[0].total : 0;
     
-    // ENHANCED: Get sales chart data (last 30 days with trend analysis)
+    // ENHANCED: Get sales chart data (last 30 days)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const salesChart = await Ticket.aggregate([
       {
@@ -206,9 +206,6 @@ router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
       },
       { $sort: { _id: 1 } }
     ]);
-    
-    // ENHANCED: Calculate sales trends
-    const salesTrend = calculateSalesTrend(salesChart);
     
     // ENHANCED: Get hourly sales data for today
     const todayHourlySales = await Ticket.aggregate([
@@ -258,8 +255,7 @@ router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
         },
         revenue: {
           total: totalRevenue,
-          today: revenueToday,
-          trend: salesTrend
+          today: revenueToday
         },
         event: eventStats,
         salesChart,
@@ -280,24 +276,6 @@ router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
     });
   }
 });
-
-// Helper function to calculate sales trend
-function calculateSalesTrend(salesData) {
-  if (salesData.length < 2) return { direction: 'stable', percentage: 0 };
-  
-  const recent = salesData.slice(-7); // Last 7 days
-  const previous = salesData.slice(-14, -7); // Previous 7 days
-  
-  const recentTotal = recent.reduce((sum, day) => sum + day.revenue, 0);
-  const previousTotal = previous.reduce((sum, day) => sum + day.revenue, 0);
-  
-  if (previousTotal === 0) return { direction: 'stable', percentage: 0 };
-  
-  const percentage = Math.round(((recentTotal - previousTotal) / previousTotal) * 100);
-  const direction = percentage > 5 ? 'rising' : percentage < -5 ? 'falling' : 'stable';
-  
-  return { direction, percentage: Math.abs(percentage) };
-}
 
 // Helper function to calculate sales velocity
 function calculateSalesVelocity(salesData) {

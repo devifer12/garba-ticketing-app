@@ -7,12 +7,8 @@ const ManagerDashboard = () => {
   const { user, backendUser } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect managers to admin dashboard since they have full access now
-  React.useEffect(() => {
-    if (backendUser?.role === 'manager') {
-      navigate('/dashboard/admin', { replace: true });
-    }
-  }, [backendUser, navigate]);
+  // FIXED: Don't redirect managers automatically - let them use manager dashboard
+  // Remove the automatic redirect effect that was causing login issues
 
   return (
     <motion.div
@@ -62,10 +58,10 @@ const ManagerDashboard = () => {
           
           <div className="bg-slate-700/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30">
             <h2 className="text-2xl font-bold text-white mb-4">
-              Redirecting to Admin Dashboard
+              Manager Access Portal
             </h2>
             <p className="text-lg text-slate-300 mb-4">
-              You are <span className="text-blue-400 font-semibold">Manager</span> with full access
+              You are <span className="text-blue-400 font-semibold">Manager</span> with full management access
             </p>
             
             {/* User Info */}
@@ -93,7 +89,7 @@ const ManagerDashboard = () => {
               </div>
             )}
             
-            {/* Manager Features Preview */}
+            {/* Manager Features */}
             <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
               <motion.div
                 className="bg-slate-800/50 rounded-xl p-4 border border-slate-600/30"
@@ -123,9 +119,17 @@ const ManagerDashboard = () => {
               </motion.div>
             </div>
 
-            <div className="mt-6 text-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500 mx-auto mb-2"></div>
-              <p className="text-slate-400 text-sm">Taking you to the admin dashboard...</p>
+            {/* Access Admin Panel Button */}
+            <div className="mt-8 text-center">
+              <motion.button
+                onClick={() => navigate('/dashboard/admin')}
+                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all duration-300 flex items-center justify-center gap-3 text-lg mx-auto"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <span className="text-xl">🚀</span>
+                Access Management Panel
+              </motion.button>
             </div>
           </div>
         </motion.div>

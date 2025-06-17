@@ -22,7 +22,6 @@ const AdminDashboard = () => {
     totalTickets: 0, 
     totalRevenue: 0, 
     revenueToday: 0,
-    salesTrend: { direction: 'stable', percentage: 0 },
     loading: true 
   });
   const [roleCheckLoading, setRoleCheckLoading] = useState(false);
@@ -60,7 +59,7 @@ const AdminDashboard = () => {
             data: { 
               users: { total: 0 }, 
               tickets: { total: 0 }, 
-              revenue: { total: 0, today: 0, trend: { direction: 'stable', percentage: 0 } } 
+              revenue: { total: 0, today: 0 } 
             } 
           } 
         }))
@@ -73,7 +72,6 @@ const AdminDashboard = () => {
         totalTickets: analyticsData.tickets?.total || 0,
         totalRevenue: analyticsData.revenue?.total || 0,
         revenueToday: analyticsData.revenue?.today || 0,
-        salesTrend: analyticsData.revenue?.trend || { direction: 'stable', percentage: 0 },
         averageTicketValue: analyticsData.analytics?.averageTicketValue || 0,
         conversionRate: analyticsData.analytics?.conversionRate || 0,
         loading: false
@@ -227,11 +225,11 @@ const StatsCards = ({ stats }) => (
         subtitle: `₹${stats.revenueToday} today`
       },
       { 
-        icon: stats.salesTrend.direction === 'rising' ? "📈" : stats.salesTrend.direction === 'falling' ? "📉" : "📊", 
-        title: "Sales Trend", 
-        value: `${stats.salesTrend.percentage}%`, 
-        color: stats.salesTrend.direction === 'rising' ? "green" : stats.salesTrend.direction === 'falling' ? "red" : "blue",
-        subtitle: stats.salesTrend.direction
+        icon: "📊", 
+        title: "Avg. Ticket Value", 
+        value: `₹${stats.averageTicketValue || 0}`, 
+        color: "orange",
+        subtitle: "per ticket"
       }
     ].map((stat, index) => (
       <motion.div

@@ -39,22 +39,6 @@ const AnalyticsDashboard = ({ userRole }) => {
     }).format(amount);
   };
 
-  const getTrendIcon = (direction) => {
-    switch (direction) {
-      case 'rising': return '📈';
-      case 'falling': return '📉';
-      default: return '📊';
-    }
-  };
-
-  const getTrendColor = (direction) => {
-    switch (direction) {
-      case 'rising': return 'text-green-400';
-      case 'falling': return 'text-red-400';
-      default: return 'text-blue-400';
-    }
-  };
-
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto">
@@ -110,7 +94,7 @@ const AnalyticsDashboard = ({ userRole }) => {
           </h1>
           <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-6"></div>
           <p className="text-slate-300 text-lg">
-            Comprehensive insights into your event performance and sales trends
+            Comprehensive insights into your event performance and sales data
           </p>
         </motion.div>
 
@@ -188,45 +172,6 @@ const AnalyticsDashboard = ({ userRole }) => {
             </p>
             <p className="text-orange-400 text-sm mt-1">users to buyers</p>
           </motion.div>
-        </div>
-
-        {/* Sales Trend */}
-        <div className="bg-slate-700/30 rounded-xl p-6 mb-8">
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <span className="text-2xl">{getTrendIcon(analytics?.revenue?.trend?.direction)}</span>
-            Sales Trend Analysis
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className={`text-3xl font-bold ${getTrendColor(analytics?.revenue?.trend?.direction)}`}>
-                {analytics?.revenue?.trend?.percentage || 0}%
-              </div>
-              <p className="text-slate-400 text-sm">
-                {analytics?.revenue?.trend?.direction === 'rising' ? 'Increase' : 
-                 analytics?.revenue?.trend?.direction === 'falling' ? 'Decrease' : 'Stable'}
-              </p>
-              <p className="text-slate-500 text-xs">vs previous period</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-400">
-                {analytics?.analytics?.salesVelocity || 0}
-              </div>
-              <p className="text-slate-400 text-sm">Sales Velocity</p>
-              <p className="text-slate-500 text-xs">tickets per day</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-400">
-                {analytics?.peakSalesHour?._id || 'N/A'}:00
-              </div>
-              <p className="text-slate-400 text-sm">Peak Sales Hour</p>
-              <p className="text-slate-500 text-xs">
-                {analytics?.peakSalesHour?.count || 0} tickets sold
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Event Performance */}
