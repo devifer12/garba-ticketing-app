@@ -254,7 +254,9 @@ const UserManagement = ({ userRole }) => {
                   <th className="text-left py-3 px-4 text-slate-300 font-medium">Role</th>
                   <th className="text-left py-3 px-4 text-slate-300 font-medium">Joined</th>
                   <th className="text-left py-3 px-4 text-slate-300 font-medium">Last Login</th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Actions</th>
+                  {canChangeRoles && (
+                    <th className="text-left py-3 px-4 text-slate-300 font-medium">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -304,22 +306,19 @@ const UserManagement = ({ userRole }) => {
                     <td className="py-3 px-4 text-slate-300 text-sm">
                       {user.lastLogin ? formatDate(user.lastLogin) : 'Never'}
                     </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openRoleModal(user._id, user.role)}
-                          className={`px-3 py-1 text-xs rounded transition-all ${
-                            canChangeRoles 
-                              ? 'bg-blue-600/50 hover:bg-blue-600/70 text-white cursor-pointer' 
-                              : 'bg-gray-600/30 text-gray-400 cursor-not-allowed'
-                          }`}
-                          disabled={user._id === backendUser?._id || !canChangeRoles}
-                          title={!canChangeRoles ? 'Only administrators can change roles' : ''}
-                        >
-                          {canChangeRoles ? 'Change Role' : 'View Role'}
-                        </button>
-                      </div>
-                    </td>
+                    {canChangeRoles && (
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openRoleModal(user._id, user.role)}
+                            className="px-3 py-1 text-xs rounded transition-all bg-blue-600/50 hover:bg-blue-600/70 text-white cursor-pointer"
+                            disabled={user._id === backendUser?._id}
+                          >
+                            Change Role
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </motion.tr>
                 ))}
               </tbody>
@@ -359,8 +358,8 @@ const UserManagement = ({ userRole }) => {
         )}
       </div>
 
-      {/* Role Update Modal */}
-      {showRoleModal && (
+      {/* Role Update Modal - Only show for admins */}
+      {showRoleModal && canChangeRoles && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -368,46 +367,38 @@ const UserManagement = ({ userRole }) => {
             className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 p-8 rounded-2xl shadow-lg max-w-sm w-full mx-4"
           >
             <h3 className="text-xl font-bold text-white mb-6 text-center">
-              {canChangeRoles ? 'Update User Role' : 'View User Role'}
+              Update User Role
             </h3>
             
             <div className="space-y-4">
               <div>
                 <label className="block text-slate-300 text-sm font-medium mb-2">
-                  {canChangeRoles ? 'Select New Role' : 'Current Role'}
+                  Select New Role
                 </label>
                 <select
                   value={roleUpdateData.newRole}
                   onChange={(e) => setRoleUpdateData(prev => ({ ...prev, newRole: e.target.value }))}
-                  disabled={!canChangeRoles}
-                  className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 >
                   <option value="guest">Guest</option>
                   <option value="qrchecker">QR Checker</option>
                   <option value="manager">Manager</option>
                   <option value="admin">Admin</option>
                 </select>
-                {!canChangeRoles && (
-                  <p className="text-yellow-400 text-xs mt-2">
-                    Only administrators can modify user roles
-                  </p>
-                )}
               </div>
               
               <div className="flex gap-3 pt-4">
-                {canChangeRoles && (
-                  <button
-                    onClick={() => handleRoleUpdate(roleUpdateData.userId, roleUpdateData.newRole)}
-                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all"
-                  >
-                    Update Role
-                  </button>
-                )}
+                <button
+                  onClick={() => handleRoleUpdate(roleUpdateData.userId, roleUpdateData.newRole)}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all"
+                >
+                  Update Role
+                </button>
                 <button
                   onClick={() => setShowRoleModal(false)}
                   className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all"
                 >
-                  {canChangeRoles ? 'Cancel' : 'Close'}
+                  Cancel
                 </button>
               </div>
             </div>

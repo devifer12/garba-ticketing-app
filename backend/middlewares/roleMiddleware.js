@@ -32,7 +32,11 @@ const checkRole = (roles) => async (req, res, next) => {
 
 module.exports = {
   isAdmin: checkRole(['admin']),
-  isManager: checkRole(['manager', 'admin']),
+  isManager: checkRole(['manager', 'admin']), // Managers can access manager endpoints
   isQRChecker: checkRole(['qrchecker', 'admin']),
-  isGuest: checkRole(['guest'])
+  isGuest: checkRole(['guest']),
+  // Add specific manager-only role check
+  isManagerOnly: checkRole(['manager']),
+  // Add combined admin/manager check
+  isAdminOrManager: checkRole(['admin', 'manager'])
 };

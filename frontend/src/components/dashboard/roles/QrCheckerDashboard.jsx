@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../context/AuthContext";
 import { ticketAPI, apiUtils } from "../../../services/api";
@@ -15,6 +15,7 @@ const QrCheckerDashboard = () => {
     validEntries: 0,
     rejectedScans: 0
   });
+  const [notification, setNotification] = useState(null);
 
   // Load scan history from localStorage on component mount
   useEffect(() => {
@@ -69,6 +70,17 @@ const QrCheckerDashboard = () => {
     setStats({ totalScanned, validEntries, rejectedScans });
   };
 
+  // Show notification
+  const showNotification = (type, message, details = null) => {
+    setNotification({ type, message, details, id: Date.now() });
+    
+    // Auto-hide notification
+    const duration = type === 'success' ? 3000 : 5000;
+    setTimeout(() => {
+      setNotification(null);
+    }, duration);
+  };
+
   const handleQRScan = async (qrCode) => {
     if (loading) return;
 
@@ -79,7 +91,7 @@ const QrCheckerDashboard = () => {
       // Basic validation - more flexible now
       if (!qrCode || typeof qrCode !== 'string' || qrCode.trim().length === 0) {
         addToScanHistory(qrCode, null, 'invalid');
-        toast.error('Invalid QR code - empty or malformed');
+        showNotification('error', 'Invalid QR Code', 'Empty or malformed QR code');
         return;
       }
 
@@ -102,11 +114,11 @@ const QrCheckerDashboard = () => {
         // Check ticket status
         if (ticket.status === 'used') {
           addToScanHistory(trimmedQR, ticket, 'used');
-          toast.warning('⚠️ Ticket already used');
+          showNotification('error', 'Ticket Already Used', `This ticket was already used. Entry time: ${new Date(ticket.entryTime).toLocaleString()}`);
           return;
         }
 
-        // FIXED: Auto-mark valid tickets as used immediately
+        // Auto-mark valid tickets as used immediately
         if (ticket.status === 'active') {
           console.log('🎯 Auto-marking valid ticket as used...');
           
@@ -115,25 +127,17 @@ const QrCheckerDashboard = () => {
             console.log('✅ Ticket marked as used successfully:', markResponse.data);
             
             addToScanHistory(trimmedQR, ticket, 'valid', true);
-            toast.success(`✅ Entry Allowed! Welcome ${ticket.user?.name}`, {
-              duration: 4000,
-              style: {
-                background: '#10b981',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: 'bold'
-              }
-            });
+            showNotification('success', `✅ Entry Allowed! Welcome ${ticket.user?.name}`);
           } catch (markError) {
             console.error('❌ Failed to mark ticket as used:', markError);
             addToScanHistory(trimmedQR, ticket, 'valid', false);
-            toast.error('Failed to mark ticket as used. Please try again.');
+            showNotification('error', 'Failed to Process Entry', 'Could not mark ticket as used. Please try again.');
           }
         }
       } else {
         console.log('❌ Backend returned unsuccessful response');
         addToScanHistory(trimmedQR, null, 'invalid');
-        toast.error('❌ Invalid Ticket - Not found in system');
+        showNotification('error', 'Invalid Ticket', 'Ticket not found in system or QR code is invalid');
       }
 
     } catch (error) {
@@ -150,11 +154,11 @@ const QrCheckerDashboard = () => {
       
       // More specific error messages
       if (error.response?.status === 404) {
-        toast.error('🔍 Ticket not found in system');
+        showNotification('error', 'Ticket Not Found', 'This ticket does not exist in our system');
       } else if (error.response?.status === 400) {
-        toast.error('❌ Invalid QR code format');
+        showNotification('error', 'Invalid QR Code', 'QR code format is not recognized');
       } else {
-        toast.error(`❌ Verification failed: ${errorMessage}`);
+        showNotification('error', 'Verification Failed', errorMessage);
       }
     } finally {
       setLoading(false);
@@ -163,15 +167,15 @@ const QrCheckerDashboard = () => {
 
   const handleScanError = (error) => {
     console.error('📷 Scanner error:', error);
-    toast.error('Scanner error: ' + error.message);
+    showNotification('error', 'Scanner Error', error.message);
   };
 
   const toggleScanner = () => {
     setScannerActive(!scannerActive);
     if (!scannerActive) {
-      toast.info('📷 QR Scanner activated - Point camera at ticket QR code');
+      showNotification('success', '📷 QR Scanner activated - Point camera at ticket QR code');
     } else {
-      toast.info('⏹️ QR Scanner deactivated');
+      showNotification('success', '⏹️ QR Scanner deactivated');
     }
   };
 
@@ -179,7 +183,7 @@ const QrCheckerDashboard = () => {
     setScanHistory([]);
     setStats({ totalScanned: 0, validEntries: 0, rejectedScans: 0 });
     localStorage.removeItem('qr_scan_history');
-    toast.success('🧹 Scan history cleared');
+    showNotification('success', '🧹 Scan history cleared');
   };
 
   const formatDate = (dateString) => {
@@ -198,6 +202,66 @@ const QrCheckerDashboard = () => {
       transition={{ duration: 0.6 }}
       className="max-w-6xl mx-auto space-y-8"
     >
+      {/* Notification System */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            key={notification.id}
+            initial={{ opacity: 0, x: 300, scale: 0.8 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 300, scale: 0.8 }}
+            className={`fixed ${notification.type === 'success' ? 'bottom-4 right-4' : 'top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2'} z-50 ${notification.type === 'success' ? 'max-w-sm' : 'max-w-md'} w-full mx-4`}
+          >
+            <div className={`${
+              notification.type === 'success' 
+                ? 'bg-green-500/90 border-green-400/30' 
+                : 'bg-red-500/90 border-red-400/30'
+            } backdrop-blur-xl border rounded-xl p-4 shadow-2xl`}>
+              <div className="flex items-start gap-3">
+                <motion.div
+                  className={`flex-shrink-0 w-6 h-6 ${
+                    notification.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+                  } rounded-full flex items-center justify-center`}
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                >
+                  <span className="text-white text-sm">
+                    {notification.type === 'success' ? '✓' : '✕'}
+                  </span>
+                </motion.div>
+
+                <div className="flex-1">
+                  <h4 className="text-white font-semibold text-sm mb-1">
+                    {notification.message}
+                  </h4>
+                  {notification.details && (
+                    <p className={`${
+                      notification.type === 'success' ? 'text-green-100' : 'text-red-100'
+                    } text-sm`}>
+                      {notification.details}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setNotification(null)}
+                  className={`flex-shrink-0 ${
+                    notification.type === 'success' ? 'text-green-200 hover:text-white' : 'text-red-200 hover:text-white'
+                  } transition-colors duration-200 p-1 rounded-full ${
+                    notification.type === 'success' ? 'hover:bg-green-600/50' : 'hover:bg-red-600/50'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/30">
         <motion.div
@@ -314,8 +378,7 @@ const QrCheckerDashboard = () => {
                   : 'bg-green-600 hover:bg-green-700 text-white'
               }`}
               whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
+              whileTap={{ scale: 0.95 }}>
               {scannerActive ? '⏹️ Stop Scanner' : '▶️ Start Scanner'}
             </motion.button>
           </div>
@@ -352,19 +415,6 @@ const QrCheckerDashboard = () => {
               <div className="inline-flex items-center gap-2 text-blue-400">
                 <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                 <span className="text-sm">Processing ticket...</span>
-              </div>
-            </div>
-          )}
-
-          {/* Debug Info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-4 p-3 bg-slate-700/50 rounded-lg">
-              <h4 className="text-white font-medium mb-2">Debug Info:</h4>
-              <div className="text-xs text-slate-300 space-y-1">
-                <p>Scanner Active: {scannerActive ? 'Yes' : 'No'}</p>
-                <p>Processing: {loading ? 'Yes' : 'No'}</p>
-                <p>User Role: {backendUser?.role || 'Unknown'}</p>
-                <p>Total Scans: {stats.totalScanned}</p>
               </div>
             </div>
           )}

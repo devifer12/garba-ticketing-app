@@ -1,41 +1,105 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { adminAPI } from '../../../services/api';
+import { useApi } from '../../../hooks/useApi';
+import { ANIMATION_VARIANTS } from '../../../utils/constants.js';
+import LoadingSpinner from '../../ui/LoadingSpinner';
+import UserAvatar from '../../ui/UserAvatar';
+import AnalyticsDashboard from '../roles/admin/AnalyticsDashboard';
 
 const ManagerDashboard = () => {
   const { user, backendUser } = useAuth();
-  const navigate = useNavigate();
+  const { loading, error, execute } = useApi();
+  const [currentView, setCurrentView] = useState('dashboard');
+  const [stats, setStats] = useState({ 
+    totalUsers: 0, 
+    totalTickets: 0, 
+    totalRevenue: 0, 
+    revenueToday: 0,
+    loading: true 
+  });
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
-  // FIXED: Don't redirect managers automatically - let them use manager dashboard
-  // Remove the automatic redirect effect that was causing login issues
+  const fetchDashboardStats = async () => {
+    await execute(async () => {
+      const [usersResponse, analyticsResponse] = await Promise.all([
+        adminAPI.getUserCount().catch(() => ({ data: { count: 0 } })),
+        adminAPI.getDashboardAnalytics().catch(() => ({ 
+          data: { 
+            data: { 
+              users: { total: 0 }, 
+              tickets: { total: 0 }, 
+              revenue: { total: 0, today: 0 } 
+            } 
+          } 
+        }))
+      ]);
+      
+      const analyticsData = analyticsResponse.data.data;
+      
+      setStats({
+        totalUsers: usersResponse.data.count || 0,
+        totalTickets: analyticsData.tickets?.total || 0,
+        totalRevenue: analyticsData.revenue?.total || 0,
+        revenueToday: analyticsData.revenue?.today || 0,
+        averageTicketValue: analyticsData.analytics?.averageTicketValue || 0,
+        conversionRate: analyticsData.analytics?.conversionRate || 0,
+        loading: false
+      });
+    });
+  };
+
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    try {
+      await execute(async () => {
+        const response = await adminAPI.getAllUsers({ limit: 50 });
+        setUsers(response.data.users || []);
+      });
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (backendUser) {
+      fetchDashboardStats();
+      fetchUsers();
+    }
+  }, [backendUser]);
+
+  if (currentView === 'analytics') {
+    return (
+      <div>
+        <div className="mb-6">
+          <button
+            onClick={() => setCurrentView('dashboard')}
+            className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-lg transition-all flex items-center gap-2"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+        <AnalyticsDashboard userRole="manager" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="max-w-4xl mx-auto"
+      initial="hidden"
+      animate="visible"
+      variants={ANIMATION_VARIANTS.container}
+      className="max-w-6xl mx-auto"
     >
       <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-slate-700/30">
         {/* Header */}
-        <motion.div
-          className="text-center mb-8"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-        >
+        <motion.div variants={ANIMATION_VARIANTS.item} className="text-center mb-8">
           <motion.div
             className="text-6xl mb-4"
-            animate={{ 
-              rotate: [0, -5, 5, 0],
-              scale: [1, 1.05, 1]
-            }}
-            transition={{ 
-              duration: 2.5,
-              repeat: Infinity,
-              repeatType: "reverse" 
-            }}
+            animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
           >
             📋
           </motion.div>
@@ -44,94 +108,148 @@ const ManagerDashboard = () => {
             Manager Dashboard
           </h1>
           
-          <motion.div 
-            className="w-24 h-1 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full mx-auto mb-6"
-            animate={{
-              scaleX: [1, 1.2, 1],
-              opacity: [0.7, 1, 0.7],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-            }}
-          />
-          
           <div className="bg-slate-700/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-600/30">
             <h2 className="text-2xl font-bold text-white mb-4">
-              Manager Access Portal
+              Welcome, Manager!
             </h2>
-            <p className="text-lg text-slate-300 mb-4">
-              You are <span className="text-blue-400 font-semibold">Manager</span> with full management access
-            </p>
-            
-            {/* User Info */}
-            {(user || backendUser) && (
-              <div className="flex items-center justify-center gap-4 mt-6">
-                {(user?.photoURL || backendUser?.profilePicture) ? (
-                  <img
-                    src={user?.photoURL || backendUser?.profilePicture}
-                    alt={user?.displayName || backendUser?.name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-blue-400/50"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                    {(user?.displayName || backendUser?.name)?.charAt(0) || 'M'}
-                  </div>
-                )}
-                <div className="text-left">
-                  <p className="text-white font-medium">
-                    {user?.displayName || backendUser?.name || 'Manager'}
-                  </p>
-                  <p className="text-slate-400 text-sm">
-                    {user?.email || backendUser?.email}
-                  </p>
-                </div>
-              </div>
-            )}
-            
-            {/* Manager Features */}
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <motion.div
-                className="bg-slate-800/50 rounded-xl p-4 border border-slate-600/30"
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="text-2xl mb-2">🎫</div>
-                <h3 className="text-white font-semibold mb-1">Full Ticket Access</h3>
-                <p className="text-slate-400 text-sm">Complete ticket management</p>
-              </motion.div>
-              
-              <motion.div
-                className="bg-slate-800/50 rounded-xl p-4 border border-slate-600/30"
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="text-2xl mb-2">👥</div>
-                <h3 className="text-white font-semibold mb-1">User Management</h3>
-                <p className="text-slate-400 text-sm">View all users (no role changes)</p>
-              </motion.div>
-              
-              <motion.div
-                className="bg-slate-800/50 rounded-xl p-4 border border-slate-600/30"
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="text-2xl mb-2">📊</div>
-                <h3 className="text-white font-semibold mb-1">Analytics Access</h3>
-                <p className="text-slate-400 text-sm">Full analytics dashboard</p>
-              </motion.div>
-            </div>
-
-            {/* Access Admin Panel Button */}
-            <div className="mt-8 text-center">
-              <motion.button
-                onClick={() => navigate('/dashboard/admin')}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all duration-300 flex items-center justify-center gap-3 text-lg mx-auto"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <span className="text-xl">🚀</span>
-                Access Management Panel
-              </motion.button>
-            </div>
+            <UserAvatar user={user || backendUser} />
           </div>
+        </motion.div>
+
+        {/* Stats Cards */}
+        <motion.div variants={ANIMATION_VARIANTS.item} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {[
+            { icon: "👥", title: "Total Users", value: stats.totalUsers, color: "blue" },
+            { icon: "🎫", title: "Tickets Sold", value: stats.totalTickets, color: "green" },
+            { 
+              icon: "💰", 
+              title: "Total Revenue", 
+              value: `₹${stats.totalRevenue.toLocaleString()}`, 
+              color: "purple",
+              subtitle: `₹${stats.revenueToday} today`
+            },
+            { 
+              icon: "📊", 
+              title: "Avg. Ticket Value", 
+              value: `₹${stats.averageTicketValue || 0}`, 
+              color: "orange",
+              subtitle: "per ticket"
+            }
+          ].map((stat, index) => (
+            <motion.div
+              key={index}
+              className={`bg-gradient-to-br from-${stat.color}-900/40 to-${stat.color}-800/40 backdrop-blur-xl rounded-xl p-6 border border-${stat.color}-700/30`}
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="text-3xl mb-3">{stat.icon}</div>
+              <h3 className={`text-${stat.color}-300 font-medium mb-1`}>{stat.title}</h3>
+              {stats.loading ? (
+                <div className={`animate-pulse bg-${stat.color}-700/30 h-8 w-16 rounded`}></div>
+              ) : (
+                <>
+                  <p className="text-white text-2xl font-bold">{stat.value}</p>
+                  {stat.subtitle && (
+                    <p className={`text-${stat.color}-400 text-sm mt-1`}>{stat.subtitle}</p>
+                  )}
+                </>
+              )}
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Users List */}
+        <motion.div variants={ANIMATION_VARIANTS.item} className="mb-8 bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-xl p-6 border border-slate-600/30 shadow-lg">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <span className="text-2xl">👥</span>
+              Registered Users
+            </h3>
+            <button
+              onClick={fetchUsers}
+              disabled={usersLoading}
+              className="px-4 py-2 bg-blue-600/50 hover:bg-blue-600/70 text-white rounded-lg transition-all flex items-center gap-2"
+            >
+              {usersLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Loading...
+                </>
+              ) : (
+                <>
+                  🔄 Refresh
+                </>
+              )}
+            </button>
+          </div>
+          
+          {usersLoading ? (
+            <LoadingSpinner message="Loading users..." />
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {users.length > 0 ? (
+                users.map((user, index) => (
+                  <motion.div
+                    key={user._id}
+                    className="bg-slate-700/50 rounded-lg p-4 border border-slate-600/30"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {user.profilePicture ? (
+                          <img
+                            src={user.profilePicture}
+                            alt={user.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                            {user.name?.charAt(0) || 'U'}
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-white font-medium">{user.name}</p>
+                          <p className="text-slate-400 text-sm">{user.email}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                          user.role === 'admin' ? 'bg-red-900/30 text-red-300 border-red-700/30' :
+                          user.role === 'manager' ? 'bg-blue-900/30 text-blue-300 border-blue-700/30' :
+                          user.role === 'qrchecker' ? 'bg-green-900/30 text-green-300 border-green-700/30' :
+                          'bg-gray-900/30 text-gray-300 border-gray-700/30'
+                        }`}>
+                          {user.role}
+                        </span>
+                        <p className="text-slate-500 text-xs mt-1">
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-2">👤</div>
+                  <p className="text-slate-400">No users found</p>
+                </div>
+              )}
+            </div>
+          )}
+        </motion.div>
+
+        {/* Analytics Button */}
+        <motion.div variants={ANIMATION_VARIANTS.item} className="text-center">
+          <motion.button
+            onClick={() => setCurrentView('analytics')}
+            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg hover:shadow-purple-500/25 transition-all duration-300 flex items-center justify-center gap-3 text-lg mx-auto"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <span className="text-xl">📊</span>
+            View Detailed Analytics
+          </motion.button>
         </motion.div>
       </div>
     </motion.div>

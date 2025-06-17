@@ -18,6 +18,7 @@ const QRScanner = ({
   const [cameras, setCameras] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [lastScanTime, setLastScanTime] = useState(0);
 
   // Check camera availability and initialize
   useEffect(() => {
@@ -82,11 +83,20 @@ const QRScanner = ({
           scannerRef.current = null;
         }
 
-        // Create new scanner instance
+        // Create new scanner instance with throttling
         scannerRef.current = new QrScanner(
           videoRef.current,
           (result) => {
+            const now = Date.now();
+            // Throttle scans to prevent rapid-fire scanning of the same code
+            if (now - lastScanTime < 2000) {
+              console.log('🔄 Scan throttled - too soon after last scan');
+              return;
+            }
+            
+            setLastScanTime(now);
             console.log('✅ QR Code detected:', result.data);
+            
             if (onScan) {
               onScan(result.data);
             }
@@ -99,7 +109,7 @@ const QRScanner = ({
             preferredCamera: selectedCamera.id,
             highlightScanRegion: true,
             highlightCodeOutline: true,
-            maxScansPerSecond: 5,
+            maxScansPerSecond: 2, // Reduced from 5 to prevent rapid scanning
             returnDetailedScanResult: true,
           }
         );

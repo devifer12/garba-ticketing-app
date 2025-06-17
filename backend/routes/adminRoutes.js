@@ -4,10 +4,10 @@ const User = require('../models/User');
 const Ticket = require('../models/Tickets');
 const Event = require('../models/Event');
 const verifyToken = require('../middlewares/authMiddleware');
-const { isAdmin, isManager } = require('../middlewares/roleMiddleware');
+const { isAdmin, isManager, isAdminOrManager } = require('../middlewares/roleMiddleware');
 
 // Get user count for dashboard stats
-router.get('/users/count', verifyToken, isManager, async (req, res) => {
+router.get('/users/count', verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const count = await User.countDocuments();
     
@@ -24,8 +24,8 @@ router.get('/users/count', verifyToken, isManager, async (req, res) => {
   }
 });
 
-// Get all users with pagination and filtering
-router.get('/users', verifyToken, isManager, async (req, res) => {
+// Get all users with pagination and filtering - ADMIN ONLY for role changes
+router.get('/users', verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const { page = 1, limit = 20, role, search } = req.query;
     
@@ -112,14 +112,14 @@ router.patch('/users/:userId/role', verifyToken, isAdmin, async (req, res) => {
   }
 });
 
-// Get ticket statistics for dashboard - ENHANCED with better revenue calculation
-router.get('/tickets/stats', verifyToken, isManager, async (req, res) => {
+// Get ticket statistics for dashboard - Available to both admin and manager
+router.get('/tickets/stats', verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const totalTickets = await Ticket.countDocuments();
     const activeTickets = await Ticket.countDocuments({ status: 'active' });
     const usedTickets = await Ticket.countDocuments({ status: 'used' });
     
-    // FIXED: Calculate total revenue from ALL tickets (active + used)
+    // Calculate total revenue from ALL tickets (active + used)
     const revenueResult = await Ticket.aggregate([
       { $match: { status: { $in: ['active', 'used'] } } },
       { $group: { _id: null, total: { $sum: '$price' } } }
@@ -150,8 +150,8 @@ router.get('/tickets/stats', verifyToken, isManager, async (req, res) => {
   }
 });
 
-// ENHANCED: Get comprehensive dashboard analytics - REMOVED sales trend analysis
-router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
+// Get comprehensive dashboard analytics - Available to both admin and manager
+router.get('/analytics/dashboard', verifyToken, isAdminOrManager, async (req, res) => {
   try {
     // Get user statistics
     const totalUsers = await User.countDocuments();
@@ -165,7 +165,7 @@ router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
       createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
     });
     
-    // ENHANCED: Calculate comprehensive revenue data
+    // Calculate comprehensive revenue data
     const revenueResult = await Ticket.aggregate([
       { $match: { status: { $in: ['active', 'used'] } } },
       { $group: { _id: null, total: { $sum: '$price' } } }
@@ -184,7 +184,7 @@ router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
     ]);
     const revenueToday = revenueTodayResult.length > 0 ? revenueTodayResult[0].total : 0;
     
-    // ENHANCED: Get sales chart data (last 30 days)
+    // Get sales chart data (last 30 days)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const salesChart = await Ticket.aggregate([
       {
@@ -207,7 +207,7 @@ router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
       { $sort: { _id: 1 } }
     ]);
     
-    // ENHANCED: Get hourly sales data for today
+    // Get hourly sales data for today
     const todayHourlySales = await Ticket.aggregate([
       {
         $match: {
@@ -237,7 +237,7 @@ router.get('/analytics/dashboard', verifyToken, isManager, async (req, res) => {
       soldPercentage: Math.round((event.soldTickets / event.totalTickets) * 100)
     } : null;
     
-    // ENHANCED: Peak sales analysis
+    // Peak sales analysis
     const peakSalesHour = todayHourlySales.reduce((peak, current) => 
       current.count > (peak?.count || 0) ? current : peak, null
     );
@@ -287,8 +287,8 @@ function calculateSalesVelocity(salesData) {
   return Math.round(totalSales / totalDays * 10) / 10; // Average sales per day
 }
 
-// Get detailed ticket management data
-router.get('/tickets/management', verifyToken, isManager, async (req, res) => {
+// Get detailed ticket management data - Available to both admin and manager
+router.get('/tickets/management', verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const { page = 1, limit = 20, status, search } = req.query;
     
@@ -377,8 +377,8 @@ router.patch('/tickets/bulk-update', verifyToken, isAdmin, async (req, res) => {
   }
 });
 
-// Export ticket data (CSV format)
-router.get('/tickets/export', verifyToken, isManager, async (req, res) => {
+// Export ticket data (CSV format) - Available to both admin and manager
+router.get('/tickets/export', verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const { format = 'json' } = req.query;
     
