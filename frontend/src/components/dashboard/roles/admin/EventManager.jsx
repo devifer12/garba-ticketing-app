@@ -143,7 +143,7 @@ const EventManager = () => {
     checkEventExists();
   }, []);
 
-  // Image upload handler
+  // Image upload handler - FIXED: Handle file upload properly
   const handleImageUpload = useCallback(async (file) => {
     if (!file) return null;
 
@@ -164,11 +164,12 @@ const EventManager = () => {
     try {
       setUploadingImage(true);
       
-      // Convert to base64 for now (in production, you'd upload to a cloud service)
+      // Convert to base64 for storage (in production, you'd upload to a cloud service)
       const reader = new FileReader();
       return new Promise((resolve, reject) => {
         reader.onload = (e) => {
           const base64 = e.target.result;
+          console.log('✅ Image converted to base64, size:', base64.length);
           resolve(base64);
         };
         reader.onerror = reject;
@@ -183,10 +184,16 @@ const EventManager = () => {
     }
   }, []);
 
-  // Handle file input change
+  // Handle file input change - FIXED: Properly handle file upload
   const handleFileChange = useCallback(async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    console.log('📁 File selected:', {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    });
 
     setImageFile(file);
     
@@ -197,15 +204,23 @@ const EventManager = () => {
     };
     reader.readAsDataURL(file);
 
-    // Upload image and get URL
-    const imageUrl = await handleImageUpload(file);
-    if (imageUrl) {
+    // Upload image and get URL/base64
+    const imageData = await handleImageUpload(file);
+    if (imageData) {
       setFormData(prevData => ({
         ...prevData,
-        eventImage: imageUrl
+        eventImage: imageData // Store the base64 data or URL
       }));
+      
+      // Clear any previous validation errors for eventImage
+      if (errors.eventImage) {
+        setErrors(prevErrors => ({
+          ...prevErrors,
+          eventImage: null
+        }));
+      }
     }
-  }, [handleImageUpload]);
+  }, [handleImageUpload, errors]);
 
   // Memoized form handlers to prevent recreation on every render
   const handleInputChange = useCallback((e) => {
@@ -250,14 +265,14 @@ const EventManager = () => {
     // Numeric validations
     const ticketPrice = parseFloat(formData.ticketPrice);
     const totalTickets = parseInt(formData.totalTickets);
-    
+
     if (!formData.ticketPrice || isNaN(ticketPrice) || ticketPrice <= 0) {
       newErrors.ticketPrice = 'Valid ticket price is required (must be greater than 0)';
     }
     if (!formData.totalTickets || isNaN(totalTickets) || totalTickets <= 0) {
       newErrors.totalTickets = 'Valid total tickets count is required (must be greater than 0)';
     }
-    
+
     // Date validation
     if (formData.date) {
       const selectedDate = new Date(formData.date);
@@ -268,22 +283,22 @@ const EventManager = () => {
         newErrors.date = 'Event date cannot be in the past';
       }
     }
-    
+
     // Time format validation (HH:MM)
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
     
-    if (formData.startTime && !timeRegex.test(formData.startTime)) {
+    if (formData.startTime && !timeRegex.test(formData.startTime.trim())) {
       newErrors.startTime = 'Start time must be in HH:MM format (e.g., 18:00)';
     }
     
-    if (formData.endTime && !timeRegex.test(formData.endTime)) {
+    if (formData.endTime && !timeRegex.test(formData.endTime.trim())) {
       newErrors.endTime = 'End time must be in HH:MM format (e.g., 22:00)';
     }
-    
+
     // Time logic validation
-    if (formData.startTime && formData.endTime && timeRegex.test(formData.startTime) && timeRegex.test(formData.endTime)) {
-      const [startHour, startMin] = formData.startTime.split(':').map(Number);
-      const [endHour, endMin] = formData.endTime.split(':').map(Number);
+    if (formData.startTime && formData.endTime && timeRegex.test(formData.startTime.trim()) && timeRegex.test(formData.endTime.trim())) {
+      const [startHour, startMin] = formData.startTime.trim().split(':').map(Number);
+      const [endHour, endMin] = formData.endTime.trim().split(':').map(Number);
       
       const startMinutes = startHour * 60 + startMin;
       const endMinutes = endHour * 60 + endMin;
@@ -292,6 +307,9 @@ const EventManager = () => {
         newErrors.endTime = 'End time must be after start time';
       }
     }
+
+    // FIXED: Remove URL validation for event image since we're handling file uploads
+    // The eventImage field will contain base64 data or be empty, not a URL
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -315,12 +333,15 @@ const EventManager = () => {
         endTime: formData.endTime.trim(),
         ticketPrice: parseFloat(formData.ticketPrice),
         totalTickets: parseInt(formData.totalTickets),
-        eventImage: formData.eventImage?.trim() || '',
+        eventImage: formData.eventImage?.trim() || '', // This will be base64 data or empty
         features: Array.isArray(formData.features) ? formData.features : [],
         aboutText: formData.aboutText?.trim() || ''
       };
 
-      console.log('📤 Submitting event data:', submitData);
+      console.log('📤 Submitting event data:', {
+        ...submitData,
+        eventImage: submitData.eventImage ? `[Base64 data: ${submitData.eventImage.length} chars]` : 'No image'
+      });
 
       let response;
       if (view === 'create') {
@@ -772,7 +793,7 @@ const EventManager = () => {
               </div>
               
               <div className="grid grid-cols-1 gap-6">
-                {/* Event Image Upload */}
+                {/* Event Image Upload - FIXED: Remove URL validation error */}
                 <div className="space-y-4">
                   <InputField
                     type="file"
