@@ -2,10 +2,63 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- <link rel="icon" type="" href="" /> -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Garba Rass</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/src/assets/hero1.png" as="image" type="image/png">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" crossorigin="anonymous">
+    
+    <!-- DNS prefetch for external domains -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    
+    <!-- Preconnect to critical third-party origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Critical CSS (inline for faster loading) -->
+    <style>
+      body { 
+        margin: 0; 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; 
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      .loading-spinner { 
+        animation: spin 1s linear infinite; 
+      }
+      @keyframes spin { 
+        from { transform: rotate(0deg); } 
+        to { transform: rotate(360deg); } 
+      }
+      /* Critical above-the-fold styles */
+      .hero-section { 
+        min-height: 100vh; 
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      }
+    </style>
+    
+    <!-- Font Awesome with optimized loading -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" media="print" onload="this.media='all'">
+    
+    <title>Garba Rass 2025 - Pre-Navratri Celebration</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Join us for Garba Rass 2025 - An unforgettable Pre-Navratri celebration with traditional dance, music, and cultural festivities. Book your tickets now!">
+    <meta name="keywords" content="Garba, Garba Rass, Garba Rass 2025, Garba Event Near Me, Navratri, Dance,Pre-Navratri, Garba Event Mumbai, Cultural Event, Mumbai, Tickets, Celebration">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Garba Rass 2025 - Pre-Navratri Celebration">
+    <meta property="og:description" content="Experience the joy of traditional Garba and Raas dance. Book your tickets for the most vibrant Pre-Navratri celebration!">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://garba-ticketing-app.onrender.com">
+    
+    <!-- Performance optimizations -->
+    <meta name="theme-color" content="#ff6500">
+    <meta name="msapplication-TileColor" content="#ff6500">
+    
+    <!-- Favicon -->
+    <!-- <link rel="icon" type="image/x-icon" href="/favicon.ico"> -->
   </head>
   <body>
     <div id="root"></div>

@@ -42,37 +42,6 @@ const Navbar = () => {
         {/* Top Bar with Controls - FIXED: Better pointer event management */}
         <div className="absolute top-0 left-0 right-0 z-50 p-4 pointer-events-none">
           <div className="flex justify-between items-start">
-            {/* Mobile Menu Toggle - Left Side */}
-            <div className="md:hidden mt-6">
-              <motion.button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 bg-slate-800/50 backdrop-blur-xl rounded-lg border border-slate-700/30 text-white"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}>
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24">
-                  {isMobileMenuOpen ? (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  ) : (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  )}
-                </svg>
-              </motion.button>
-            </div>
-
             {/* Spacer for center alignment */}
             <div className="flex-1"></div>
 
