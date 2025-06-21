@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://garba-rass-2025.onrender.com/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1
+
+# Disallow admin areas
+Disallow: /dashboard/admin
+Disallow: /dashboard/manager
+Disallow: /dashboard/qrchecker
+
+# Allow public pages
+Allow: /
+Allow: /privacy-policy
+Allow: /cancellation-policy
+Allow: /refund-policy
+Allow: /terms-of-service

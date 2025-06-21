@@ -1,25 +1,14 @@
-import React from "react";
+import React, { memo } from "react";
 import { motion } from "framer-motion";
 import { PrimaryButton, GoogleSignInButton } from "../ui/Button";
 import { useAuth } from "../../context/AuthContext";
 import { formatDate, formatTime } from "../../utils/helpers";
+import LazyImage from "../ui/LazyImage";
 import hero1 from "../../assets/hero1.webp";
 import Dandiya from "../../assets/dandiya.webp";
 
-const Hero = ({ event }) => {
+const Hero = memo(({ event }) => {
   const { user } = useAuth();
-
-  const navratriColors = [
-    "navratri-red",
-    "navratri-orange",
-    "navratri-yellow",
-    "navratri-green",
-    "navratri-blue",
-    "navratri-indigo",
-    "navratri-violet",
-    "navratri-pink",
-    "navratri-white",
-  ];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -186,19 +175,18 @@ const Hero = ({ event }) => {
               className="relative rounded-3xl overflow-hidden"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.3 }}>
-              {event?.eventImage ? (
-                <img
-                  src={event.eventImage}
-                  alt={event.name}
-                  className="w-full h-auto object-fill drop-shadow-xl drop-shadow-neutral-700 max-h-96 sm:max-h-none"
-                />
-              ) : (
-                <img
-                  src={hero1}
-                  alt="Garba Dancers"
-                  className="w-full h-auto object-contain drop-shadow-xl drop-shadow-neutral-700 max-h-96 sm:max-h-none"
-                />
-              )}
+              
+              <LazyImage
+                src={event?.eventImage || hero1}
+                alt={event?.name || "Garba Dancers"}
+                className="w-full h-auto object-fill drop-shadow-xl drop-shadow-neutral-700 max-h-96 sm:max-h-none"
+                placeholder={
+                  <div className="flex items-center justify-center h-96">
+                    <div className="text-slate-400">Loading image...</div>
+                  </div>
+                }
+                fallback={hero1}
+              />
 
               {/* Floating decorative elements around image */}
               <motion.div
@@ -217,14 +205,6 @@ const Hero = ({ event }) => {
                 }}
                 transition={{ duration: 3, repeat: Infinity, delay: 1 }}
               />
-              <motion.div
-                className="absolute top-1/2 -left-3 sm:-left-6 w-3 h-3 sm:w-4 sm:h-4 bg-navratri-yellow rounded-full opacity-50"
-                animate={{
-                  x: [0, -5, 0],
-                  scale: [1, 1.3, 1],
-                }}
-                transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
-              />
             </motion.div>
 
             {/* Decorative Dandiya elements */}
@@ -237,6 +217,7 @@ const Hero = ({ event }) => {
                 scale: [1, 1.1, 1],
               }}
               transition={{ duration: 4, repeat: Infinity }}
+              loading="lazy"
             />
             <motion.img
               src={Dandiya}
@@ -247,12 +228,15 @@ const Hero = ({ event }) => {
                 scale: [1, 1.2, 1],
               }}
               transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+              loading="lazy"
             />
           </motion.div>
         </div>
       </motion.div>
     </section>
   );
-};
+});
+
+Hero.displayName = 'Hero';
 
 export default Hero;

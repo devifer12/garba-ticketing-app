@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
 import { eventAPI } from '../services/api';
 import Navbar from '../components/common/navbar/Navbar';
 import Footer from '../components/common/footer/Footer';
 import Hero from '../components/home/Hero';
-import AboutSection from '../components/home/AboutSection';
-import EventDetails from '../components/home/EventDetails';
-import CountdownSection from '../components/home/CountdownSection';
-import FeaturesSection from '../components/home/FeaturesSection';
-import VenueSection from '../components/home/VenueSection';
-import FAQSection from '../components/home/FAQSection';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import LazySection from '../components/common/LazySection';
+
+// Lazy load non-critical components
+const AboutSection = lazy(() => import('../components/home/AboutSection'));
+const EventDetails = lazy(() => import('../components/home/EventDetails'));
+const CountdownSection = lazy(() => import('../components/home/CountdownSection'));
+const FeaturesSection = lazy(() => import('../components/home/FeaturesSection'));
+const VenueSection = lazy(() => import('../components/home/VenueSection'));
+const FAQSection = lazy(() => import('../components/home/FAQSection'));
 
 const Home = () => {
   const [event, setEvent] = useState(null);
@@ -54,19 +57,33 @@ const Home = () => {
     );
   }
 
+  const SectionFallback = () => (
+    <div className="py-20">
+      <div className="container mx-auto px-4">
+        <div className="animate-pulse">
+          <div className="h-8 bg-slate-700 rounded w-1/3 mx-auto mb-4"></div>
+          <div className="h-4 bg-slate-700 rounded w-1/2 mx-auto mb-8"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-48 bg-slate-700 rounded-xl"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden relative">
-      {/* Animated Background Elements */}
+      {/* Optimized Background Elements - Reduced complexity */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {/* Subtle geometric patterns */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-20 left-20 w-40 h-40 border border-navratri-orange rounded-full"></div>
-          <div className="absolute top-40 right-32 w-24 h-24 border border-navratri-pink rounded-full"></div>
           <div className="absolute bottom-32 left-1/3 w-32 h-32 border border-navratri-yellow rounded-full"></div>
         </div>
 
-        {/* Subtle floating orbs */}
-        {navratriColors.slice(0, 4).map((color, index) => (
+        {/* Reduced floating orbs for better performance */}
+        {navratriColors.slice(0, 2).map((color, index) => (
           <motion.div
             key={index}
             className={`absolute w-20 h-20 bg-gradient-to-r from-${color} to-transparent rounded-full opacity-5 blur-xl`}
@@ -81,14 +98,11 @@ const Home = () => {
               repeatType: "reverse",
             }}
             style={{
-              left: `${20 + index * 20}%`,
-              top: `${30 + index * 15}%`,
+              left: `${20 + index * 40}%`,
+              top: `${30 + index * 20}%`,
             }}
           />
         ))}
-
-        {/* Premium gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10"></div>
       </div>
 
       {/* Navbar */}
@@ -96,28 +110,47 @@ const Home = () => {
 
       {/* Main Content */}
       <main className="relative z-10">
-        {/* Hero Section */}
+        {/* Hero Section - Always load immediately */}
         <Hero event={event} />
 
-        {/* About Section */}
-        <AboutSection event={event} />
+        {/* Lazy loaded sections */}
+        <LazySection fallback={<SectionFallback />}>
+          <Suspense fallback={<SectionFallback />}>
+            <AboutSection event={event} />
+          </Suspense>
+        </LazySection>
 
-        {/* Event Details Section */}
-        <EventDetails event={event} />
+        <LazySection fallback={<SectionFallback />}>
+          <Suspense fallback={<SectionFallback />}>
+            <EventDetails event={event} />
+          </Suspense>
+        </LazySection>
 
-        {/* Countdown Section */}
-        <CountdownSection event={event} />
+        <LazySection fallback={<SectionFallback />}>
+          <Suspense fallback={<SectionFallback />}>
+            <CountdownSection event={event} />
+          </Suspense>
+        </LazySection>
 
-        {/* Features Section */}
         {event?.features && event.features.length > 0 && (
-          <FeaturesSection event={event} />
+          <LazySection fallback={<SectionFallback />}>
+            <Suspense fallback={<SectionFallback />}>
+              <FeaturesSection event={event} />
+            </Suspense>
+          </LazySection>
         )}
 
-        {/* Venue Section */}
-        <VenueSection event={event} />
+        <LazySection fallback={<SectionFallback />}>
+          <Suspense fallback={<SectionFallback />}>
+            <VenueSection event={event} />
+          </Suspense>
+        </LazySection>
 
-        {/* FAQ Section */}
-        <FAQSection />
+        <LazySection fallback={<SectionFallback />}>
+          <Suspense fallback={<SectionFallback />}>
+            <FAQSection />
+          </Suspense>
+        </LazySection>
 
         {/* Error Display */}
         {error && (
@@ -135,8 +168,12 @@ const Home = () => {
         )}
       </main>
 
-      {/* Footer */}
-      <Footer />
+      {/* Footer - Lazy loaded */}
+      <LazySection>
+        <Suspense fallback={<div className="h-96 bg-slate-900"></div>}>
+          <Footer />
+        </Suspense>
+      </LazySection>
     </div>
   );
 };
