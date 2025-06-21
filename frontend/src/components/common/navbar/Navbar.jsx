@@ -32,18 +32,27 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Fixed Navbar Container - FIXED: Removed pointer-events-none */}
+      {/* Fixed Navbar Container */}
       <motion.nav
         className="fixed top-0 left-0 right-0 z-40 transition-all duration-300 pointer-events-none"
         initial={{ y: -50 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6 }}>
         
-        {/* Top Bar with Controls - FIXED: Better pointer event management */}
+        {/* Top Bar with Controls */}
         <div className="absolute top-0 left-0 right-0 z-50 p-4 pointer-events-none">
-          <div className="flex justify-between items-start">
-            {/* Spacer for center alignment */}
-            <div className="flex-1"></div>
+          <div className="flex justify-end items-start">
+            {/* Mobile Menu Button - Left Side */}
+            <motion.button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden bg-slate-800/50 backdrop-blur-xl rounded-lg p-2 text-white hover:bg-slate-700/70 transition-colors pointer-events-auto mt-8"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </motion.button>
 
             {/* Authentication Section - Right Side */}
             <div className="flex items-center mt-8 pointer-events-auto">
@@ -65,12 +74,12 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Main Navbar Content - Centered - FIXED: Proper pointer events */}
+        {/* Main Navbar Content - Centered */}
         <div className="container mx-auto px-4 lg:pt-8 md:pt-10 sm:py-8 pt-12 pointer-events-none">
           <div className="flex flex-col items-center pointer-events-none">
-            {/* Main Title with glassmorphism background on scroll - FIXED: Clickable logo */}
+            {/* Main Title with glassmorphism background on scroll */}
             <motion.div
-              className={`flex justify-center items-center transition-all duration-300 rounded-full px-4 sm:px-6 py-2 sm:py-3 cursor-pointer ${
+              className={`flex justify-center items-center transition-all duration-300 rounded-full px-4 sm:px-6 py-2 sm:py-3 cursor-pointer pointer-events-auto ${
                 isScrolled
                   ? "bg-slate-800/30 backdrop-blur-xl border border-slate-700/30 shadow-lg"
                   : "bg-transparent"
@@ -88,7 +97,7 @@ const Navbar = () => {
               }}
             >
               <motion.h1
-                className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-serif bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent text-center whitespace-nowrap pointer-events-auto"
+                className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-serif bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent text-center whitespace-nowrap"
                 animate={{
                   backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                 }}
@@ -105,7 +114,7 @@ const Navbar = () => {
               </motion.h1>
             </motion.div>
 
-            {/* Subtitle - slides away on scroll - FIXED: Non-interactive */}
+            {/* Subtitle - slides away on scroll */}
             <motion.p
               className="text-sm sm:text-lg md:text-xl text-slate-300 font-light text-center mt-2 sm:mt-4 px-4 pointer-events-none"
               style={{
