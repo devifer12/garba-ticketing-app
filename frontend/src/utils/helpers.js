@@ -65,9 +65,9 @@ export const validateEmail = (email) => {
   return emailRegex.test(email);
 };
 
-export const validateURL = (url) => {
-  const urlRegex = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
-  return urlRegex.test(url);
+export const validateImageFormat = (format) => {
+  const formatRegex = /^(png|jpg|jpeg|gif|webp)$/i;
+  return formatRegex.test(format);
 };
 
 export const copyToClipboard = async (text) => {

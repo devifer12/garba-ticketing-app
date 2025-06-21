@@ -122,9 +122,9 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
 
     // URL validation for event image
     if (eventImage && eventImage.trim()) {
-      const urlRegex = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
-      if (!urlRegex.test(eventImage.trim())) {
-        validationErrors.push({ field: 'eventImage', message: 'Event image must be a valid image URL (jpg, jpeg, png, gif, webp)' });
+      const formatRegex = /^(jpg|jpeg|png|gif|webp)$/i;
+      if (!formatRegex.test(eventImage.trim())) {
+        validationErrors.push({ field: 'eventImage', message: 'Event image must be a valid format (jpg, jpeg, png, gif, webp)' });
       }
     }
 
@@ -308,11 +308,11 @@ router.put('/', verifyToken, isAdmin, async (req, res) => {
       }
     }
 
-    // URL validation for event image
-    if (updateData.eventImage !== undefined && updateData.eventImage && updateData.eventImage.trim()) {
-      const urlRegex = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
-      if (!urlRegex.test(updateData.eventImage.trim())) {
-        validationErrors.push({ field: 'eventImage', message: 'Event image must be a valid image URL (jpg, jpeg, png, gif, webp)' });
+    // File format validation for event image
+    if (updateData.eventImage !== undefined && updateData.eventImage) {
+      const formatRegex = /^(webp|png|jpg|jpeg)$/i;
+      if (!formatRegex.test(updateData.eventImage)) {
+        validationErrors.push({ field: 'eventImage', message: 'Event image must be a valid format (webp, png, jpg, jpeg)' });
       }
     }
 

@@ -97,10 +97,10 @@ const eventSchema = new mongoose.Schema({
     validate: {
       validator: function(value) {
         if (!value || value === '') return true; // Optional field
-        const urlRegex = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i;
-        return urlRegex.test(value);
+        const fileRegex = /\.(jpg|jpeg|png|gif|webp)$/i;
+        return fileRegex.test(value);
       },
-      message: 'Event image must be a valid image URL (jpg, jpeg, png, gif, webp)'
+      message: 'Event image must be a valid image format (jpg, jpeg, png, gif, webp)'
     }
   },
   

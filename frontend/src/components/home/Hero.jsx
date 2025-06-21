@@ -3,8 +3,8 @@ import { motion } from "framer-motion";
 import { PrimaryButton, GoogleSignInButton } from "../ui/Button";
 import { useAuth } from "../../context/AuthContext";
 import { formatDate, formatTime } from "../../utils/helpers";
-import hero1 from "../../assets/hero1.png";
-import Dandiya from "../../assets/dandiya.png";
+import hero1 from "../../assets/hero1.webp";
+import Dandiya from "../../assets/dandiya.webp";
 
 const Hero = ({ event }) => {
   const { user } = useAuth();
