@@ -186,7 +186,6 @@ const Hero = memo(({ event }) => {
                   </div>
                 }
                 fallback={hero1}
-                loading="Eager"
               />
 
               {/* Floating decorative elements around image */}
