@@ -21,13 +21,14 @@ const GuestDashboard = () => {
 
   const fetchDashboardData = async () => {
     await execute(async () => {
+      // Fetch in parallel for better performance
       const [eventResponse, ticketsResponse] = await Promise.all([
         eventAPI.getCurrentEvent().catch(() => ({ data: { data: null } })),
         ticketAPI.getMyTickets().catch(() => ({ data: { tickets: [] } }))
       ]);
       setEvent(eventResponse.data.data);
       setTickets(ticketsResponse.data.tickets || []);
-    });
+    }, { showLoading: false }); // Don't show loading for better UX
   };
 
   useEffect(() => {
@@ -88,7 +89,7 @@ const GuestDashboard = () => {
           <motion.div variants={ANIMATION_VARIANTS.item} className="text-center mb-6 sm:mb-8">
             <motion.div
               className="text-4xl sm:text-5xl md:text-6xl mb-4"
-              animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
+              animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.05, 1] }}
               transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }}
             >
               🎭

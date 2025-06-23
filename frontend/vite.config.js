@@ -5,29 +5,18 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   
-  // Performance optimizations
   build: {
-    // Enable code splitting
     rollupOptions: {
       output: {
-        // Add hash to filenames for cache busting
-        entryFileNames: 'assets/[name].[hash].js',
-        chunkFileNames: 'assets/[name].[hash].js',
-        assetFileNames: 'assets/[name].[hash].[ext]',
         manualChunks: {
-          // Vendor chunks
           'react-vendor': ['react', 'react-dom'],
           'router': ['react-router-dom'],
           'animation': ['framer-motion'],
-          'ui': ['react-toastify'],
-          'firebase': ['firebase/app', 'firebase/auth'],
-          'qr': ['qr-scanner', 'qrcode']
+          'firebase': ['firebase/app', 'firebase/auth']
         }
       }
     },
-    // Optimize chunk size
     chunkSizeWarningLimit: 1000,
-    // Enable minification
     minify: 'terser',
     terserOptions: {
       compress: {
@@ -37,15 +26,10 @@ export default defineConfig({
     }
   },
   
-  // Development optimizations
   server: {
-    // Enable HMR
-    hmr: true,
-    // Optimize deps
-    force: true
+    hmr: true
   },
   
-  // Dependency optimization
   optimizeDeps: {
     include: [
       'react',
@@ -56,14 +40,5 @@ export default defineConfig({
       'firebase/auth'
     ],
     exclude: ['qr-scanner']
-  },
-  
-  // Asset optimization
-  assetsInclude: ['**/*.webp', '**/*.avif'],
-  
-  // Enable source maps for development only
-  build: {
-    ...defineConfig.build,
-    sourcemap: process.env.NODE_ENV === 'development'
   }
 })

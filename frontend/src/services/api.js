@@ -4,26 +4,20 @@ import { API_ENDPOINTS, ERROR_MESSAGES } from '../utils/constants.js';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
-  timeout: 30000,
+  timeout: 10000, // Reduced from 30000 to 10000
   headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
   withCredentials: true,
 });
 
-// Request interceptor
+// Optimized request interceptor
 api.interceptors.request.use(
   async (config) => {
     try {
       const user = auth.currentUser;
       if (user) {
-        const token = await user.getIdToken(true);
+        // Use cached token when possible
+        const token = await user.getIdToken(false); // Don't force refresh
         config.headers.Authorization = `Bearer ${token}`;
-        config.headers['X-User-UID'] = user.uid;
-        config.headers['X-User-Email'] = user.email;
-      }
-      config.headers['X-Request-Time'] = new Date().toISOString();
-      
-      if (config.method === 'get') {
-        config.params = { ...config.params, _t: Date.now() };
       }
     } catch (error) {
       console.error('Request interceptor error:', error);
@@ -33,7 +27,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor
+// Simplified response interceptor
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -47,12 +41,9 @@ api.interceptors.response.use(
           const newToken = await user.getIdToken(true);
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return api(originalRequest);
-        } else {
-          window.location.href = '/';
         }
       } catch (tokenError) {
-        await auth.signOut();
-        window.location.href = '/';
+        console.error('Token refresh failed:', tokenError);
       }
     }
     
@@ -61,50 +52,15 @@ api.interceptors.response.use(
 );
 
 const enhanceError = (error) => {
-  const enhanced = { ...error };
-  enhanced.isNetworkError = !error.response;
-  enhanced.isServerError = error.response?.status >= 500;
-  enhanced.isClientError = error.response?.status >= 400 && error.response?.status < 500;
-  enhanced.statusCode = error.response?.status;
-  enhanced.serverMessage = error.response?.data?.message || error.response?.data?.error;
-  
   if (!error.response) {
-    enhanced.message = ERROR_MESSAGES.NETWORK;
+    error.message = ERROR_MESSAGES.NETWORK;
   } else if (error.response.status >= 500) {
-    enhanced.message = ERROR_MESSAGES.SERVER;
+    error.message = ERROR_MESSAGES.SERVER;
   } else {
     const serverMsg = error.response.data?.message || error.response.data?.error;
-    enhanced.message = serverMsg || getClientErrorMessage(error.response.status);
+    error.message = serverMsg || `Request failed (${error.response.status})`;
   }
-  
-  return enhanced;
-};
-
-const getClientErrorMessage = (status) => {
-  const messages = {
-    400: ERROR_MESSAGES.INVALID_REQUEST,
-    403: ERROR_MESSAGES.ACCESS_FORBIDDEN,
-    404: ERROR_MESSAGES.NOT_FOUND,
-    409: ERROR_MESSAGES.CONFLICT,
-    429: ERROR_MESSAGES.TOO_MANY_REQUESTS
-  };
-  return messages[status] || `Request failed (${status})`;
-};
-
-// API helper function
-const createAPI = (endpoints) => {
-  const apiMethods = {};
-  
-  Object.entries(endpoints).forEach(([key, endpoint]) => {
-    if (typeof endpoint === 'string') {
-      apiMethods[key] = (data, config = {}) => {
-        const method = config.method || 'get';
-        return api[method](endpoint, method === 'get' ? { params: data } : data, config);
-      };
-    }
-  });
-  
-  return apiMethods;
+  return error;
 };
 
 // Auth API
@@ -117,7 +73,7 @@ export const authAPI = {
   logout: () => api.post(API_ENDPOINTS.AUTH.LOGOUT).catch(() => null)
 };
 
-// Event API - Fixed endpoint configuration
+// Event API
 export const eventAPI = {
   getCurrentEvent: () => api.get('/event'),
   checkEventExists: () => api.get('/event/exists'),
@@ -151,24 +107,12 @@ export const adminAPI = {
 
 // Utility functions
 export const apiUtils = {
-  testConnection: async () => {
-    try {
-      const response = await api.get('/status');
-      return { success: true, data: response.data };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-  
   formatErrorMessage: (error) => {
-    return error.serverMessage || 
-           error.response?.data?.message || 
+    return error.response?.data?.message || 
            error.response?.data?.error || 
            error.message || 
            'An unexpected error occurred';
-  },
-  
-  isValidQRCode: (qrCode) => /^GARBA2025-\d{13}-[A-Z0-9]{12}-[A-Z0-9]{8}$/.test(qrCode)
+  }
 };
 
 export default api;

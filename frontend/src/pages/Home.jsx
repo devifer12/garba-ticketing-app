@@ -5,7 +5,6 @@ import Navbar from '../components/common/navbar/Navbar';
 import Footer from '../components/common/footer/Footer';
 import Hero from '../components/home/Hero';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import LazySection from '../components/common/LazySection';
 
 // Lazy load non-critical components
 const AboutSection = lazy(() => import('../components/home/AboutSection'));
@@ -17,142 +16,72 @@ const FAQSection = lazy(() => import('../components/home/FAQSection'));
 
 const Home = () => {
   const [event, setEvent] = useState(null);
-  const [error, setError] = useState(null);
-
-  const navratriColors = [
-    "navratri-red",
-    "navratri-orange", 
-    "navratri-yellow",
-    "navratri-green",
-    "navratri-blue",
-    "navratri-indigo",
-    "navratri-violet",
-    "navratri-pink",
-    "navratri-white",
-  ];
+  const [loading, setLoading] = useState(false); // Changed to false for faster initial render
 
   useEffect(() => {
     const fetchEventData = async () => {
       try {
+        setLoading(true);
         const response = await eventAPI.getCurrentEvent();
         setEvent(response.data.data);
       } catch (err) {
         console.error('Failed to fetch event data:', err);
-        // OPTIMIZED: Don't block the UI for event data - show default content
-        if (err.name !== 'AbortError') {
-          setError('Failed to load event information');
-        }
+        // Don't block the UI - show default content
+      } finally {
+        setLoading(false);
       }
     };
 
-    // OPTIMIZED: Reduce initial loading time
-    const timer = setTimeout(fetchEventData, 100);
-    return () => clearTimeout(timer);
+    // Fetch immediately without delay
+    fetchEventData();
   }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden relative">
-      {/* OPTIMIZED: Reduced background elements for better performance */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-20 left-20 w-40 h-40 border border-navratri-orange rounded-full"></div>
-          <div className="absolute bottom-32 left-1/3 w-32 h-32 border border-navratri-yellow rounded-full"></div>
-        </div>
-
-        {/* OPTIMIZED: Reduced floating orbs for better performance */}
-        {navratriColors.slice(0, 2).map((color, index) => (
-          <motion.div
-            key={index}
-            className={`absolute w-20 h-20 bg-gradient-to-r from-${color} to-transparent rounded-full opacity-5 blur-xl`}
-            animate={{
-              x: [0, 50, 0],
-              y: [0, -30, 0],
-              scale: [1, 1.1, 1],
-            }}
-            transition={{
-              duration: 12 + index * 2,
-              repeat: Infinity,
-              repeatType: "reverse",
-            }}
-            style={{
-              left: `${20 + index * 40}%`,
-              top: `${30 + index * 20}%`,
-            }}
-          />
-        ))}
+      {/* Simplified background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
+        <div className="absolute top-20 left-20 w-40 h-40 border border-navratri-orange/20 rounded-full"></div>
+        <div className="absolute bottom-32 right-1/3 w-32 h-32 border border-navratri-yellow/20 rounded-full"></div>
       </div>
 
-      {/* Navbar */}
       <Navbar />
 
-      {/* Main Content */}
       <main className="relative z-10">
         {/* Hero Section - Always load immediately */}
         <Hero event={event} />
 
-        {/* OPTIMIZED: Lazy loaded sections with better fallbacks */}
-        <LazySection >
-          <Suspense >
-            <AboutSection event={event} />
-          </Suspense>
-        </LazySection>
+        {/* Lazy loaded sections with minimal fallbacks */}
+        <Suspense fallback={<div className="h-20" />}>
+          <AboutSection event={event} />
+        </Suspense>
 
-        <LazySection >
-          <Suspense >
-            <EventDetails event={event} />
-          </Suspense>
-        </LazySection>
+        <Suspense fallback={<div className="h-20" />}>
+          <EventDetails event={event} />
+        </Suspense>
 
-        <LazySection >
-          <Suspense >
-            <CountdownSection event={event} />
-          </Suspense>
-        </LazySection>
+        <Suspense fallback={<div className="h-20" />}>
+          <CountdownSection event={event} />
+        </Suspense>
 
         {event?.features && event.features.length > 0 && (
-          <LazySection >
-            <Suspense >
-              <FeaturesSection event={event} />
-            </Suspense>
-          </LazySection>
+          <Suspense fallback={<div className="h-20" />}>
+            <FeaturesSection event={event} />
+          </Suspense>
         )}
 
-        <LazySection >
-          <Suspense >
-            <VenueSection event={event} />
-          </Suspense>
-        </LazySection>
+        <Suspense fallback={<div className="h-20" />}>
+          <VenueSection event={event} />
+        </Suspense>
 
-        <LazySection >
-          <Suspense >
-            <FAQSection />
-          </Suspense>
-        </LazySection>
-
-        {/* OPTIMIZED: Error Display - non-blocking */}
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="container mx-auto px-4 py-8"
-          >
-            <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-xl p-6 text-center max-w-md mx-auto">
-              <div className="text-4xl mb-4">⚠️</div>
-              <h3 className="text-yellow-300 font-bold text-xl mb-2">Event Data Unavailable</h3>
-              <p className="text-yellow-200 text-sm">
-                Some event details couldn't be loaded, but you can still explore the page.
-              </p>
-            </div>
-          </motion.div>
-        )}
+        <Suspense fallback={<div className="h-20" />}>
+          <FAQSection />
+        </Suspense>
       </main>
 
       {/* Footer - Lazy loaded */}
-      <LazySection>
-        <Suspense fallback={<div className="h-96 bg-slate-900"></div>}>
-          <Footer />
-        </Suspense>
-      </LazySection>
+      <Suspense fallback={<div className="h-96 bg-slate-900" />}>
+        <Footer />
+      </Suspense>
     </div>
   );
 };
