@@ -9,7 +9,6 @@ import UserProfile from "../../auth/UserProfile";
 const Navbar = () => {
   const [scrollY, setScrollY] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading } = useAuth();
@@ -38,22 +37,9 @@ const Navbar = () => {
         initial={{ y: -50 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6 }}>
-        
         {/* Top Bar with Controls */}
         <div className="absolute top-0 left-0 right-0 z-50 p-4 pointer-events-none">
           <div className="flex justify-end items-start">
-            {/* Mobile Menu Button - Left Side */}
-            <motion.button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden bg-slate-800/50 backdrop-blur-xl rounded-lg p-2 text-white hover:bg-slate-700/70 transition-colors pointer-events-auto mt-8"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </motion.button>
-
             {/* Authentication Section - Right Side */}
             <div className="flex items-center mt-8 pointer-events-auto">
               {loading ? (
@@ -94,8 +80,7 @@ const Navbar = () => {
                 } else {
                   navigate("/");
                 }
-              }}
-            >
+              }}>
               <motion.h1
                 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-serif bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent text-center whitespace-nowrap"
                 animate={{
@@ -126,100 +111,6 @@ const Navbar = () => {
           </div>
         </div>
       </motion.nav>
-
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-30"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Mobile Menu */}
-      <motion.div
-        initial={{ x: -300 }}
-        animate={{ x: isMobileMenuOpen ? 0 : -300 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="md:hidden fixed left-0 top-0 h-full w-64 bg-slate-900/95 backdrop-blur-xl border-r border-slate-700/30 z-40 p-6">
-        <div className="mt-16">
-          <h3 className="text-white font-bold text-lg mb-4">Menu</h3>
-          <div className="space-y-3">
-            <button
-              onClick={() => {
-                navigate("/");
-                setIsMobileMenuOpen(false);
-              }}
-              className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
-              Home
-            </button>
-            
-            <button
-              onClick={() => {
-                const aboutSection = document.getElementById('about-section');
-                if (aboutSection) {
-                  aboutSection.scrollIntoView({ behavior: 'smooth' });
-                }
-                setIsMobileMenuOpen(false);
-              }}
-              className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
-              About
-            </button>
-            
-            <button
-              onClick={() => {
-                const faqSection = document.getElementById('faq-section');
-                if (faqSection) {
-                  faqSection.scrollIntoView({ behavior: 'smooth' });
-                }
-                setIsMobileMenuOpen(false);
-              }}
-              className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
-              FAQ
-            </button>
-            
-            <button
-              onClick={() => {
-                navigate("/privacy-policy");
-                setIsMobileMenuOpen(false);
-              }}
-              className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
-              Privacy Policy
-            </button>
-            
-            <button
-              onClick={() => {
-                navigate("/cancellation-policy");
-                setIsMobileMenuOpen(false);
-              }}
-              className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
-              Cancellation Policy
-            </button>
-            
-            <button
-              onClick={() => {
-                navigate("/refund-policy");
-                setIsMobileMenuOpen(false);
-              }}
-              className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
-              Refund Policy
-            </button>
-
-            {user && (
-              <button
-                onClick={() => {
-                  navigate("/dashboard");
-                  setIsMobileMenuOpen(false);
-                }}
-                className="block w-full text-left text-slate-300 hover:text-white transition-colors py-2">
-                Dashboard
-              </button>
-            )}
-          </div>
-        </div>
-      </motion.div>
     </>
   );
 };

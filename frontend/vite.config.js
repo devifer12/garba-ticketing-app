@@ -10,6 +10,10 @@ export default defineConfig({
     // Enable code splitting
     rollupOptions: {
       output: {
+        // Add hash to filenames for cache busting
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]',
         manualChunks: {
           // Vendor chunks
           'react-vendor': ['react', 'react-dom'],

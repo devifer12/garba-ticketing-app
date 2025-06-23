@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
+    <!-- Cache Control Headers -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <!-- Preload critical resources -->
     <link rel="preload" href="/src/assets/hero1.webp" as="image" type="image/webp">
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" crossorigin="anonymous">
@@ -107,6 +112,11 @@
     
     <!-- Preload critical JavaScript -->
     <link rel="modulepreload" href="/src/main.jsx">
+    
+    <!-- Version timestamp for cache busting -->
+    <script>
+      window.APP_VERSION = Date.now();
+    </script>
   </head>
   <body>
     <div id="root">

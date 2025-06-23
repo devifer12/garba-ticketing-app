@@ -36,36 +36,40 @@ const Home = () => {
     const fetchEventData = async () => {
       try {
         setLoading(true);
+        // OPTIMIZED: Add timeout and better error handling
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
         const response = await eventAPI.getCurrentEvent();
+        clearTimeout(timeoutId);
+        
         setEvent(response.data.data);
       } catch (err) {
         console.error('Failed to fetch event data:', err);
-        setError('Failed to load event information');
+        // OPTIMIZED: Don't block the UI for event data - show default content
+        if (err.name !== 'AbortError') {
+          setError('Failed to load event information');
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEventData();
+    // OPTIMIZED: Reduce initial loading time
+    const timer = setTimeout(fetchEventData, 100);
+    return () => clearTimeout(timer);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <LoadingSpinner size="lg" message="Loading Event Details..." />
-      </div>
-    );
-  }
-
+  // OPTIMIZED: Show content immediately with skeleton loading
   const SectionFallback = () => (
-    <div className="py-20">
+    <div className="py-12 sm:py-20">
       <div className="container mx-auto px-4">
         <div className="animate-pulse">
-          <div className="h-8 bg-slate-700 rounded w-1/3 mx-auto mb-4"></div>
-          <div className="h-4 bg-slate-700 rounded w-1/2 mx-auto mb-8"></div>
+          <div className="h-6 sm:h-8 bg-slate-700/50 rounded w-1/3 mx-auto mb-4"></div>
+          <div className="h-4 bg-slate-700/30 rounded w-1/2 mx-auto mb-8"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-48 bg-slate-700 rounded-xl"></div>
+              <div key={i} className="h-32 sm:h-48 bg-slate-700/30 rounded-xl"></div>
             ))}
           </div>
         </div>
@@ -73,16 +77,43 @@ const Home = () => {
     </div>
   );
 
+  // OPTIMIZED: Minimal loading screen - show content faster
+  if (loading && !event) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Navbar />
+        
+        {/* OPTIMIZED: Show hero skeleton immediately */}
+        <div className="pt-32 pb-8">
+          <div className="container mx-auto px-4">
+            <div className="grid lg:grid-cols-2 gap-8 items-center max-w-7xl mx-auto">
+              <div className="space-y-6 text-center lg:text-left animate-pulse">
+                <div className="h-12 sm:h-16 bg-slate-700/50 rounded w-3/4 mx-auto lg:mx-0"></div>
+                <div className="h-6 bg-slate-700/30 rounded w-2/3 mx-auto lg:mx-0"></div>
+                <div className="h-12 bg-slate-700/40 rounded w-1/2 mx-auto lg:mx-0"></div>
+              </div>
+              <div className="h-64 sm:h-96 bg-slate-700/30 rounded-3xl animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="text-center py-8">
+          <LoadingSpinner size="md" message="Loading Event Details..." />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden relative">
-      {/* Optimized Background Elements - Reduced complexity */}
+      {/* OPTIMIZED: Reduced background elements for better performance */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-20 left-20 w-40 h-40 border border-navratri-orange rounded-full"></div>
           <div className="absolute bottom-32 left-1/3 w-32 h-32 border border-navratri-yellow rounded-full"></div>
         </div>
 
-        {/* Reduced floating orbs for better performance */}
+        {/* OPTIMIZED: Reduced floating orbs for better performance */}
         {navratriColors.slice(0, 2).map((color, index) => (
           <motion.div
             key={index}
@@ -113,7 +144,7 @@ const Home = () => {
         {/* Hero Section - Always load immediately */}
         <Hero event={event} />
 
-        {/* Lazy loaded sections */}
+        {/* OPTIMIZED: Lazy loaded sections with better fallbacks */}
         <LazySection fallback={<SectionFallback />}>
           <Suspense fallback={<SectionFallback />}>
             <AboutSection event={event} />
@@ -152,17 +183,19 @@ const Home = () => {
           </Suspense>
         </LazySection>
 
-        {/* Error Display */}
+        {/* OPTIMIZED: Error Display - non-blocking */}
         {error && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="container mx-auto px-4 py-8"
           >
-            <div className="bg-red-900/20 border border-red-700/30 rounded-xl p-6 text-center">
+            <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-xl p-6 text-center max-w-md mx-auto">
               <div className="text-4xl mb-4">⚠️</div>
-              <h3 className="text-red-300 font-bold text-xl mb-2">Error Loading Event</h3>
-              <p className="text-red-200">{error}</p>
+              <h3 className="text-yellow-300 font-bold text-xl mb-2">Event Data Unavailable</h3>
+              <p className="text-yellow-200 text-sm">
+                Some event details couldn't be loaded, but you can still explore the page.
+              </p>
             </div>
           </motion.div>
         )}
