@@ -50,23 +50,6 @@ const Home = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // OPTIMIZED: Show content immediately with skeleton loading
-  const SectionFallback = () => (
-    <div className="py-12 sm:py-20">
-      <div className="container mx-auto px-4">
-        <div className="animate-pulse">
-          <div className="h-6 sm:h-8 bg-slate-700/50 rounded w-1/3 mx-auto mb-4"></div>
-          <div className="h-4 bg-slate-700/30 rounded w-1/2 mx-auto mb-8"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 sm:h-48 bg-slate-700/30 rounded-xl"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden relative">
       {/* OPTIMIZED: Reduced background elements for better performance */}
@@ -108,40 +91,40 @@ const Home = () => {
         <Hero event={event} />
 
         {/* OPTIMIZED: Lazy loaded sections with better fallbacks */}
-        <LazySection fallback={<SectionFallback />}>
-          <Suspense fallback={<SectionFallback />}>
+        <LazySection >
+          <Suspense >
             <AboutSection event={event} />
           </Suspense>
         </LazySection>
 
-        <LazySection fallback={<SectionFallback />}>
-          <Suspense fallback={<SectionFallback />}>
+        <LazySection >
+          <Suspense >
             <EventDetails event={event} />
           </Suspense>
         </LazySection>
 
-        <LazySection fallback={<SectionFallback />}>
-          <Suspense fallback={<SectionFallback />}>
+        <LazySection >
+          <Suspense >
             <CountdownSection event={event} />
           </Suspense>
         </LazySection>
 
         {event?.features && event.features.length > 0 && (
-          <LazySection fallback={<SectionFallback />}>
-            <Suspense fallback={<SectionFallback />}>
+          <LazySection >
+            <Suspense >
               <FeaturesSection event={event} />
             </Suspense>
           </LazySection>
         )}
 
-        <LazySection fallback={<SectionFallback />}>
-          <Suspense fallback={<SectionFallback />}>
+        <LazySection >
+          <Suspense >
             <VenueSection event={event} />
           </Suspense>
         </LazySection>
 
-        <LazySection fallback={<SectionFallback />}>
-          <Suspense fallback={<SectionFallback />}>
+        <LazySection >
+          <Suspense >
             <FAQSection />
           </Suspense>
         </LazySection>
