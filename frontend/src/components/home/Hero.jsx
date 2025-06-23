@@ -50,18 +50,11 @@ const Hero = memo(({ event }) => {
                 repeat: Infinity,
                 repeatType: "loop",
               }}>
-              {event ? (
+              {event && (
                 <>
                   {event.name}
                   <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
                     {formatDate(event.date, { weekday: 'long', month: 'long', day: 'numeric', year: undefined })}
-                  </span>
-                </>
-              ) : (
-                <>
-                  Dance to the
-                  <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
-                    Rhythm of Joy
                   </span>
                 </>
               )}
@@ -70,7 +63,7 @@ const Hero = memo(({ event }) => {
             <motion.p
               className="text-lg sm:text-xl text-slate-300 leading-relaxed max-w-md mx-auto lg:mx-0"
               variants={itemVariants}>
-              {event?.description || "Join us for an unforgettable evening of traditional Garba and Raas, celebrating the vibrant colors and culture of Navratri."}
+              {event?.description}
             </motion.p>
 
             {/* Event Quick Info */}
@@ -99,40 +92,6 @@ const Hero = memo(({ event }) => {
                 </div>
               </motion.div>
             )}
-
-            {/* Feature Highlights */}
-            <motion.div variants={itemVariants} className="text-start space-y-2 sm:space-y-3">
-              <div className="flex items-center gap-2 sm:gap-3 justify-center lg:justify-start">
-                <motion.div
-                  className="w-2 h-2 bg-navratri-orange rounded-full"
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-                <span className="text-slate-300 text-sm sm:text-base">
-                  Traditional Gujarati Music & Dance
-                </span>
-              </div>
-              <div className="flex items-center gap-2 sm:gap-3 justify-center lg:justify-start">
-                <motion.div
-                  className="w-2 h-2 bg-navratri-pink rounded-full"
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                />
-                <span className="text-slate-300 text-sm sm:text-base">
-                  Rewards & Prizes For Winners 
-                </span>
-              </div>
-              <div className="flex items-center gap-2 sm:gap-3 justify-center lg:justify-start">
-                <motion.div
-                  className="w-2 h-2 bg-navratri-yellow rounded-full"
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: 1 }}
-                />
-                <span className="text-slate-300 text-sm sm:text-base">
-                  Snacks & Refreshments Stalls
-                </span>
-              </div>
-            </motion.div>
 
             {/* CTA Buttons */}
             <motion.div
