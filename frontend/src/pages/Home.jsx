@@ -17,7 +17,6 @@ const FAQSection = lazy(() => import('../components/home/FAQSection'));
 
 const Home = () => {
   const [event, setEvent] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const navratriColors = [
@@ -35,14 +34,7 @@ const Home = () => {
   useEffect(() => {
     const fetchEventData = async () => {
       try {
-        setLoading(true);
-        // OPTIMIZED: Add timeout and better error handling
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
         const response = await eventAPI.getCurrentEvent();
-        clearTimeout(timeoutId);
-        
         setEvent(response.data.data);
       } catch (err) {
         console.error('Failed to fetch event data:', err);
@@ -50,8 +42,6 @@ const Home = () => {
         if (err.name !== 'AbortError') {
           setError('Failed to load event information');
         }
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -76,33 +66,6 @@ const Home = () => {
       </div>
     </div>
   );
-
-  // OPTIMIZED: Minimal loading screen - show content faster
-  if (loading && !event) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Navbar />
-        
-        {/* OPTIMIZED: Show hero skeleton immediately */}
-        <div className="pt-32 pb-8">
-          <div className="container mx-auto px-4">
-            <div className="grid lg:grid-cols-2 gap-8 items-center max-w-7xl mx-auto">
-              <div className="space-y-6 text-center lg:text-left animate-pulse">
-                <div className="h-12 sm:h-16 bg-slate-700/50 rounded w-3/4 mx-auto lg:mx-0"></div>
-                <div className="h-6 bg-slate-700/30 rounded w-2/3 mx-auto lg:mx-0"></div>
-                <div className="h-12 bg-slate-700/40 rounded w-1/2 mx-auto lg:mx-0"></div>
-              </div>
-              <div className="h-64 sm:h-96 bg-slate-700/30 rounded-3xl animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="text-center py-8">
-          <LoadingSpinner size="md" message="Loading Event Details..." />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden relative">
