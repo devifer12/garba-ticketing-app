@@ -100,13 +100,15 @@ const EventDetails = ({ event }) => {
         />
       </div>
 
-      {/* Event Image - Updated to use backend image */}
+      {/* Event Image - Fixed aspect ratio container */}
       <motion.div
         variants={itemVariants}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
-        className="mx-auto flex justify-center items-center h-32 sm:h-40 md:h-50 w-full max-w-sm sm:max-w-md md:max-w-lg rounded-xl mb-4 sm:mb-5 overflow-hidden">
+        className="mx-auto flex justify-center items-center w-full max-w-sm sm:max-w-md md:max-w-lg mb-4 sm:mb-5 overflow-hidden"
+        style={{ aspectRatio: '4/3', height: '200px' }} // Fixed height to prevent layout shift
+      >
         {event?.eventImage ? (
           <motion.img 
             src={event.eventImage} 
@@ -114,6 +116,7 @@ const EventDetails = ({ event }) => {
             className="w-full h-full object-cover rounded-xl shadow-lg"
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.3 }}
+            loading="lazy"
           />
         ) : (
           <div className="bg-slate-700/50 backdrop-blur-xl w-full h-full rounded-xl flex items-center justify-center border border-slate-600/30">
@@ -141,11 +144,12 @@ const EventDetails = ({ event }) => {
           <div className="w-16 sm:w-24 h-1 bg-gradient-to-r from-navratri-orange to-navratri-yellow rounded-full mx-auto"></div>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12 max-w-6xl mx-auto">
+        {/* Fixed height grid to prevent layout shift */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12 max-w-6xl mx-auto min-h-[300px]">
           {/* Date & Time Card */}
           <motion.div
             variants={itemVariants}
-            className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-slate-700/50 hover:border-navratri-orange/30 transition-all duration-300 relative overflow-hidden group"
+            className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-slate-700/50 hover:border-navratri-orange/30 transition-all duration-300 relative overflow-hidden group h-full"
             whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}>
             {/* Decorative background glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-navratri-orange/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -166,7 +170,7 @@ const EventDetails = ({ event }) => {
           {/* Venue Card */}
           <motion.div
             variants={itemVariants}
-            className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-slate-700/50 hover:border-navratri-pink/30 transition-all duration-300 relative overflow-hidden group"
+            className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-slate-700/50 hover:border-navratri-pink/30 transition-all duration-300 relative overflow-hidden group h-full"
             whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}>
             {/* Decorative background glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-navratri-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -186,7 +190,7 @@ const EventDetails = ({ event }) => {
           {/* Ticket Price Card */}
           <motion.div
             variants={itemVariants}
-            className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-navratri-yellow/20 sm:col-span-2 lg:col-span-1 relative overflow-hidden group"
+            className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-navratri-yellow/20 sm:col-span-2 lg:col-span-1 relative overflow-hidden group h-full"
             whileHover={{
               y: -5,
               boxShadow: "0 20px 40px rgba(255,215,0,0.1)",
@@ -218,10 +222,10 @@ const EventDetails = ({ event }) => {
           </motion.div>
         </div>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons - Fixed height container */}
         <motion.div
           variants={itemVariants}
-          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-6 sm:mb-10 px-4">
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-6 sm:mb-10 px-4 min-h-[80px]">
           
           {/* Primary Buy Tickets Button */}
           <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-7 sm:px-8 py-3 sm:py-4">
@@ -239,8 +243,8 @@ const EventDetails = ({ event }) => {
           )}
         </motion.div>
 
-        {/* Limited Tickets Warning */}
-        <motion.div variants={itemVariants} className="text-center px-4">
+        {/* Limited Tickets Warning - Fixed height */}
+        <motion.div variants={itemVariants} className="text-center px-4 min-h-[40px] flex items-center justify-center">
           <motion.p
             className="text-navratri-yellow font-bold text-base sm:text-lg"
             animate={{

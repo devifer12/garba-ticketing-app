@@ -50,11 +50,18 @@ const Hero = memo(({ event }) => {
                 repeat: Infinity,
                 repeatType: "loop",
               }}>
-              {event && (
+              {event ? (
                 <>
                   {event.name}
                   <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
                     {formatDate(event.date, { weekday: 'long', month: 'long', day: 'numeric', year: undefined })}
+                  </span>
+                </>
+              ) : (
+                <>
+                  Garba Rass 2025
+                  <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
+                    Pre-Navratri Celebration
                   </span>
                 </>
               )}
@@ -63,59 +70,67 @@ const Hero = memo(({ event }) => {
             <motion.p
               className="text-lg sm:text-xl text-slate-300 leading-relaxed max-w-md mx-auto lg:mx-0"
               variants={itemVariants}>
-              {event?.description}
+              {event?.description || "Experience the spirit of Navratri come alive in all its glory—vibrant colors, electrifying energy, and the timeless rhythm of Garba."}
             </motion.p>
 
-            {/* Event Quick Info */}
-            {event && (
-              <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto lg:mx-0">
-                <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30">
-                  <div className="text-2xl mb-2">📅</div>
-                  <p className="text-slate-400 text-sm">Date</p>
-                  <p className="text-white font-semibold">{formatDate(event.date, { month: 'short', day: 'numeric' })}</p>
-                </div>
-                <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30">
-                  <div className="text-2xl mb-2">🕐</div>
-                  <p className="text-slate-400 text-sm">Time</p>
-                  <p className="text-white font-semibold">{formatTime(event.startTime)} - {formatTime(event.endTime)} </p>
-                </div>
-                <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30">
-                  <div className="text-2xl mb-2">📍</div>
-                  <p className="text-slate-400 text-sm">Venue</p>
-                  <p className="text-white font-semibold text-sm">{event.venue}</p>
-                </div>
-                <div className="bg-gradient-to-br from-navratri-orange/20 to-navratri-yellow/20 backdrop-blur-xl rounded-xl p-4 border border-navratri-orange/30">
-                  <div className="text-2xl mb-2">🎫</div>
-                  <p className="text-navratri-yellow text-sm">Price</p>
-                  <p className="text-white font-bold text-lg">₹{event.ticketPrice}/-</p>
-                  <p className="text-white/70 text-sm">250 people only</p>
-                </div>
-              </motion.div>
-            )}
+            {/* Event Quick Info - Fixed dimensions to prevent layout shift */}
+            <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto lg:mx-0">
+              <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30 h-[100%] flex flex-col justify-center">
+                <div className="text-2xl mb-2">📅</div>
+                <p className="text-slate-400 text-sm">Date</p>
+                <p className="text-white font-semibold">
+                  {event ? formatDate(event.date, { month: 'short', day: 'numeric' }) : 'Aug 15'}
+                </p>
+              </div>
+              <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30 h-[100%] flex flex-col justify-center">
+                <div className="text-2xl mb-2">🕐</div>
+                <p className="text-slate-400 text-sm">Time</p>
+                <p className="text-white font-semibold">
+                  {event ? `${formatTime(event.startTime)} - ${formatTime(event.endTime)}` : '6:00 PM - 10:00 PM'}
+                </p>
+              </div>
+              <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30 h-[100%] flex flex-col justify-center">
+                <div className="text-2xl mb-2">📍</div>
+                <p className="text-slate-400 text-sm">Venue</p>
+                <p className="text-white font-semibold text-sm">
+                  {event?.venue || 'Vrindavan Hall, Kandivali'}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-navratri-orange/20 to-navratri-yellow/20 backdrop-blur-xl rounded-xl p-4 border border-navratri-orange/30 h-[100%] flex flex-col justify-center">
+                <div className="text-2xl mb-2">🎫</div>
+                <p className="text-navratri-yellow text-sm">Price</p>
+                <p className="text-white font-bold text-lg">₹{event?.ticketPrice || '399'}/-</p>
+                <p className="text-white/70 text-sm">{event?.totalTickets || '300'} people only</p>
+              </div>
+            </motion.div>
 
-            {/* CTA Buttons */}
+            {/* CTA Buttons - Fixed dimensions */}
             <motion.div
               variants={itemVariants}
               className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 items-center lg:items-start">
               
               {/* Primary Buy Tickets Button */}
-              <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-8 sm:px-8 py-3 sm:py-4">
-                🎟️ Book Your Tickets Now
-              </PrimaryButton>
+              <div className="h-14 sm:h-16 flex items-center">
+                <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-8 sm:px-8 py-3 sm:py-4">
+                  🎟️ Book Your Tickets Now
+                </PrimaryButton>
+              </div>
 
               {/* Secondary Sign In Button - Only show if not authenticated */}
               {!user && (
-                <GoogleSignInButton 
-                className="w-auto sm:w-auto text-base sm:text-xl px-10 sm:px-12 py-3 sm:py-4"
-                showTextOnMobile={true}
-                >
-                  📱 Sign In with Google
-                </GoogleSignInButton>
+                <div className="h-14 sm:h-16 flex items-center">
+                  <GoogleSignInButton 
+                    className="w-auto sm:w-auto text-base sm:text-xl px-10 sm:px-12 py-3 sm:py-4"
+                    showTextOnMobile={true}
+                  >
+                    📱 Sign In with Google
+                  </GoogleSignInButton>
+                </div>
               )}
             </motion.div>
 
-            {/* Limited Tickets Warning */}
-            <motion.div variants={itemVariants}>
+            {/* Limited Tickets Warning - Fixed height */}
+            <motion.div variants={itemVariants} className="h-8 flex items-center justify-center lg:justify-start">
               <motion.p
                 className="cursor-default text-navratri-yellow font-bold text-base sm:text-lg text-center lg:text-left"
                 animate={{
@@ -128,7 +143,7 @@ const Hero = memo(({ event }) => {
             </motion.div>
           </motion.div>
 
-          {/* Right Side - Hero Image */}
+          {/* Right Side - Hero Image with fixed aspect ratio */}
           <motion.div variants={itemVariants} className="relative order-first lg:order-last">
             <motion.div
               className="relative rounded-3xl overflow-hidden"
@@ -138,16 +153,18 @@ const Hero = memo(({ event }) => {
               <LazyImage
                 src={event?.eventImage || hero1}
                 alt={event?.name || "Garba Dancers"}
-                className="w-full h-auto object-fill drop-shadow-xl drop-shadow-neutral-700 max-h-96 sm:max-h-none"
+                className="w-full drop-shadow-xl drop-shadow-neutral-700"
+                aspectRatio="1/1"
+                priority={true} // Load hero image immediately
                 placeholder={
-                  <div className="flex items-center justify-center h-96">
+                  <div className="flex items-center justify-center h-full">
                     <div className="text-slate-400">Loading image...</div>
                   </div>
                 }
                 fallback={hero1}
               />
 
-              {/* Floating decorative elements around image */}
+              {/* Floating decorative elements around image - Fixed positions */}
               <motion.div
                 className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 w-6 h-6 sm:w-8 sm:h-8 bg-navratri-orange rounded-full opacity-60"
                 animate={{
@@ -166,7 +183,7 @@ const Hero = memo(({ event }) => {
               />
             </motion.div>
 
-            {/* Decorative Dandiya elements */}
+            {/* Decorative Dandiya elements - Fixed positions */}
             <motion.img
               src={Dandiya}
               alt="Dandiya"
