@@ -1,5 +1,4 @@
-// frontend/src/components/common/navbar/Navbar.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
@@ -13,21 +12,35 @@ const Navbar = () => {
   const location = useLocation();
   const { user, loading } = useAuth();
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setScrollY(currentScrollY);
-      setIsScrolled(currentScrollY > 100);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+  // Throttled scroll handler for better mobile performance
+  const handleScroll = useCallback(() => {
+    const currentScrollY = window.scrollY;
+    setScrollY(currentScrollY);
+    setIsScrolled(currentScrollY > 100);
   }, []);
 
-  // Calculate scale and opacity based on scroll
-  const titleScale = Math.max(0.7, 1 - scrollY * 0.002);
-  const subtitleOpacity = Math.max(0, 1 - scrollY * 0.008);
-  const subtitleY = scrollY * 0.5;
+  // Throttle scroll events for mobile performance
+  useEffect(() => {
+    let ticking = false;
+    
+    const throttledScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", throttledScroll, { passive: true });
+    return () => window.removeEventListener("scroll", throttledScroll);
+  }, [handleScroll]);
+
+  // Optimized scale and opacity calculations
+  const titleScale = Math.max(0.7, 1 - scrollY * 0.001); // Reduced sensitivity
+  const subtitleOpacity = Math.max(0, 1 - scrollY * 0.006); // Reduced sensitivity
+  const subtitleY = scrollY * 0.3; // Reduced parallax effect
 
   return (
     <>
@@ -36,7 +49,8 @@ const Navbar = () => {
         className="fixed top-0 left-0 right-0 z-40 transition-all duration-300 pointer-events-none"
         initial={{ y: -50 }}
         animate={{ y: 0 }}
-        transition={{ duration: 0.6 }}>
+        transition={{ duration: 0.4 }}> {/* Reduced duration */}
+        
         {/* Top Bar with Controls */}
         <div className="absolute top-0 left-0 right-0 z-50 p-4 pointer-events-none">
           <div className="flex justify-end items-start">
@@ -60,7 +74,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Main Navbar Content - Centered */}
+        {/* Main Navbar Content - Centered with optimized transforms */}
         <div className="container mx-auto px-4 lg:pt-8 md:pt-10 sm:py-8 pt-12 pointer-events-none">
           <div className="flex flex-col items-center pointer-events-none">
             {/* Main Title with glassmorphism background on scroll */}
@@ -73,6 +87,7 @@ const Navbar = () => {
               style={{
                 transform: `scale(${titleScale})`,
                 transformOrigin: "center center",
+                willChange: 'transform', // Optimize for animations
               }}
               onClick={() => {
                 if (location.pathname === "/") {
@@ -89,22 +104,25 @@ const Navbar = () => {
                 style={{
                   transform: `scale(${titleScale})`,
                   transformOrigin: "center center",
+                  willChange: 'transform',
                 }}
                 transition={{
-                  duration: 4,
+                  duration: 6, // Increased for smoother animation
                   repeat: Infinity,
                   repeatType: "loop",
+                  ease: "linear", // More consistent animation
                 }}>
                 Garba Rass 2025
               </motion.h1>
             </motion.div>
 
-            {/* Subtitle - slides away on scroll */}
+            {/* Subtitle - slides away on scroll with optimized transform */}
             <motion.p
               className="text-sm sm:text-lg md:text-xl text-slate-300 font-light text-center mt-2 sm:mt-4 px-4 pointer-events-none"
               style={{
                 opacity: subtitleOpacity,
                 transform: `translateY(${subtitleY}px)`,
+                willChange: 'transform, opacity',
               }}>
               Pre-Navratri Grand Celebration
             </motion.p>

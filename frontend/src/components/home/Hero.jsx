@@ -10,22 +10,23 @@ import Dandiya from "../../assets/dandiya.webp";
 const Hero = memo(({ event }) => {
   const { user } = useAuth();
 
+  // Reduced animation complexity for mobile performance
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2,
+        staggerChildren: 0.15, // Reduced from 0.2
       },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
+    hidden: { opacity: 0, y: 20 }, // Reduced from y: 30
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.6 },
+      transition: { duration: 0.4 }, // Reduced from 0.6
     },
   };
 
@@ -46,7 +47,7 @@ const Hero = memo(({ event }) => {
                 backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
               }}
               transition={{
-                duration: 5,
+                duration: 8, // Increased from 5 for smoother animation
                 repeat: Infinity,
                 repeatType: "loop",
               }}>
@@ -135,19 +136,19 @@ const Hero = memo(({ event }) => {
                 className="cursor-default text-navratri-yellow font-bold text-base sm:text-lg text-center lg:text-left"
                 animate={{
                   opacity: [0.7, 1, 0.7],
-                  scale: [1, 1.02, 1],
+                  scale: [1, 1.01, 1], // Reduced from 1.02
                 }}
-                transition={{ duration: 1.5, repeat: Infinity }}>
+                transition={{ duration: 2, repeat: Infinity }}>
                 ⚡ {event ? `Only ${event.availableTickets} Tickets Available!` : 'Only 300 Tickets Available!'}
               </motion.p>
             </motion.div>
           </motion.div>
 
-          {/* Right Side - Hero Image with fixed aspect ratio */}
+          {/* Right Side - Hero Image with optimized responsive loading */}
           <motion.div variants={itemVariants} className="relative order-first lg:order-last">
             <motion.div
               className="relative rounded-3xl overflow-hidden"
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.01 }} // Reduced from 1.02
               transition={{ duration: 0.3 }}>
               
               <LazyImage
@@ -155,7 +156,9 @@ const Hero = memo(({ event }) => {
                 alt={event?.name || "Garba Dancers"}
                 className="w-full drop-shadow-xl drop-shadow-neutral-700"
                 aspectRatio="1/1"
-                priority={true} // Load hero image immediately
+                priority={true}
+                responsive={true}
+                mobileSrc={event?.eventImage || hero1} // Use same image for now, can be optimized later
                 placeholder={
                   <div className="flex items-center justify-center h-full">
                     <div className="text-slate-400">Loading image...</div>
@@ -164,35 +167,35 @@ const Hero = memo(({ event }) => {
                 fallback={hero1}
               />
 
-              {/* Floating decorative elements around image - Fixed positions */}
+              {/* Floating decorative elements - Reduced animation complexity */}
               <motion.div
                 className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 w-6 h-6 sm:w-8 sm:h-8 bg-navratri-orange rounded-full opacity-60"
                 animate={{
-                  y: [0, -10, 0],
-                  scale: [1, 1.1, 1],
+                  y: [0, -8, 0], // Reduced from -10
+                  scale: [1, 1.05, 1], // Reduced from 1.1
                 }}
-                transition={{ duration: 3, repeat: Infinity }}
+                transition={{ duration: 4, repeat: Infinity }} // Increased duration
               />
               <motion.div
                 className="absolute -bottom-2 -left-2 sm:-bottom-4 sm:-left-4 w-4 h-4 sm:w-6 sm:h-6 bg-navratri-pink rounded-full opacity-60"
                 animate={{
-                  y: [0, 10, 0],
-                  scale: [1, 1.2, 1],
+                  y: [0, 8, 0], // Reduced from 10
+                  scale: [1, 1.1, 1], // Reduced from 1.2
                 }}
-                transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+                transition={{ duration: 4, repeat: Infinity, delay: 1 }} // Increased duration
               />
             </motion.div>
 
-            {/* Decorative Dandiya elements - Fixed positions */}
+            {/* Decorative Dandiya elements - Simplified animations */}
             <motion.img
               src={Dandiya}
               alt="Dandiya"
               className="absolute -top-4 sm:-top-8 left-4 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 opacity-40"
               animate={{
-                rotate: [0, 15, -15, 0],
-                scale: [1, 1.1, 1],
+                rotate: [0, 10, -10, 0], // Reduced from 15
+                scale: [1, 1.05, 1], // Reduced from 1.1
               }}
-              transition={{ duration: 4, repeat: Infinity }}
+              transition={{ duration: 6, repeat: Infinity }} // Increased duration
               loading="lazy"
             />
             <motion.img
@@ -200,10 +203,10 @@ const Hero = memo(({ event }) => {
               alt="Dandiya"
               className="absolute -bottom-3 sm:-bottom-6 right-6 sm:right-12 w-6 h-6 sm:w-10 sm:h-10 opacity-40 rotate-45"
               animate={{
-                rotate: [45, 60, 30, 45],
-                scale: [1, 1.2, 1],
+                rotate: [45, 55, 35, 45], // Reduced range
+                scale: [1, 1.1, 1], // Reduced from 1.2
               }}
-              transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+              transition={{ duration: 5, repeat: Infinity, delay: 1 }} // Increased duration
               loading="lazy"
             />
           </motion.div>

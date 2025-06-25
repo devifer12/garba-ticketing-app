@@ -9,8 +9,9 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <!-- Preload critical resources -->
-    <link rel="preload" href="/src/assets/hero1.webp" as="image" type="image/webp">
+    <!-- Preload critical resources with responsive images -->
+    <link rel="preload" href="/src/assets/hero1-mobile.webp" as="image" type="image/webp" media="(max-width: 768px)">
+    <link rel="preload" href="/src/assets/hero1.webp" as="image" type="image/webp" media="(min-width: 769px)">
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" crossorigin="anonymous">
     
     <!-- DNS prefetch for external domains -->
@@ -50,6 +51,20 @@
       @media (min-width: 640px) {
         .navbar-placeholder {
           height: 96px;
+        }
+      }
+      /* Mobile-specific optimizations */
+      @media (max-width: 768px) {
+        .hero-section {
+          background-attachment: scroll; /* Prevent parallax on mobile */
+        }
+        /* Reduce motion for better performance on mobile */
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
         }
       }
     </style>
@@ -113,23 +128,13 @@
     <!-- Preload critical JavaScript -->
     <link rel="modulepreload" href="/src/main.jsx">
     
-    <!-- Version timestamp for cache busting -->
+    <!-- Version timestamp for cache busting - Fixed for better caching -->
     <script>
-      window.APP_VERSION = Date.now();
+      window.APP_VERSION = '2025.01.01.001'; // Static version that only changes on deployment
     </script>
   </head>
   <body>
-    <div id="root" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);">
-      <!-- Loading placeholder to prevent layout shift -->
-      <div class="navbar-placeholder"></div>
-      <div style="height: 100vh; display: flex; align-items: center; justify-content: center;"> 
-        <div style="text-align: center; color: white;">
-          <div class="loading-spinner" style="width: 40px; height: 40px; border: 3px solid #334155; border-top: 3px solid #ff6500; border-radius: 50%; margin: 0 auto 16px;"></div>
-          <h1 style="font-size: 2rem; margin: 0 0 8px; background: linear-gradient(45deg, #ff6500, #ffd700); background-clip: border-box; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Garba Raas 2025</h1>
-          <p style="margin: 0; color: #94a3b8;">Loading...</p>
-        </div>
-      </div>
-    </div>
+    <div id="root">
     
     <!-- Structured Data for SEO -->
     <script type="application/ld+json">
