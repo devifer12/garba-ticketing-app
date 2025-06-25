@@ -73,7 +73,7 @@ router.post('/', verifyToken, async (req, res) => {
       status: { $in: ['active', 'used'] } 
     });
 
-    const maxTicketsPerUser = 5; // Configurable limit
+    const maxTicketsPerUser = 10; // Configurable limit
     if (existingActiveTickets + quantity > maxTicketsPerUser) {
       return res.status(400).json({ 
         success: false,
@@ -82,7 +82,6 @@ router.post('/', verifyToken, async (req, res) => {
     }
 
     // Create tickets array
-    const tickets = [];
     const ticketCreationPromises = [];
 
     for (let i = 0; i < quantity; i++) {
