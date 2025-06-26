@@ -124,7 +124,6 @@ app.get("/api/status", (req, res) => {
         profile: "GET /api/auth/me",
         profileAlt: "GET /api/auth/profile",
         updateProfile: "PUT /api/auth/profile",
-        deleteAccount: "DELETE /api/auth/account",
         logout: "POST /api/auth/logout",
       },
       tickets: {
@@ -142,6 +141,7 @@ app.get("/api/status", (req, res) => {
         updateUserRole: "PATCH /api/admin/users/:userId/role",
         deleteUser: "DELETE /api/admin/users/:userId",
         ticketStats: "GET /api/admin/tickets/stats",
+        deleteTicket:" DELETE /api/admin/tickets/:ticketId",
         dashboardAnalytics: "GET /api/admin/analytics/dashboard",
         ticketManagement: "GET /api/admin/tickets/management",
         bulkUpdateTickets: "PATCH /api/admin/tickets/bulk-update",

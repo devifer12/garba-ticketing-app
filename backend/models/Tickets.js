@@ -42,7 +42,7 @@ const ticketSchema = new mongoose.Schema({
     required: true 
   },
   
-  // Ticket status - removed 'cancelled' option
+  // Ticket status 
   status: { 
     type: String, 
     enum: ['active', 'used'], 

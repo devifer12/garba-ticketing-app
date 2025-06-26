@@ -112,6 +112,60 @@ router.patch('/users/:userId/role', verifyToken, isAdmin, async (req, res) => {
   }
 });
 
+router.delete('/users/:userId', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findByIdAndDelete(userId).select('-firebaseUID');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'User deleted successfully',
+      user
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete user'
+    });
+  }
+});
+
+router.delete('/tickets/:ticketId', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    
+    const ticket = await Ticket.findByIdAndDelete(ticketId);
+    
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        error: 'Ticket not found'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'Ticket deleted successfully',
+      ticket
+    });
+  } catch (error) {
+    console.error('Delete ticket error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete ticket'
+    });
+  }
+})
+
 // Get ticket statistics for dashboard - Available to both admin and manager
 router.get('/tickets/stats', verifyToken, isAdminOrManager, async (req, res) => {
   try {

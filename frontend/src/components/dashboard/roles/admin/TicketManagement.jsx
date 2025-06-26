@@ -126,6 +126,18 @@ const TicketManagement = () => {
     );
   };
 
+  const handleDeleteTicket = async (ticketId) => {
+    try {
+      await adminAPI.deleteTicket(ticketId);
+      toast.success('Ticket deleted successfully');
+      fetchTickets();
+    } catch (err) {
+      console.error('Failed to delete ticket:', err);
+      const errorMessage = apiUtils.formatErrorMessage(err);
+      toast.error(`Failed to delete: ${errorMessage}`);
+    }
+  };
+
   const handleSelectAll = () => {
     if (selectedTickets.length === tickets.length) {
       setSelectedTickets([]);
@@ -298,6 +310,7 @@ const TicketManagement = () => {
                   <th className="text-left py-3 px-4 text-slate-300 font-medium">Status</th>
                   <th className="text-left py-3 px-4 text-slate-300 font-medium">Created</th>
                   <th className="text-left py-3 px-4 text-slate-300 font-medium">Actions</th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Cautions</th>
                 </tr>
               </thead>
               <tbody>
@@ -357,6 +370,16 @@ const TicketManagement = () => {
                           <option value="active">Active</option>
                           <option value="used">Used</option>
                         </select>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleDeleteTicket(ticket._id)}
+                          className="px-2 py-1 bg-red-600/50 border border-red-500/30 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-red-500/30"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </motion.tr>

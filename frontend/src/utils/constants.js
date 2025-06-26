@@ -40,8 +40,8 @@ export const API_ENDPOINTS = {
     USERS: '/admin/users',
     USER_COUNT: '/admin/users/count',
     ANALYTICS: '/admin/analytics/dashboard',
-    DELETE_USER: '/admin/users/:userId',
     TICKET_MANAGEMENT: '/admin/tickets/management',
+    TICKETS: '/admin/tickets',
     BULK_UPDATE: '/admin/tickets/bulk-update',
     EXPORT: '/admin/tickets/export',
     SYSTEM_HEALTH: '/admin/system/health'

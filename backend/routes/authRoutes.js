@@ -128,30 +128,4 @@ router.post("/logout", verifyToken, async (req, res) => {
   }
 });
 
-// Delete user account (protected route)
-router.delete("/account", verifyToken, async (req, res) => {
-  try {
-    const user = await User.findOne({ firebaseUID: req.user.uid });
-    
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    // Delete user from Firebase Auth
-    await admin.auth().deleteUser(req.user.uid);
-    
-    // Delete user from MongoDB
-    await User.findByIdAndDelete(user._id);
-    
-    res.status(200).json({
-      success: true,
-      message: "Account deleted successfully"
-    });
-
-  } catch (error) {
-    console.error("Account deletion error:", error);
-    res.status(500).json({ error: "Failed to delete account" });
-  }
-});
-
 module.exports = router;
