@@ -140,6 +140,7 @@ app.get("/api/status", (req, res) => {
         userCount: "GET /api/admin/users/count",
         allUsers: "GET /api/admin/users",
         updateUserRole: "PATCH /api/admin/users/:userId/role",
+        deleteUser: "DELETE /api/admin/users/:userId",
         ticketStats: "GET /api/admin/tickets/stats",
         dashboardAnalytics: "GET /api/admin/analytics/dashboard",
         ticketManagement: "GET /api/admin/tickets/management",

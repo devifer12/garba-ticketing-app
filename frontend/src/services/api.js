@@ -97,6 +97,7 @@ export const adminAPI = {
   getUserCount: () => api.get(API_ENDPOINTS.ADMIN.USER_COUNT).catch(() => ({ data: { count: 0 } })),
   getAllUsers: (params) => api.get(API_ENDPOINTS.ADMIN.USERS, { params }),
   updateUserRole: (userId, role) => api.patch(`${API_ENDPOINTS.ADMIN.USERS}/${userId}/role`, { role }),
+  deleteUser: (userId) => api.delete(`${API_ENDPOINTS.ADMIN.USERS}/${userId}`),
   getTicketStats: () => api.get(API_ENDPOINTS.TICKETS.ADMIN_STATS).catch(() => ({ data: { total: 0, revenue: 0 } })),
   getDashboardAnalytics: () => api.get(API_ENDPOINTS.ADMIN.ANALYTICS),
   getTicketManagement: (params) => api.get(API_ENDPOINTS.ADMIN.TICKET_MANAGEMENT, { params }),

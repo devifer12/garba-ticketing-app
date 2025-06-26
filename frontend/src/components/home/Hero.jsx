@@ -51,18 +51,11 @@ const Hero = memo(({ event }) => {
                 repeat: Infinity,
                 repeatType: "loop",
               }}>
-              {event ? (
+              {event && (
                 <>
                   {event.name}
                   <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
                     {formatDate(event.date, { weekday: 'long', month: 'long', day: 'numeric', year: undefined })}
-                  </span>
-                </>
-              ) : (
-                <>
-                  Garba Rass 2025
-                  <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
-                    Pre-Navratri Celebration
                   </span>
                 </>
               )}
@@ -87,21 +80,21 @@ const Hero = memo(({ event }) => {
                 <div className="text-2xl mb-2">🕐</div>
                 <p className="text-slate-400 text-sm">Time</p>
                 <p className="text-white font-semibold">
-                  {event ? `${formatTime(event.startTime)} - ${formatTime(event.endTime)}` : '6:00 PM - 10:00 PM'}
+                  {event ? `${formatTime(event.startTime)} - ${formatTime(event.endTime)}` : '6:30 PM - 10:30 PM'}
                 </p>
               </div>
               <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30 h-[100%] flex flex-col justify-center">
                 <div className="text-2xl mb-2">📍</div>
                 <p className="text-slate-400 text-sm">Venue</p>
                 <p className="text-white font-semibold text-sm">
-                  {event?.venue || 'Vrindavan Hall, Kandivali'}
+                  {event?.venue || 'Balaji Hall, virar, mumbai'}
                 </p>
               </div>
               <div className="bg-gradient-to-br from-navratri-orange/20 to-navratri-yellow/20 backdrop-blur-xl rounded-xl p-4 border border-navratri-orange/30 h-[100%] flex flex-col justify-center">
                 <div className="text-2xl mb-2">🎫</div>
                 <p className="text-navratri-yellow text-sm">Price</p>
-                <p className="text-white font-bold text-lg">₹{event?.ticketPrice || '399'}/-</p>
-                <p className="text-white/70 text-sm">{event?.totalTickets || '300'} people only</p>
+                <p className="text-white font-bold text-lg">₹{event?.ticketPrice || '349'}/-</p>
+                <p className="text-white/70 text-sm">{event?.totalTickets || '250'} people only</p>
               </div>
             </motion.div>
 

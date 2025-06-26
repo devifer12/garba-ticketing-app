@@ -15,16 +15,9 @@ router.post("/google-signin", async (req, res) => {
       console.error('No idToken provided');
       return res.status(400).json({ error: "ID token is required" });
     }
-
-    console.log('Verifying Firebase ID token...');
     
     // Verify the Firebase ID token
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    console.log('Token verified successfully:', {
-      uid: decodedToken.uid,
-      email: decodedToken.email,
-      name: decodedToken.name
-    });
     
     // Extract user information from the token
     const { uid, email, name, picture, email_verified } = decodedToken;
@@ -33,8 +26,6 @@ router.post("/google-signin", async (req, res) => {
       return res.status(400).json({ error: "Email is required from Google account" });
     }
 
-    console.log('Finding or creating user...');
-    
     // Find or create user in our database
     const user = await User.findOrCreateGoogleUser({
       uid,
@@ -42,29 +33,6 @@ router.post("/google-signin", async (req, res) => {
       name,
       picture,
       email_verified
-    });
-
-    // ENHANCED: Auto-assign admin role for specific emails or first user
-    if (user.role === 'guest') {
-      // Check if this should be an admin user
-      const adminEmails = [
-        'admin@example.com', // Add your admin email here
-        'your-email@gmail.com', // Replace with your actual email
-      ];
-      
-      // Check if this is the first user (make them admin)
-      const userCount = await User.countDocuments();
-      
-      if (adminEmails.includes(email.toLowerCase()) || userCount === 1) {
-        console.log('Assigning admin role to user:', email);
-        user.role = 'admin';
-        await user.save();
-      }
-    }
-
-    console.log('User processing complete:', {
-      email: user.email,
-      role: user.role
     });
 
     // Return user data (excluding sensitive information)
@@ -75,7 +43,6 @@ router.post("/google-signin", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Google sign-in error:", error);
     
     // Handle specific Firebase auth errors
     if (error.code === 'auth/id-token-expired') {
@@ -95,26 +62,6 @@ router.post("/google-signin", async (req, res) => {
 
 // Get current user profile (protected route)
 router.get("/me", verifyToken, async (req, res) => {
-  try {
-    const user = await User.findOne({ firebaseUID: req.user.uid });
-    
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    res.status(200).json({
-      success: true,
-      user: user.getSafeUserData()
-    });
-
-  } catch (error) {
-    console.error("Profile fetch error:", error);
-    res.status(500).json({ error: "Failed to fetch profile" });
-  }
-});
-
-// Get current user profile (alternative endpoint)
-router.get("/profile", verifyToken, async (req, res) => {
   try {
     const user = await User.findOne({ firebaseUID: req.user.uid });
     
@@ -157,31 +104,6 @@ router.put("/profile", verifyToken, async (req, res) => {
   } catch (error) {
     console.error("Profile update error:", error);
     res.status(500).json({ error: "Failed to update profile" });
-  }
-});
-
-// ENHANCED: Manual role assignment endpoint (temporary for testing)
-router.post("/assign-admin", verifyToken, async (req, res) => {
-  try {
-    const user = await User.findOne({ firebaseUID: req.user.uid });
-    
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    // For development/testing - assign admin role
-    user.role = 'admin';
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Admin role assigned successfully",
-      user: user.getSafeUserData()
-    });
-
-  } catch (error) {
-    console.error("Role assignment error:", error);
-    res.status(500).json({ error: "Failed to assign role" });
   }
 });
 
