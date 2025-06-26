@@ -1,10 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import path from 'path'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  
+
+  // ✅ Base path for proper routing in production
+  base: '/',
+
+  // ✅ Build config
   build: {
     rollupOptions: {
       output: {
@@ -25,11 +30,13 @@ export default defineConfig({
       }
     }
   },
-  
+
+  // ✅ SPA fallback handling via dev server
   server: {
-    hmr: true
+    hmr: true,
+    historyApiFallback: true // Add this
   },
-  
+
   optimizeDeps: {
     include: [
       'react',
@@ -40,5 +47,11 @@ export default defineConfig({
       'firebase/auth'
     ],
     exclude: ['qr-scanner']
+  },
+
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
   }
 })
