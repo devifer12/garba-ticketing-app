@@ -1,6 +1,7 @@
 const express = require("express");
 const compression = require('compression');
 const cors = require("cors");
+const path = require("path");
 const { connectDB } = require("./config/db.js");
 const bodyParser = require("body-parser");
 require("dotenv").config();
@@ -14,7 +15,8 @@ const corsOptions = {
     process.env.FRONTEND_URL,
     "http://localhost:3000",
     "http://127.0.0.1:5173",
-    "http://localhost:5174", // Alternative Vite port
+    "http://localhost:5174",
+    "https://garba-ticketing-app.onrender.com", // Add your Render URL
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -26,10 +28,10 @@ const corsOptions = {
     "Origin",
     "Access-Control-Request-Method",
     "Access-Control-Request-Headers",
-    "x-user-uid", // Added - lowercase version
-    "X-User-UID", // Added - capitalized version
-    "X-User-Email", // Added - for email header
-    "X-Request-Time", // Added - for timestamp header
+    "x-user-uid",
+    "X-User-UID",
+    "X-User-Email",
+    "X-Request-Time",
   ],
   exposedHeaders: ["Authorization"],
   optionsSuccessStatus: 200,
@@ -45,6 +47,29 @@ app.options("*", cors(corsOptions));
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+// ✅ CRITICAL: Serve static files with correct MIME types
+if (process.env.NODE_ENV === 'production') {
+  // Set correct MIME types for JavaScript modules
+  express.static.mime.define({
+    'application/javascript': ['js', 'jsx', 'mjs'],
+    'text/javascript': ['js', 'jsx'],
+  });
+
+  // Serve static files from the frontend build
+  app.use(express.static(path.join(__dirname, '../frontend/dist'), {
+    setHeaders: (res, filePath) => {
+      // Set correct MIME type for JS/JSX files
+      if (filePath.endsWith('.js') || filePath.endsWith('.jsx') || filePath.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      }
+      // Enable caching for static assets
+      if (!filePath.includes('index.html')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+      }
+    }
+  }));
+}
 
 // Request logging middleware (development only)
 if (process.env.NODE_ENV === "development") {
@@ -66,32 +91,27 @@ const verifyFirebaseToken = require("./middlewares/authMiddleware");
 const errorHandler = require("./middlewares/errorMiddleware");
 
 // Import routes
-const authRoutes = require("./routes/authRoutes"); // Clean Google auth routes
+const authRoutes = require("./routes/authRoutes");
 const ticketRoutes = require("./routes/ticketRoutes");
 const eventRoutes = require("./routes/eventRoutes");
-const adminRoutes = require("./routes/adminRoutes"); // NEW: Admin routes
+const adminRoutes = require("./routes/adminRoutes");
 
 // Health check route
-app.get("/", (req, res) => {
+app.get("/api/health", (req, res) => {
   res.json({
     message: "Garba Ticketing App Backend is running!",
     timestamp: new Date().toISOString(),
     version: "1.0.0",
+    environment: process.env.NODE_ENV,
     authentication: "Google Authentication Only",
-    endpoints: {
-      auth: "/api/auth",
-      tickets: "/api/tickets",
-      event: "/api/event",
-      admin: "/api/admin", // NEW: Admin endpoints
-    },
   });
 });
 
-// API Routes - Simplified structure
-app.use("/api/auth", authRoutes); // All authentication routes
-app.use("/api/tickets", ticketRoutes); // Ticket routes (protected)
-app.use("/api/event", eventRoutes); // Note: Singular 'event' not 'events'
-app.use("/api/admin", adminRoutes); // NEW: Admin routes (protected)
+// API Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/event", eventRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Protected test route for debugging
 app.get("/api/protected", verifyFirebaseToken, (req, res) => {
@@ -162,35 +182,37 @@ app.use("/api/*", (req, res) => {
     error: "API endpoint not found",
     path: req.originalUrl,
     method: req.method,
-    availableEndpoints: [
-      "GET /api/status",
-      // Auth endpoints
-      "POST /api/auth/google-signin",
-      "GET /api/auth/me",
-      "GET /api/auth/profile",
-      "PUT /api/auth/profile",
-      "POST /api/auth/logout",
-      // Ticket endpoints
-      "POST /api/tickets",
-      "GET /api/tickets/my-tickets",
-      // Event endpoints
-      "GET /api/event",
-      "POST /api/event",
-      // Admin endpoints
-      "GET /api/admin/users/count",
-      "GET /api/admin/tickets/stats",
-      "GET /api/admin/analytics/dashboard",
-      // Other
-      "GET /api/protected",
-    ],
   });
 });
+
+// ✅ CRITICAL: Catch-all handler for SPA routing (must be AFTER API routes)
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'), {
+      headers: {
+        'Content-Type': 'text/html',
+      }
+    });
+  });
+}
+
+// For development, just serve a simple response
+if (process.env.NODE_ENV !== 'production') {
+  app.get("/", (req, res) => {
+    res.json({
+      message: "Garba Ticketing App Backend is running!",
+      timestamp: new Date().toISOString(),
+      version: "1.0.0",
+      authentication: "Google Authentication Only",
+      note: "Frontend should be served separately in development"
+    });
+  });
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Global error handler:", err);
 
-  // Handle CORS errors
   if (err.message && err.message.includes("CORS")) {
     return res.status(403).json({
       error: "CORS policy violation",
@@ -198,14 +220,12 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Handle other errors
   res.status(err.status || 500).json({
     error: err.message || "Internal server error",
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 });
 
-// Global error handling middleware (should be last)
 app.use(errorHandler);
 
 // Handle uncaught exceptions
@@ -222,15 +242,10 @@ process.on("unhandledRejection", (err) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
-  console.log(
-    `🚀 Server running for garba-ticketing-app on http://localhost:${PORT}`
-  );
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
   console.log(`🔐 Authentication: Google Sign-In Only`);
-  console.log(`📱 Auth endpoints: http://localhost:${PORT}/api/auth`);
-  console.log(`🎫 Ticket endpoints: http://localhost:${PORT}/api/tickets`);
-  console.log(`👑 Admin endpoints: http://localhost:${PORT}/api/admin`);
   console.log(`💡 API status: http://localhost:${PORT}/api/status`);
-  console.log(`🌐 CORS enabled for: ${corsOptions.origin.join(", ")}`);
 });
 
 // Graceful shutdown
