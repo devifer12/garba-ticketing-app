@@ -4,21 +4,30 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react({
+      include: "**/*.{jsx,tsx}",
+    }), 
+    tailwindcss()
+  ],
 
-  // ✅ Base path for proper routing in production
   base: '/',
 
-  // ✅ Build config
   build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false, // Disable sourcemaps in production for smaller bundle
     rollupOptions: {
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom'],
           'router': ['react-router-dom'],
-          'animation': ['framer-motion'],
           'firebase': ['firebase/app', 'firebase/auth']
-        }
+        },
+        // ✅ Ensure proper file extensions
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       }
     },
     chunkSizeWarningLimit: 1000,
@@ -31,10 +40,23 @@ export default defineConfig({
     }
   },
 
-  // ✅ SPA fallback handling via dev server
   server: {
     hmr: true,
-    historyApiFallback: true // Add this
+    historyApiFallback: true,
+    host: true, // Important for Render deployment
+    port: 5173,
+  },
+
+  preview: {
+    host: true,
+    port: 4173,
+  },
+
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    },
+    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json']
   },
 
   optimizeDeps: {
@@ -42,16 +64,14 @@ export default defineConfig({
       'react',
       'react-dom',
       'react-router-dom',
-      'framer-motion',
       'firebase/app',
       'firebase/auth'
     ],
     exclude: ['qr-scanner']
   },
 
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src')
-    }
-  }
+  // ✅ Define how to handle different file types
+  define: {
+    __DEV__: process.env.NODE_ENV === 'development',
+  },
 })
