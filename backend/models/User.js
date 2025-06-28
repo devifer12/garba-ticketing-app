@@ -195,9 +195,4 @@ userSchema.statics.findByFirebaseUID = async function(uid) {
   }
 };
 
-// Add indexes for better performance
-userSchema.index({ firebaseUID: 1 });
-userSchema.index({ email: 1 });
-userSchema.index({ createdAt: -1 });
-
 module.exports = mongoose.model("User", userSchema);

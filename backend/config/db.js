@@ -3,10 +3,7 @@ require('dotenv').config( { path: '../.env' } );
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ MongoDB Connected to garba-ticketing-app database');
   } catch (err) {
     console.error('❌ MongoDB Connection Error:', err.message);

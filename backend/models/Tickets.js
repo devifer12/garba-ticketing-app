@@ -111,13 +111,6 @@ ticketSchema.virtual('ticketAge').get(function() {
   return diffInHours;
 });
 
-// Index for better performance
-ticketSchema.index({ user: 1, createdAt: -1 });
-ticketSchema.index({ ticketId: 1 });
-ticketSchema.index({ qrCode: 1 });
-ticketSchema.index({ status: 1 });
-ticketSchema.index({ scannedAt: 1 });
-
 // Static method to generate unique QR code data
 ticketSchema.statics.generateQRCode = function() {
   const timestamp = Date.now();
