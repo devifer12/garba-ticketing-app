@@ -1,5 +1,4 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { motion } from 'framer-motion';
 import { eventAPI } from '../services/api';
 import Navbar from '../components/common/navbar/Navbar';
 import Footer from '../components/common/footer/Footer';
@@ -41,19 +40,15 @@ const SectionSkeleton = ({ height = "400px" }) => (
 
 const Home = () => {
   const [event, setEvent] = useState(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchEventData = async () => {
       try {
-        setLoading(true);
         const response = await eventAPI.getCurrentEvent();
         setEvent(response.data.data);
       } catch (err) {
         console.error('Failed to fetch event data:', err);
         // Don't block the UI - show default content
-      } finally {
-        setLoading(false);
       }
     };
 
