@@ -1,5 +1,5 @@
 const express = require("express");
-const compression = require('compression');
+const compression = require("compression");
 const cors = require("cors");
 const path = require("path");
 const { connectDB } = require("./config/db.js");
@@ -49,26 +49,32 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // ✅ CRITICAL: Serve static files with correct MIME types
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === "production") {
   // Set correct MIME types for JavaScript modules
   express.static.mime.define({
-    'application/javascript': ['js', 'jsx', 'mjs'],
-    'text/javascript': ['js', 'jsx'],
+    "application/javascript": ["js", "jsx", "mjs"],
+    "text/javascript": ["js", "jsx"],
   });
 
   // Serve static files from the frontend build
-  app.use(express.static(path.join(__dirname, '../frontend/dist'), {
-    setHeaders: (res, filePath) => {
-      // Set correct MIME type for JS/JSX files
-      if (filePath.endsWith('.js') || filePath.endsWith('.jsx') || filePath.endsWith('.mjs')) {
-        res.setHeader('Content-Type', 'application/javascript');
-      }
-      // Enable caching for static assets
-      if (!filePath.includes('index.html')) {
-        res.setHeader('Cache-Control', 'public, max-age=31536000');
-      }
-    }
-  }));
+  app.use(
+    express.static(path.join(__dirname, "../frontend/dist"), {
+      setHeaders: (res, filePath) => {
+        // Set correct MIME type for JS/JSX files
+        if (
+          filePath.endsWith(".js") ||
+          filePath.endsWith(".jsx") ||
+          filePath.endsWith(".mjs")
+        ) {
+          res.setHeader("Content-Type", "application/javascript");
+        }
+        // Enable caching for static assets
+        if (!filePath.includes("index.html")) {
+          res.setHeader("Cache-Control", "public, max-age=31536000");
+        }
+      },
+    })
+  );
 }
 
 // Request logging middleware (development only)
@@ -161,7 +167,7 @@ app.get("/api/status", (req, res) => {
         updateUserRole: "PATCH /api/admin/users/:userId/role",
         deleteUser: "DELETE /api/admin/users/:userId",
         ticketStats: "GET /api/admin/tickets/stats",
-        deleteTicket:" DELETE /api/admin/tickets/:ticketId",
+        deleteTicket: " DELETE /api/admin/tickets/:ticketId",
         dashboardAnalytics: "GET /api/admin/analytics/dashboard",
         ticketManagement: "GET /api/admin/tickets/management",
         bulkUpdateTickets: "PATCH /api/admin/tickets/bulk-update",
@@ -186,25 +192,23 @@ app.use("/api/*", (req, res) => {
 });
 
 // ✅ CRITICAL: Catch-all handler for SPA routing (must be AFTER API routes)
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'), {
-      headers: {
-        'Content-Type': 'text/html',
-      }
-    });
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"), {
+    headers: {
+      "Content-Type": "text/html",
+    },
   });
-}
+});
 
 // For development, just serve a simple response
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== "production") {
   app.get("/", (req, res) => {
     res.json({
       message: "Garba Ticketing App Backend is running!",
       timestamp: new Date().toISOString(),
       version: "1.0.0",
       authentication: "Google Authentication Only",
-      note: "Frontend should be served separately in development"
+      note: "Frontend should be served separately in development",
     });
   });
 }
