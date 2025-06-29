@@ -16,7 +16,8 @@ const corsOptions = {
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     "http://localhost:5174",
-    "https://garba-ticketing-app.onrender.com", // Add your Render URL
+    "https://garba-ticketing-app.onrender.com",
+    "https://garba-ticketing-app.vercel.app", 
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
