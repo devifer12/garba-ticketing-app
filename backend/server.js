@@ -3,7 +3,6 @@ const compression = require("compression");
 const cors = require("cors");
 const path = require("path");
 const { connectDB } = require("./config/db.js");
-const bodyParser = require("body-parser");
 require("dotenv").config();
 
 const app = express();
@@ -38,6 +37,8 @@ const corsOptions = {
   optionsSuccessStatus: 200,
   preflightContinue: false,
 };
+
+console.log("Allowed frontend URL:", process.env.FRONTEND_URL);
 
 // Apply CORS middleware first
 app.use(cors(corsOptions));
