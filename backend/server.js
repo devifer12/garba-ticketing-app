@@ -55,33 +55,47 @@ app.options("*", cors(corsOptions));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ CRITICAL: Serve static files with correct MIME types
+// ✅ FIXED: Proper static file serving with correct MIME types
 if (process.env.NODE_ENV === "production") {
-  // Set correct MIME types for JavaScript modules
-  express.static.mime.define({
-    "application/javascript": ["js", "jsx", "mjs"],
-    "text/javascript": ["js", "jsx"],
-  });
-
-  // Serve static files from the frontend build
-  app.use(
-    express.static(path.join(__dirname, "../frontend/dist"), {
-      setHeaders: (res, filePath) => {
-        // Set correct MIME type for JS/JSX files
-        if (
-          filePath.endsWith(".js") ||
-          filePath.endsWith(".jsx") ||
-          filePath.endsWith(".mjs")
-        ) {
-          res.setHeader("Content-Type", "application/javascript");
-        }
-        // Enable caching for static assets
-        if (!filePath.includes("index.html")) {
-          res.setHeader("Cache-Control", "public, max-age=31536000");
-        }
-      },
-    })
-  );
+  const staticPath = path.join(__dirname, "../frontend/dist");
+  
+  // Custom middleware to set correct MIME types
+  app.use(express.static(staticPath, {
+    setHeaders: (res, filePath) => {
+      // Set correct MIME type for JavaScript files
+      if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      }
+      // Set correct MIME type for CSS files
+      else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+      }
+      // Set correct MIME type for JSON files
+      else if (filePath.endsWith('.json')) {
+        res.setHeader('Content-Type', 'application/json');
+      }
+      // Set correct MIME type for images
+      else if (filePath.endsWith('.png')) {
+        res.setHeader('Content-Type', 'image/png');
+      }
+      else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
+        res.setHeader('Content-Type', 'image/jpeg');
+      }
+      else if (filePath.endsWith('.webp')) {
+        res.setHeader('Content-Type', 'image/webp');
+      }
+      else if (filePath.endsWith('.svg')) {
+        res.setHeader('Content-Type', 'image/svg+xml');
+      }
+      
+      // Enable caching for static assets (but not index.html)
+      if (!filePath.includes('index.html')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+      } else {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+    }
+  }));
 }
 
 // Request logging middleware (development only)
@@ -199,16 +213,17 @@ app.use("/api/*", (req, res) => {
 });
 
 // ✅ CRITICAL: Catch-all handler for SPA routing (must be AFTER API routes)
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"), {
-    headers: {
-      "Content-Type": "text/html",
-    },
+if (process.env.NODE_ENV === "production") {
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"), {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-cache, no-store, must-revalidate"
+      },
+    });
   });
-});
-
-// For development, just serve a simple response
-if (process.env.NODE_ENV !== "production") {
+} else {
+  // For development, just serve a simple response
   app.get("/", (req, res) => {
     res.json({
       message: "Garba Ticketing App Backend is running!",
