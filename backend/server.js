@@ -38,6 +38,11 @@ const corsOptions = {
   preflightContinue: false,
 };
 
+app.use((req, res, next) => {
+  console.log("Incoming request origin:", req.headers.origin);
+  next();
+});
+
 console.log("Allowed frontend URL:", process.env.FRONTEND_URL);
 
 // Apply CORS middleware first
