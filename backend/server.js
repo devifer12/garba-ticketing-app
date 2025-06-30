@@ -16,7 +16,7 @@ const corsOptions = {
     "http://127.0.0.1:5173",
     "http://localhost:5174",
     "https://garba-ticketing-app.onrender.com",
-    "https://garba-ticketing-app.vercel.app", 
+    "https://garba-ticketing-app.vercel.app",
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -58,44 +58,43 @@ app.use(express.urlencoded({ extended: true }));
 // ✅ FIXED: Proper static file serving with correct MIME types
 if (process.env.NODE_ENV === "production") {
   const staticPath = path.join(__dirname, "../frontend/dist");
-  
+
   // Custom middleware to set correct MIME types
-  app.use(express.static(staticPath, {
-    setHeaders: (res, filePath) => {
-      // Set correct MIME type for JavaScript files
-      if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
-        res.setHeader('Content-Type', 'application/javascript');
-      }
-      // Set correct MIME type for CSS files
-      else if (filePath.endsWith('.css')) {
-        res.setHeader('Content-Type', 'text/css');
-      }
-      // Set correct MIME type for JSON files
-      else if (filePath.endsWith('.json')) {
-        res.setHeader('Content-Type', 'application/json');
-      }
-      // Set correct MIME type for images
-      else if (filePath.endsWith('.png')) {
-        res.setHeader('Content-Type', 'image/png');
-      }
-      else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
-        res.setHeader('Content-Type', 'image/jpeg');
-      }
-      else if (filePath.endsWith('.webp')) {
-        res.setHeader('Content-Type', 'image/webp');
-      }
-      else if (filePath.endsWith('.svg')) {
-        res.setHeader('Content-Type', 'image/svg+xml');
-      }
-      
-      // Enable caching for static assets (but not index.html)
-      if (!filePath.includes('index.html')) {
-        res.setHeader('Cache-Control', 'public, max-age=31536000');
-      } else {
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      }
-    }
-  }));
+  app.use(
+    express.static(staticPath, {
+      setHeaders: (res, filePath) => {
+        // Set correct MIME type for JavaScript files
+        if (filePath.endsWith(".js") || filePath.endsWith(".mjs")) {
+          res.setHeader("Content-Type", "application/javascript");
+        }
+        // Set correct MIME type for CSS files
+        else if (filePath.endsWith(".css")) {
+          res.setHeader("Content-Type", "text/css");
+        }
+        // Set correct MIME type for JSON files
+        else if (filePath.endsWith(".json")) {
+          res.setHeader("Content-Type", "application/json");
+        }
+        // Set correct MIME type for images
+        else if (filePath.endsWith(".png")) {
+          res.setHeader("Content-Type", "image/png");
+        } else if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) {
+          res.setHeader("Content-Type", "image/jpeg");
+        } else if (filePath.endsWith(".webp")) {
+          res.setHeader("Content-Type", "image/webp");
+        } else if (filePath.endsWith(".svg")) {
+          res.setHeader("Content-Type", "image/svg+xml");
+        }
+
+        // Enable caching for static assets (but not index.html)
+        if (!filePath.includes("index.html")) {
+          res.setHeader("Cache-Control", "public, max-age=31536000");
+        } else {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        }
+      },
+    })
+  );
 }
 
 // Request logging middleware (development only)
@@ -218,19 +217,24 @@ if (process.env.NODE_ENV === "production") {
     res.sendFile(path.join(__dirname, "../frontend/dist/index.html"), {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-cache, no-store, must-revalidate"
+        "Cache-Control": "no-cache, no-store, must-revalidate",
       },
     });
   });
 } else {
   // For development, just serve a simple response
+  // Root route for Vercel
   app.get("/", (req, res) => {
     res.json({
-      message: "Garba Ticketing App Backend is running!",
+      message: "Garba Ticketing App Backend is running on Vercel!",
       timestamp: new Date().toISOString(),
       version: "1.0.0",
+      environment: process.env.NODE_ENV || "production",
       authentication: "Google Authentication Only",
-      note: "Frontend should be served separately in development",
+      endpoints: {
+        health: "/api/health",
+        status: "/api/status",
+      },
     });
   });
 }
@@ -265,21 +269,23 @@ process.on("unhandledRejection", (err) => {
   process.exit(1);
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔐 Authentication: Google Sign-In Only`);
-  console.log(`💡 API status: http://localhost:${PORT}/api/status`);
-});
-
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received, shutting down gracefully");
-  server.close(() => {
-    console.log("Process terminated");
+/// Start server only in development
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 5000;
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔐 Authentication: Google Sign-In Only`);
+    console.log(`💡 API status: http://localhost:${PORT}/api/status`);
   });
-});
+
+  // Graceful shutdown
+  process.on("SIGTERM", () => {
+    console.log("SIGTERM received, shutting down gracefully");
+    server.close(() => {
+      console.log("Process terminated");
+    });
+  });
+}
 
 module.exports = app;
