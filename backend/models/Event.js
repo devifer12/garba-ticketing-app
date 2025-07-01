@@ -78,18 +78,6 @@ const eventSchema = new mongoose.Schema({
     max: [10000, 'Total tickets cannot exceed 10,000']
   },
   
-  soldTickets: {
-    type: Number,
-    default: 0,
-    min: [0, 'Sold tickets cannot be negative'],
-    validate: {
-      validator: function(value) {
-        return value <= this.totalTickets;
-      },
-      message: 'Sold tickets cannot exceed total tickets'
-    }
-  },
-  
   eventImage: {
     type: String,
     trim: true,
@@ -178,14 +166,22 @@ eventSchema.virtual('timeRange').get(function() {
   return `${this.startTime} - ${this.endTime}`;
 });
 
+// Virtual field to get sold tickets count (calculated from actual tickets)
+eventSchema.virtual('soldTickets').get(function() {
+  // This will be populated by the static method when needed
+  return this._soldTickets || 0;
+});
+
 // Virtual field to get available tickets (calculated)
 eventSchema.virtual('availableTickets').get(function() {
-  return Math.max(0, this.totalTickets - this.soldTickets);
+  const sold = this._soldTickets || 0;
+  return Math.max(0, this.totalTickets - sold);
 });
 
 // Virtual field to check if event is sold out
 eventSchema.virtual('isSoldOut').get(function() {
-  return this.soldTickets >= this.totalTickets;
+  const sold = this._soldTickets || 0;
+  return sold >= this.totalTickets;
 });
 
 // Virtual field to check if event is today
@@ -204,38 +200,71 @@ eventSchema.virtual('isUpcoming').get(function() {
 eventSchema.set('toJSON', { virtuals: true });
 eventSchema.set('toObject', { virtuals: true });
 
-// Static method to get the current event
+// Static method to get the current event with proper ticket counts
 eventSchema.statics.getCurrentEvent = async function() {
-  return await this.findOne().populate('createdBy', 'name email');
+  const event = await this.findOne().populate('createdBy', 'name email');
+  if (event) {
+    // Get actual sold tickets count from Ticket collection
+    const Ticket = require('./Tickets');
+    const soldTicketsCount = await Ticket.countDocuments({ 
+      status: { $in: ['active', 'used'] } 
+    });
+    
+    // Set the sold tickets count for virtual calculations
+    event._soldTickets = soldTicketsCount;
+  }
+  return event;
 };
 
-// Instance method to sell tickets
-eventSchema.methods.sellTickets = async function(quantity) {
-  if (quantity <= 0) {
-    throw new Error('Quantity must be greater than 0');
+// Static method to get event with ticket counts
+eventSchema.statics.getEventWithTicketCounts = async function() {
+  const event = await this.findOne();
+  if (event) {
+    // Get actual sold tickets count from Ticket collection
+    const Ticket = require('./Tickets');
+    const soldTicketsCount = await Ticket.countDocuments({ 
+      status: { $in: ['active', 'used'] } 
+    });
+    
+    // Set the sold tickets count for virtual calculations
+    event._soldTickets = soldTicketsCount;
   }
+  return event;
+};
+
+// Instance method to check available tickets
+eventSchema.methods.getAvailableTicketsCount = async function() {
+  const Ticket = require('./Tickets');
+  const soldTicketsCount = await Ticket.countDocuments({ 
+    status: { $in: ['active', 'used'] } 
+  });
   
-  if (this.soldTickets + quantity > this.totalTickets) {
-    throw new Error(`Not enough tickets available. Only ${this.totalTickets - this.soldTickets} tickets remaining`);
-  }
-  
-  this.soldTickets += quantity;
-  return await this.save();
+  return Math.max(0, this.totalTickets - soldTicketsCount);
 };
 
 // Instance method to check if user can purchase tickets
-eventSchema.methods.canPurchaseTickets = function(quantity = 1) {
-  return this.isUpcoming && (this.soldTickets + quantity <= this.totalTickets);
+eventSchema.methods.canPurchaseTickets = async function(quantity = 1) {
+  if (!this.isUpcoming) return false;
+  
+  const availableTickets = await this.getAvailableTicketsCount();
+  return availableTickets >= quantity;
 };
 
 // Instance method to get ticket availability info
-eventSchema.methods.getTicketAvailability = function() {
+eventSchema.methods.getTicketAvailability = async function() {
+  const Ticket = require('./Tickets');
+  const soldTicketsCount = await Ticket.countDocuments({ 
+    status: { $in: ['active', 'used'] } 
+  });
+  
+  const availableTickets = Math.max(0, this.totalTickets - soldTicketsCount);
+  
   return {
     totalTickets: this.totalTickets,
-    soldTickets: this.soldTickets,
-    availableTickets: this.totalTickets - this.soldTickets,
-    isSoldOut: this.soldTickets >= this.totalTickets,
-    soldPercentage: Math.round((this.soldTickets / this.totalTickets) * 100)
+    soldTickets: soldTicketsCount,
+    availableTickets: availableTickets,
+    isSoldOut: soldTicketsCount >= this.totalTickets,
+    soldPercentage: Math.round((soldTicketsCount / this.totalTickets) * 100)
   };
 };
 

@@ -7,7 +7,7 @@ const { isAdmin } = require('../middlewares/roleMiddleware');
 // GET /api/event - Get the current event details (public)
 router.get('/', async (req, res) => {
   try {
-    const event = await Event.findOne();
+    const event = await Event.getEventWithTicketCounts();
     
     if (!event) {
       return res.status(404).json({
@@ -158,7 +158,6 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
       venue: venue.trim(),
       ticketPrice: parsedTicketPrice,
       totalTickets: parsedTotalTickets,
-      availableTickets: parsedTotalTickets, // Initially all tickets are available
       eventImage: eventImage?.trim() || '',
       features: Array.isArray(features) ? features.map(f => f.trim()).filter(f => f) : [],
       aboutText: aboutText?.trim() || '',
@@ -171,12 +170,15 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
     const event = new Event(eventData);
     const savedEvent = await event.save();
 
+    // Get event with ticket counts for response
+    const eventWithCounts = await Event.getEventWithTicketCounts();
+
     console.log('Event created successfully:', savedEvent._id);
 
     res.status(201).json({
       success: true,
       message: 'Event created successfully',
-      data: savedEvent
+      data: eventWithCounts
     });
 
   } catch (error) {
@@ -255,17 +257,17 @@ router.put('/', verifyToken, isAdmin, async (req, res) => {
       if (isNaN(parsedTotalTickets) || parsedTotalTickets < 1) {
         validationErrors.push({ field: 'totalTickets', message: 'Total tickets must be a valid number greater than 0' });
       } else {
-        // Validate if updating ticket counts
-        const soldTickets = event.totalTickets - event.availableTickets;
+        // Check current sold tickets count
+        const Ticket = require('../models/Tickets');
+        const soldTicketsCount = await Ticket.countDocuments({ 
+          status: { $in: ['active', 'used'] } 
+        });
         
-        if (parsedTotalTickets < soldTickets) {
+        if (parsedTotalTickets < soldTicketsCount) {
           validationErrors.push({ 
             field: 'totalTickets', 
-            message: `Cannot reduce total tickets below sold tickets (${soldTickets})` 
+            message: `Cannot reduce total tickets below sold tickets (${soldTicketsCount})` 
           });
-        } else {
-          // Update available tickets proportionally
-          updateData.availableTickets = parsedTotalTickets - soldTickets;
         }
       }
     }
@@ -348,12 +350,15 @@ router.put('/', verifyToken, isAdmin, async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    // Get event with ticket counts for response
+    const eventWithCounts = await Event.getEventWithTicketCounts();
+
     console.log('Event updated successfully:', updatedEvent._id);
 
     res.status(200).json({
       success: true,
       message: 'Event updated successfully',
-      data: updatedEvent
+      data: eventWithCounts
     });
 
   } catch (error) {
