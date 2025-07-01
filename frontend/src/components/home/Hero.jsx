@@ -145,7 +145,7 @@ const Hero = memo(({ event }) => {
               transition={{ duration: 0.3 }}>
               
               <LazyImage
-                src={event?.eventImage || hero1}
+                src={event&& hero1}
                 alt={event?.name || "Garba Dancers"}
                 className="w-full drop-shadow-xl drop-shadow-neutral-700"
                 aspectRatio="1/1"
