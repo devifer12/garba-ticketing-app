@@ -151,7 +151,7 @@ const Hero = memo(({ event }) => {
                 aspectRatio="1/1"
                 priority={true}
                 responsive={true}
-                mobileSrc={event?.eventImage || hero1} // Use same image for now, can be optimized later
+                mobileSrc={event && hero1} // Use same image for now, can be optimized later
                 placeholder={
                   <div className="flex items-center justify-center h-full">
                     <div className="text-slate-400">Loading image...</div>
