@@ -54,7 +54,11 @@ export const AuthProvider = ({ children }) => {
       const provider = new GoogleAuthProvider();
       provider.addScope("profile");
       provider.addScope("email");
-      provider.setCustomParameters({ prompt: "select_account" });
+      provider.setCustomParameters({
+        prompt: "select_account",
+        // Add parameters to help with COOP issues
+        hd: undefined, // Remove hosted domain restriction
+      });
 
       const result = await signInWithPopup(auth, provider);
       const firebaseUser = result.user;
@@ -96,13 +100,22 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       setLoading(true);
+
+      // Call backend logout first (before clearing state)
+      try {
+        await api.post("/auth/logout");
+      } catch (backendError) {
+        // Ignore backend logout errors as they're not critical
+        console.log("Backend logout error (ignored):", backendError.message);
+      }
+
+      // Clear state and sign out from Firebase
       clearUserState();
       await signOut(auth);
-      api.post("/auth/logout").catch(() => {}); // Don't wait for this
     } catch (error) {
       console.error("Logout error:", error);
-      setError("Logout failed. Please try refreshing the page.");
-      throw error;
+      // Don't show error for logout - just clear state
+      clearUserState();
     } finally {
       setLoading(false);
     }

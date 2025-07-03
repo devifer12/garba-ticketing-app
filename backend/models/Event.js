@@ -271,6 +271,14 @@ eventSchema.methods.getTicketAvailability = async function () {
   };
 };
 
+// Instance method to sell tickets (update sold count)
+eventSchema.methods.sellTickets = async function (quantity) {
+  // This method doesn't need to do anything since we calculate sold tickets
+  // dynamically from the Ticket collection. It's here for compatibility.
+  console.log(`✅ Sold ${quantity} tickets for event: ${this.name}`);
+  return this;
+};
+
 const Event = mongoose.model("Event", eventSchema);
 
 module.exports = Event;
