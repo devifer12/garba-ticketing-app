@@ -6,8 +6,6 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  const maxQuantity = Math.min(10, event?.availableTickets || 0);
-
   // Calculate price based on quantity (tiered pricing)
   const calculatePrice = (qty) => {
     if (!event) return 0;
@@ -33,16 +31,12 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
   const currentTier = getPricingTier(quantity);
 
   const handleQuantityChange = (newQuantity) => {
-    if (newQuantity >= 1 && newQuantity <= maxQuantity) {
       setQuantity(newQuantity);
-    }
   };
 
   const handlePurchase = () => {
-    if (quantity > 0 && quantity <= maxQuantity && agreedToTerms) {
       onPurchase(quantity);
       setShowConfirm(false);
-    }
   };
 
   if (!event) return null;
@@ -149,7 +143,6 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
 
                 <motion.button
                   onClick={() => handleQuantityChange(quantity + 1)}
-                  disabled={quantity >= maxQuantity}
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg flex items-center justify-center font-bold text-base sm:text-lg"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -157,23 +150,50 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                   +
                 </motion.button>
               </div>
-
-              <p className="text-slate-400 text-xs sm:text-sm text-center mt-2">
-                Maximum {maxQuantity} tickets per purchase
-              </p>
             </div>
 
             {/* Total Amount */}
             <div className="bg-gradient-to-r from-navratri-orange/20 to-navratri-yellow/20 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-300 font-medium text-sm sm:text-base">
-                    Price per ticket:
-                  </span>
-                  <span className="text-white font-medium text-sm sm:text-base">
-                    ₹{pricePerTicket}
-                  </span>
-                </div>
+                {currentTier.discount ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-300 font-medium text-sm sm:text-base">
+                        Original price per ticket:
+                      </span>
+                      <span className="text-slate-400 line-through text-sm sm:text-base">
+                        ₹{event.ticketPrice}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-green-300 font-medium text-sm sm:text-base">
+                        {currentTier.name} price:
+                      </span>
+                      <span className="text-green-300 font-bold text-sm sm:text-base">
+                        ₹{pricePerTicket}
+                      </span>
+                    </div>
+                    <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-2">
+                      <p className="text-green-300 text-xs sm:text-sm text-center">
+                        🎉 You saved ₹{event.ticketPrice - pricePerTicket} per
+                        ticket by booking {currentTier.name}!
+                      </p>
+                      <p className="text-green-400 text-xs text-center mt-1">
+                        Total savings: ₹
+                        {(event.ticketPrice - pricePerTicket) * quantity}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300 font-medium text-sm sm:text-base">
+                      Price per ticket:
+                    </span>
+                    <span className="text-white font-medium text-sm sm:text-base">
+                      ₹{pricePerTicket}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-slate-300 font-medium text-sm sm:text-base">
                     Quantity:
@@ -191,11 +211,6 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                       ₹{totalAmount}
                     </span>
                   </div>
-                  {currentTier.discount && (
-                    <p className="text-green-400 text-xs text-right mt-1">
-                      🎉 {currentTier.name} discount applied!
-                    </p>
-                  )}
                 </div>
               </div>
             </div>

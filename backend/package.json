@@ -25,6 +25,7 @@
     "mongodb": "^6.17.0",
     "mongoose": "^8.15.1",
     "nodemailer": "^6.9.15",
+    "puppeteer": "^24.11.2",
     "qrcode": "^1.5.4",
     "twilio": "^5.7.0",
     "uuid": "^10.0.0"

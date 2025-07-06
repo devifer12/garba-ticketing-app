@@ -5,6 +5,7 @@ const Ticket = require("../models/Tickets");
 const User = require("../models/User");
 const Event = require("../models/Event");
 const verifyToken = require("../middlewares/authMiddleware");
+const emailService = require("../services/emailService");
 
 // Helper function to generate QR code image
 const generateQRCodeImage = async (qrData) => {
@@ -153,6 +154,38 @@ router.post("/", verifyToken, async (req, res) => {
     const updatedEvent = await Event.getEventWithTicketCounts();
     const totalAmount = event.calculateTotalAmount(quantity);
     const pricePerTicket = event.calculatePrice(quantity);
+
+    // Send email notification
+    try {
+      console.log("📧 Attempting to send purchase confirmation email...");
+      console.log("📊 Email service status:", {
+        hasTransporter: !!emailService.transporter,
+        emailUser: process.env.EMAIL_USER ? "Set" : "Missing",
+        emailPass: process.env.EMAIL_PASS ? "Set" : "Missing",
+      });
+
+      await emailService.sendTicketPurchaseEmail(
+        user,
+        createdTickets,
+        event,
+        totalAmount,
+        quantity,
+      );
+      console.log("✅ Purchase confirmation email sent successfully");
+    } catch (emailError) {
+      console.error(
+        "⚠️ Failed to send purchase confirmation email:",
+        emailError,
+      );
+      console.error("📧 Email error details:", {
+        message: emailError.message,
+        code: emailError.code,
+        command: emailError.command,
+        response: emailError.response,
+        stack: emailError.stack?.split("\n").slice(0, 3).join("\n"),
+      });
+      // Don't fail the ticket creation if email fails
+    }
 
     res.status(201).json({
       success: true,
@@ -616,6 +649,62 @@ router.patch(
   },
 );
 
+// Delete ticket (Admin only)
+router.delete("/admin/:ticketId", verifyToken, isAdmin, async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+
+    const ticket = await Ticket.findById(ticketId).populate(
+      "user",
+      "name email",
+    );
+
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        error: "Ticket not found",
+      });
+    }
+
+    // Get event data for email
+    const event = await Event.findOne();
+
+    // Send cancellation email before deleting
+    try {
+      console.log("📧 Attempting to send cancellation email...");
+      await emailService.sendTicketCancellationEmail(
+        ticket.user,
+        ticket,
+        event,
+      );
+      console.log("✅ Cancellation email sent successfully");
+    } catch (emailError) {
+      console.error("⚠️ Failed to send cancellation email:", emailError);
+      console.error("📧 Cancellation email error details:", {
+        message: emailError.message,
+        code: emailError.code,
+        response: emailError.response,
+      });
+      // Continue with deletion even if email fails
+    }
+
+    // Delete the ticket
+    await Ticket.findByIdAndDelete(ticketId);
+
+    res.status(200).json({
+      success: true,
+      message: "Ticket cancelled and deleted successfully",
+      ticket: ticket.getSafeTicketData(),
+    });
+  } catch (error) {
+    console.error("Delete ticket error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to delete ticket",
+    });
+  }
+});
+
 // Get ticket statistics
 router.get("/admin/stats", verifyToken, isManager, async (req, res) => {
   try {
@@ -639,6 +728,70 @@ router.get("/admin/stats", verifyToken, isManager, async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to fetch ticket statistics",
+    });
+  }
+});
+
+// Test email endpoint (Admin only) - for debugging
+router.post("/admin/test-email", verifyToken, isAdmin, async (req, res) => {
+  try {
+    console.log("🧪 Admin email test requested");
+
+    // Find admin user
+    const user = await User.findOne({ firebaseUID: req.user.uid });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    // Test basic email connection
+    const isConnected = await emailService.verifyConnection();
+    if (!isConnected) {
+      return res.status(500).json({
+        success: false,
+        error: "Email service connection failed",
+        details: "Check EMAIL_USER and EMAIL_PASS environment variables",
+      });
+    }
+
+    // Send test email
+    const testResult = await emailService.sendCustomEmail(
+      user.email,
+      "🧪 Test Email - Garba Rass 2025",
+      `
+        <h1>Email Test Successful!</h1>
+        <p>This test email confirms that the email service is working correctly.</p>
+        <p><strong>Test Details:</strong></p>
+        <ul>
+          <li>Sent to: ${user.email}</li>
+          <li>Sent at: ${new Date().toISOString()}</li>
+          <li>From: ${process.env.EMAIL_USER}</li>
+        </ul>
+        <p>If you received this email, the email service is configured correctly.</p>
+      `,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Test email sent successfully",
+      details: {
+        messageId: testResult.messageId,
+        sentTo: user.email,
+        sentAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("❌ Email test failed:", error);
+    res.status(500).json({
+      success: false,
+      error: "Email test failed",
+      details: {
+        message: error.message,
+        code: error.code,
+        response: error.response,
+      },
     });
   }
 });

@@ -37,10 +37,14 @@ const Hero = memo(({ event }) => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="container mx-auto px-4">
+        className="container mx-auto px-4"
+      >
         <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 items-center max-w-7xl mx-auto">
           {/* Left Side - Text Content */}
-          <motion.div variants={itemVariants} className="space-y-6 sm:space-y-8 text-center lg:text-left">
+          <motion.div
+            variants={itemVariants}
+            className="space-y-6 sm:space-y-8 text-center lg:text-left"
+          >
             <motion.h2
               className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight"
               animate={{
@@ -50,12 +54,18 @@ const Hero = memo(({ event }) => {
                 duration: 8, // Increased from 5 for smoother animation
                 repeat: Infinity,
                 repeatType: "loop",
-              }}>
+              }}
+            >
               {event && (
                 <>
                   {event.name}
                   <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
-                    {formatDate(event.date, { weekday: 'long', month: 'long', day: 'numeric', year: undefined })}
+                    {formatDate(event.date, {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                      year: undefined,
+                    })}
                   </span>
                 </>
               )}
@@ -63,46 +73,55 @@ const Hero = memo(({ event }) => {
 
             <motion.p
               className="text-lg sm:text-xl text-slate-300 leading-relaxed max-w-md mx-auto lg:mx-0"
-              variants={itemVariants}>
-              {event?.description || "Experience the spirit of Navratri come alive in all its glory—vibrant colors, electrifying energy, and the timeless rhythm of Garba."}
+              variants={itemVariants}
+            >
+              {event?.description ||
+                "Experience the spirit of Navratri come alive in all its glory—vibrant colors, electrifying energy, and the timeless rhythm of Garba."}
             </motion.p>
 
             {/* Event Quick Info - Fixed dimensions to prevent layout shift */}
-            <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto lg:mx-0">
+            <motion.div
+              variants={itemVariants}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto lg:mx-0"
+            >
               <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30 h-[100%] flex flex-col justify-center">
                 <div className="text-2xl mb-2">📅</div>
                 <p className="text-slate-400 text-sm">Date</p>
                 <p className="text-white font-semibold">
-                  {event ? formatDate(event.date, { month: 'short', day: 'numeric' }) : 'Aug 15'}
+                  {event
+                    ? formatDate(event.date, { month: "short", day: "numeric" })
+                    : "Sept 7"}
                 </p>
               </div>
               <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30 h-[100%] flex flex-col justify-center">
                 <div className="text-2xl mb-2">🕐</div>
                 <p className="text-slate-400 text-sm">Time</p>
                 <p className="text-white font-semibold">
-                  {event ? `${formatTime(event.startTime)} - ${formatTime(event.endTime)}` : '6:30 PM - 10:30 PM'}
+                  {event
+                    ? `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`
+                    : "6:30 PM - 10:30 PM"}
                 </p>
               </div>
               <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30 h-[100%] flex flex-col justify-center">
                 <div className="text-2xl mb-2">📍</div>
                 <p className="text-slate-400 text-sm">Venue</p>
                 <p className="text-white font-semibold text-sm">
-                  {event?.venue || 'Balaji Hall, virar, mumbai'}
+                  {event?.venue || "Balaji Hall, virar, mumbai"}
                 </p>
               </div>
               <div className="bg-gradient-to-br from-navratri-orange/20 to-navratri-yellow/20 backdrop-blur-xl rounded-xl p-4 border border-navratri-orange/30 h-[100%] flex flex-col justify-center">
                 <div className="text-2xl mb-2">🎫</div>
                 <p className="text-navratri-yellow text-sm">Price</p>
                 <p className="text-white font-bold text-lg">₹{event?.ticketPrice || '349'}/-</p>
-                <p className="text-white/70 text-sm">{event?.totalTickets || '250'} people only</p>
+                <p className="text-navratri-yellow/70 text-sm">Group Discounts Available</p>
               </div>
             </motion.div>
 
             {/* CTA Buttons - Fixed dimensions */}
             <motion.div
               variants={itemVariants}
-              className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 items-center lg:items-start">
-              
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 items-center lg:items-start"
+            >
               {/* Primary Buy Tickets Button */}
               <div className="h-14 sm:h-16 flex items-center">
                 <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-8 sm:px-8 py-3 sm:py-4">
@@ -113,7 +132,7 @@ const Hero = memo(({ event }) => {
               {/* Secondary Sign In Button - Only show if not authenticated */}
               {!user && (
                 <div className="h-14 sm:h-16 flex items-center">
-                  <GoogleSignInButton 
+                  <GoogleSignInButton
                     className="w-auto sm:w-auto text-base sm:text-xl px-10 sm:px-12 py-3 sm:py-4"
                     showTextOnMobile={true}
                   >
@@ -124,28 +143,38 @@ const Hero = memo(({ event }) => {
             </motion.div>
 
             {/* Limited Tickets Warning - Fixed height */}
-            <motion.div variants={itemVariants} className="h-8 flex items-center justify-center lg:justify-start">
+            <motion.div
+              variants={itemVariants}
+              className="h-8 flex items-center justify-center lg:justify-start"
+            >
               <motion.p
                 className="cursor-default text-navratri-yellow font-bold text-base sm:text-lg text-center lg:text-left"
                 animate={{
                   opacity: [0.7, 1, 0.7],
                   scale: [1, 1.01, 1], // Reduced from 1.02
                 }}
-                transition={{ duration: 2, repeat: Infinity }}>
-                ⚡ {event ? `Only ${event.availableTickets} Tickets Available!` : 'Only 300 Tickets Available!'}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                ⚡{" "}
+                {event
+                  ? `Only ${event.availableTickets} Tickets Available!`
+                  : "Only 300 Tickets Available!"}
               </motion.p>
             </motion.div>
           </motion.div>
 
           {/* Right Side - Hero Image with optimized responsive loading */}
-          <motion.div variants={itemVariants} className="relative order-first lg:order-last">
+          <motion.div
+            variants={itemVariants}
+            className="relative order-first lg:order-last"
+          >
             <motion.div
               className="relative rounded-3xl overflow-hidden"
               whileHover={{ scale: 1.01 }} // Reduced from 1.02
-              transition={{ duration: 0.3 }}>
-              
+              transition={{ duration: 0.3 }}
+            >
               <LazyImage
-                src={event&& hero1}
+                src={event && hero1}
                 alt={event?.name || "Garba Dancers"}
                 className="w-full drop-shadow-xl drop-shadow-neutral-700"
                 aspectRatio="1/1"
@@ -209,6 +238,6 @@ const Hero = memo(({ event }) => {
   );
 });
 
-Hero.displayName = 'Hero';
+Hero.displayName = "Hero";
 
 export default Hero;
