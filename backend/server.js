@@ -15,7 +15,6 @@ const corsOptions = {
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     "http://localhost:5174",
-    "https://garba-ticketing-app.onrender.com",
     "https://garba-ticketing-app.vercel.app",
   ],
   credentials: true,
@@ -51,9 +50,9 @@ app.use(cors(corsOptions));
 // Handle preflight requests for all routes
 app.options("*", cors(corsOptions));
 
-// Body parsing middleware
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
+// Body parsing middleware with optimized limits
+app.use(express.json({ limit: "5mb" })); // Reduced from 10mb
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 // ✅ FIXED: Proper static file serving with correct MIME types
 if (process.env.NODE_ENV === "production") {
@@ -93,7 +92,7 @@ if (process.env.NODE_ENV === "production") {
           res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         }
       },
-    })
+    }),
   );
 }
 

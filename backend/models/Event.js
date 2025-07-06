@@ -217,34 +217,41 @@ eventSchema.virtual("isUpcoming").get(function () {
 eventSchema.set("toJSON", { virtuals: true });
 eventSchema.set("toObject", { virtuals: true });
 
-// Static method to get the current event with proper ticket counts
+// Static method to get the current event with proper ticket counts (optimized)
 eventSchema.statics.getCurrentEvent = async function () {
-  const event = await this.findOne().populate("createdBy", "name email");
-  if (event) {
-    // Get actual sold tickets count from Ticket collection
-    const Ticket = require("./Tickets");
-    const soldTicketsCount = await Ticket.countDocuments({
+  const [event, soldTicketsCount] = await Promise.all([
+    this.findOne().populate("createdBy", "name email").lean(), // Use lean for better performance
+    this.model("Ticket").countDocuments({
       status: { $in: ["active", "used"] },
-    });
+    }),
+  ]);
 
+  if (event) {
     // Set the sold tickets count for virtual calculations
     event._soldTickets = soldTicketsCount;
+    // Calculate derived fields
+    event.soldTickets = soldTicketsCount;
+    event.availableTickets = Math.max(0, event.totalTickets - soldTicketsCount);
+    event.isSoldOut = soldTicketsCount >= event.totalTickets;
   }
   return event;
 };
 
-// Static method to get event with ticket counts
+// Static method to get event with ticket counts (optimized)
 eventSchema.statics.getEventWithTicketCounts = async function () {
-  const event = await this.findOne();
-  if (event) {
-    // Get actual sold tickets count from Ticket collection
-    const Ticket = require("./Tickets");
-    const soldTicketsCount = await Ticket.countDocuments({
+  const [event, soldTicketsCount] = await Promise.all([
+    this.findOne().lean(),
+    this.model("Ticket").countDocuments({
       status: { $in: ["active", "used"] },
-    });
+    }),
+  ]);
 
+  if (event) {
     // Set the sold tickets count for virtual calculations
     event._soldTickets = soldTicketsCount;
+    event.soldTickets = soldTicketsCount;
+    event.availableTickets = Math.max(0, event.totalTickets - soldTicketsCount);
+    event.isSoldOut = soldTicketsCount >= event.totalTickets;
   }
   return event;
 };

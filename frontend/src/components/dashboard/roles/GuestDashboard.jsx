@@ -13,7 +13,7 @@ import PurchaseTicketModal from "../tickets/PurchaseTicketModal";
 
 const GuestDashboard = () => {
   const { user, backendUser } = useAuth();
-  const { loading, error, execute } = useApi();
+  const { loading, error, execute, clearCache } = useApi();
   const [event, setEvent] = useState(null);
   const [tickets, setTickets] = useState([]);
   const [purchasing, setPurchasing] = useState(false);
@@ -21,17 +21,25 @@ const GuestDashboard = () => {
 
   const fetchDashboardData = async () => {
     await execute(
-      async () => {
-        // Fetch in parallel for better performance
+      async (signal) => {
+        // Fetch in parallel for better performance with caching
         const [eventResponse, ticketsResponse] = await Promise.all([
-          eventAPI.getCurrentEvent().catch(() => ({ data: { data: null } })),
-          ticketAPI.getMyTickets().catch(() => ({ data: { tickets: [] } })),
+          eventAPI
+            .getCurrentEvent(signal)
+            .catch(() => ({ data: { data: null } })),
+          ticketAPI
+            .getMyTickets(signal)
+            .catch(() => ({ data: { tickets: [] } })),
         ]);
         setEvent(eventResponse.data.data);
         setTickets(ticketsResponse.data.tickets || []);
       },
-      { showLoading: false },
-    ); // Don't show loading for better UX
+      {
+        showLoading: false,
+        cacheKey: `guest-dashboard-${user?.uid}`,
+        cacheDuration: 2 * 60 * 1000, // 2 minutes cache
+      },
+    );
   };
 
   useEffect(() => {
@@ -44,11 +52,12 @@ const GuestDashboard = () => {
     setPurchasing(true);
     try {
       await execute(
-        async () => {
-          const response = await ticketAPI.createBooking({ quantity });
+        async (signal) => {
+          const response = await ticketAPI.createBooking({ quantity }, signal);
           if (response.data.success) {
             setShowPurchaseModal(false);
-            // Refresh dashboard data after successful purchase
+            // Clear cache and refresh dashboard data after successful purchase
+            clearCache(`guest-dashboard-${user?.uid}`);
             setTimeout(() => {
               fetchDashboardData();
             }, 500);
@@ -58,12 +67,10 @@ const GuestDashboard = () => {
         {
           showSuccess: true,
           successMessage: `🎉 ${quantity} ticket(s) purchased successfully!`,
-          // Suppress error display if the action was actually successful
           suppressErrorIfSuccessful: true,
         },
       );
     } catch (error) {
-      // Only show error if the purchase actually failed
       console.log("Purchase error (may be false positive):", error.message);
     } finally {
       setPurchasing(false);

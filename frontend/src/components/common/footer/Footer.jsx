@@ -1,6 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFacebook, faInstagram, faTwitter, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
+
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -45,19 +48,19 @@ const Footer = () => {
         }
       }},
       { name: 'Contact Us', action: () => {
-        window.location.href = 'mailto:support@garbarass2025.com';
+        window.location.href = 'mailto:hyyevents@gmail.com';
       }},
       { name: 'Support', action: () => {
-        window.location.href = 'mailto:support@garbarass2025.com';
+        window.location.href = 'mailto:hyyevents@gmail.com';
       }}
     ]
   };
 
   const socialLinks = [
-    { name: 'Facebook', icon: '📘', url: '#' },
-    { name: 'Instagram', icon: '📷', url: '#' },
-    { name: 'Twitter', icon: '🐦', url: '#' },
-    { name: 'WhatsApp', icon: '💬', url: '#' }
+    { name: 'Facebook', icon: <FontAwesomeIcon icon={faFacebook} style={{ color: 'blue' }} />, url: '#' },
+    { name: 'Instagram', icon: <FontAwesomeIcon icon={faInstagram} style={{ color: 'red' }}/>, url: 'https://lnk.ink/HYYEVENTS' },
+    { name: 'Twitter', icon: <FontAwesomeIcon icon={faTwitter} style={{ color: 'blue' }}/>, url: '#' },
+    { name: 'WhatsApp', icon: <FontAwesomeIcon icon={faWhatsapp} style={{ color: 'green' }} />, url: '#' }
   ];
 
   return (
@@ -105,14 +108,14 @@ const Footer = () => {
             <div className="space-y-2 text-slate-400 text-sm">
               <div className="flex items-center gap-2">
                 <span>📧</span>
-                <a href="mailto:support@garbarass2025.com" className="hover:text-navratri-orange transition-colors">
-                  support@garbarass2025.com
+                <a href="mailto:hyyevents@gmail.com" className="hover:text-navratri-orange transition-colors">
+                  hyyevents@gmail.com
                 </a>
               </div>
               <div className="flex items-center gap-2">
                 <span>📞</span>
-                <a href="tel:+919876543210" className="hover:text-navratri-orange transition-colors">
-                  +91 98765 43210
+                <a href="tel:+919082807701" className="hover:text-navratri-orange transition-colors">
+                  +91 9082807701
                 </a>
               </div>
               <div className="flex items-center gap-2">
@@ -180,25 +183,6 @@ const Footer = () => {
                     {social.icon}
                   </motion.a>
                 ))}
-              </div>
-            </div>
-
-            {/* Newsletter Signup */}
-            <div className="flex items-center gap-3">
-              <span className="text-slate-400 text-sm hidden sm:inline">Stay updated:</span>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="px-3 py-2 bg-slate-800/50 border border-slate-700/30 rounded-lg text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-navratri-orange/30 focus:border-navratri-orange"
-                />
-                <motion.button
-                  className="px-4 py-2 bg-navratri-orange text-white rounded-lg text-sm font-medium hover:bg-navratri-orange/80 transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Subscribe
-                </motion.button>
               </div>
             </div>
           </div>

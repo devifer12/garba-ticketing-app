@@ -1,17 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 
-const LazyImage = ({ 
-  src, 
-  alt, 
-  className = '', 
+const LazyImage = ({
+  src,
+  alt,
+  className = "",
   placeholder = null,
   fallback = null,
-  aspectRatio = '1/1',
+  aspectRatio = "1/1",
   priority = false,
   responsive = false, // New prop for responsive images
   mobileSrc = null, // Mobile-specific image source
-  ...props 
+  ...props
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(priority);
@@ -29,8 +29,8 @@ const LazyImage = ({
       };
 
       handleResize(); // Set initial source
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
     }
   }, [src, mobileSrc, responsive]);
 
@@ -44,7 +44,7 @@ const LazyImage = ({
           observer.disconnect();
         }
       },
-      { threshold: 0.1, rootMargin: '50px' }
+      { threshold: 0.05, rootMargin: "100px" }, // Increased rootMargin for earlier loading
     );
 
     if (containerRef.current) {
@@ -64,32 +64,34 @@ const LazyImage = ({
   };
 
   const getPaddingBottom = () => {
-    if (aspectRatio === '16/9') return '56.25%';
-    if (aspectRatio === '4/3') return '75%';
-    if (aspectRatio === '1/1') return '100%';
-    if (aspectRatio === '3/2') return '66.67%';
-    
-    if (aspectRatio.includes('/')) {
-      const [width, height] = aspectRatio.split('/').map(Number);
+    if (aspectRatio === "16/9") return "56.25%";
+    if (aspectRatio === "4/3") return "75%";
+    if (aspectRatio === "1/1") return "100%";
+    if (aspectRatio === "3/2") return "66.67%";
+
+    if (aspectRatio.includes("/")) {
+      const [width, height] = aspectRatio.split("/").map(Number);
       return `${(height / width) * 100}%`;
     }
-    
-    return '75%';
+
+    return "75%";
   };
 
   return (
-    <div 
-      ref={containerRef} 
-      className={`relative overflow-hidden ${className}`} 
+    <div
+      ref={containerRef}
+      className={`relative overflow-hidden ${className}`}
       style={{ paddingBottom: getPaddingBottom() }}
       {...props}
     >
-      {/* Optimized placeholder with reduced animation complexity on mobile */}
+      {/* Optimized placeholder with reduced animation complexity */}
       {!isLoaded && (
         <div className="absolute inset-0 bg-slate-700/50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-700/50 via-slate-600/50 to-slate-700/50 bg-[length:200%_100%] animate-[shimmer_2s_infinite]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-700/50 via-slate-600/50 to-slate-700/50 bg-[length:200%_100%] animate-pulse" />
           {placeholder || (
-            <div className="relative z-10 text-slate-400 text-sm">Loading...</div>
+            <div className="relative z-10 text-slate-400 text-sm">
+              Loading...
+            </div>
           )}
         </div>
       )}
@@ -106,14 +108,14 @@ const LazyImage = ({
                 src={hasError ? fallback : currentSrc}
                 alt={alt}
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-                  isLoaded ? 'opacity-100' : 'opacity-0'
+                  isLoaded ? "opacity-100" : "opacity-0"
                 }`}
                 onLoad={handleLoad}
                 onError={handleError}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: isLoaded ? 1 : 0 }}
                 transition={{ duration: 0.3 }}
-                loading={priority ? 'eager' : 'lazy'}
+                loading={priority ? "eager" : "lazy"}
                 decoding="async"
               />
             </picture>
@@ -123,14 +125,14 @@ const LazyImage = ({
               src={hasError ? fallback : currentSrc}
               alt={alt}
               className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-                isLoaded ? 'opacity-100' : 'opacity-0'
+                isLoaded ? "opacity-100" : "opacity-0"
               }`}
               onLoad={handleLoad}
               onError={handleError}
               initial={{ opacity: 0 }}
               animate={{ opacity: isLoaded ? 1 : 0 }}
               transition={{ duration: 0.3 }}
-              loading={priority ? 'eager' : 'lazy'}
+              loading={priority ? "eager" : "lazy"}
               decoding="async"
             />
           )}

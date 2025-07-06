@@ -44,6 +44,13 @@ button {
   .hero-section {
     background-attachment: scroll; /* Prevent parallax on mobile */
   }
+
+  /* Optimize animations for mobile */
+  * {
+    animation-duration: 0.3s !important;
+    transition-duration: 0.2s !important;
+  }
+
   /* Reduce motion for better performance on mobile */
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -53,5 +60,25 @@ button {
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Optimize scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }

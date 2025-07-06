@@ -1,43 +1,49 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import path from 'path'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import path from "path";
 
 export default defineConfig({
   plugins: [
     react({
       include: "**/*.{jsx,tsx}",
-    }), 
-    tailwindcss()
+    }),
+    tailwindcss(),
   ],
 
-  base: '/',
+  base: "/",
 
   build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-    sourcemap: false, // Disable sourcemaps in production for smaller bundle
+    outDir: "dist",
+    assetsDir: "assets",
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'router': ['react-router-dom'],
-          'firebase': ['firebase/app', 'firebase/auth']
+          "react-vendor": ["react", "react-dom"],
+          router: ["react-router-dom"],
+          firebase: ["firebase/app", "firebase/auth"],
+          "ui-libs": ["framer-motion", "react-toastify"],
+          utils: ["axios", "qr-scanner"],
         },
-        // ✅ Ensure proper file extensions
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
-      }
+        entryFileNames: "assets/[name]-[hash].js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash].[ext]",
+      },
     },
-    chunkSizeWarningLimit: 1000,
-    minify: 'terser',
+    chunkSizeWarningLimit: 800, // Reduced for better performance
+    minify: "terser",
     terserOptions: {
       compress: {
         drop_console: true,
-        drop_debugger: true
-      }
-    }
+        drop_debugger: true,
+        pure_funcs: ["console.log", "console.info", "console.debug"],
+        passes: 2,
+      },
+      mangle: {
+        safari10: true,
+      },
+    },
   },
 
   server: {
@@ -54,24 +60,24 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      "@": path.resolve(__dirname, "./src"),
     },
-    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json']
+    extensions: [".mjs", ".js", ".mts", ".ts", ".jsx", ".tsx", ".json"],
   },
 
   optimizeDeps: {
     include: [
-      'react',
-      'react-dom',
-      'react-router-dom',
-      'firebase/app',
-      'firebase/auth'
+      "react",
+      "react-dom",
+      "react-router-dom",
+      "firebase/app",
+      "firebase/auth",
     ],
-    exclude: ['qr-scanner']
+    exclude: ["qr-scanner"],
   },
 
   // ✅ Define how to handle different file types
   define: {
-    __DEV__: process.env.NODE_ENV === 'development',
+    __DEV__: process.env.NODE_ENV === "development",
   },
-})
+});

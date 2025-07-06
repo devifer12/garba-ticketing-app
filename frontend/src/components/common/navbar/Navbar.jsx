@@ -117,15 +117,17 @@ const Navbar = () => {
             </motion.div>
 
             {/* Subtitle - slides away on scroll with optimized transform */}
-            <motion.p
-              className="text-sm sm:text-lg md:text-xl text-slate-300 font-light text-center mt-2 sm:mt-4 px-4 pointer-events-none"
-              style={{
-                opacity: subtitleOpacity,
-                transform: `translateY(${subtitleY}px)`,
-                willChange: 'transform, opacity',
-              }}>
-              Pre-Navratri Grand Celebration
-            </motion.p>
+            {location.pathname === "/" && (
+              <motion.p
+                className="text-sm sm:text-lg md:text-xl text-slate-300 font-light text-center mt-2 sm:mt-4 px-4 pointer-events-none"
+                style={{
+                  opacity: subtitleOpacity,
+                  transform: `translateY(${subtitleY}px)`,
+                  willChange: 'transform, opacity',
+                }}>
+                Pre-Navratri Grand Celebration
+              </motion.p>
+            )}
           </div>
         </div>
       </motion.nav>

@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import { PrimaryButton, GoogleSignInButton } from "../ui/Button";
 import { useAuth } from "../../context/AuthContext";
@@ -10,25 +10,46 @@ import Dandiya from "../../assets/dandiya.webp";
 const Hero = memo(({ event }) => {
   const { user } = useAuth();
 
-  // Reduced animation complexity for mobile performance
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15, // Reduced from 0.2
+  // Memoize animation variants to prevent recreation
+  const containerVariants = useMemo(
+    () => ({
+      hidden: { opacity: 0 },
+      visible: {
+        opacity: 1,
+        transition: {
+          staggerChildren: 0.1, // Further reduced for performance
+        },
       },
-    },
-  };
+    }),
+    [],
+  );
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 }, // Reduced from y: 30
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.4 }, // Reduced from 0.6
-    },
-  };
+  const itemVariants = useMemo(
+    () => ({
+      hidden: { opacity: 0, y: 15 }, // Further reduced
+      visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.3 }, // Further reduced
+      },
+    }),
+    [],
+  );
+
+  // Memoize formatted event data
+  const eventData = useMemo(() => {
+    if (!event) return null;
+    return {
+      formattedDate: formatDate(event.date, {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: undefined,
+      }),
+      dateShort: formatDate(event.date, { month: "short", day: "numeric" }),
+      timeRange: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
+    };
+  }, [event]);
 
   return (
     <section className="min-h-screen pt-32 sm:pt-40 md:pt-48 pb-8 sm:pb-16 relative">
@@ -51,21 +72,16 @@ const Hero = memo(({ event }) => {
                 backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
               }}
               transition={{
-                duration: 8, // Increased from 5 for smoother animation
+                duration: 10, // Slower for better performance
                 repeat: Infinity,
                 repeatType: "loop",
               }}
             >
-              {event && (
+              {event && eventData && (
                 <>
                   {event.name}
                   <span className="block bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent">
-                    {formatDate(event.date, {
-                      weekday: "long",
-                      month: "long",
-                      day: "numeric",
-                      year: undefined,
-                    })}
+                    {eventData.formattedDate}
                   </span>
                 </>
               )}
@@ -88,18 +104,14 @@ const Hero = memo(({ event }) => {
                 <div className="text-2xl mb-2">📅</div>
                 <p className="text-slate-400 text-sm">Date</p>
                 <p className="text-white font-semibold">
-                  {event
-                    ? formatDate(event.date, { month: "short", day: "numeric" })
-                    : "Sept 7"}
+                  {eventData?.dateShort || "Sept 7"}
                 </p>
               </div>
               <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30 h-[100%] flex flex-col justify-center">
                 <div className="text-2xl mb-2">🕐</div>
                 <p className="text-slate-400 text-sm">Time</p>
                 <p className="text-white font-semibold">
-                  {event
-                    ? `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`
-                    : "6:30 PM - 10:30 PM"}
+                  {eventData?.timeRange || "6:30 PM - 10:30 PM"}
                 </p>
               </div>
               <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/30 h-[100%] flex flex-col justify-center">
@@ -112,8 +124,12 @@ const Hero = memo(({ event }) => {
               <div className="bg-gradient-to-br from-navratri-orange/20 to-navratri-yellow/20 backdrop-blur-xl rounded-xl p-4 border border-navratri-orange/30 h-[100%] flex flex-col justify-center">
                 <div className="text-2xl mb-2">🎫</div>
                 <p className="text-navratri-yellow text-sm">Price</p>
-                <p className="text-white font-bold text-lg">₹{event?.ticketPrice || '349'}/-</p>
-                <p className="text-navratri-yellow/70 text-sm">Group Discounts Available</p>
+                <p className="text-white font-bold text-lg">
+                  ₹{event?.ticketPrice || "349"}/-
+                </p>
+                <p className="text-navratri-yellow/70 text-sm">
+                  Group Discounts Available
+                </p>
               </div>
             </motion.div>
 
@@ -157,8 +173,8 @@ const Hero = memo(({ event }) => {
               >
                 ⚡{" "}
                 {event
-                  ? `Only ${event.availableTickets} Tickets Available!`
-                  : "Only 300 Tickets Available!"}
+                  ? `Only ${event.availableTickets} Tickets Left!`
+                  : "Only 300 Tickets left!"}
               </motion.p>
             </motion.div>
           </motion.div>

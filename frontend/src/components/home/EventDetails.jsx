@@ -41,7 +41,6 @@ const EventDetails = ({ event }) => {
         time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
         venue: event.venue,
         price: `₹${event.ticketPrice}`,
-        capacity: `${event.totalTickets} People Only`,
         available: event.availableTickets,
       }
     : defaultEventDetails;
@@ -140,13 +139,11 @@ const EventDetails = ({ event }) => {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
-        className="container mx-auto px-4"
-      >
+        className="container mx-auto px-4">
         {/* Section Title */}
         <motion.div
           variants={itemVariants}
-          className="text-center mb-8 sm:mb-12"
-        >
+          className="text-center mb-8 sm:mb-12">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-serif bg-gradient-to-r from-navratri-orange via-navratri-yellow to-navratri-pink bg-clip-text text-transparent mb-4">
             Event Details
           </h2>
@@ -158,17 +155,15 @@ const EventDetails = ({ event }) => {
           {/* Date & Time Card */}
           <motion.div
             variants={itemVariants}
-            className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-slate-700/50 hover:border-navratri-orange/30 transition-all duration-300 relative overflow-hidden group h-full"
-            whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-          >
+            className="flex flex-col items-center justify-center bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-slate-700/50 hover:border-navratri-orange/30 transition-all duration-300 relative overflow-hidden group h-full"
+            whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}>
             {/* Decorative background glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-navratri-orange/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
             <motion.div
               className="text-3xl sm:text-4xl mb-2 sm:mb-3 relative z-10"
               animate={{ rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
+              transition={{ duration: 3, repeat: Infinity }}>
               📅
             </motion.div>
             <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2 relative z-10">
@@ -185,23 +180,21 @@ const EventDetails = ({ event }) => {
           {/* Venue Card */}
           <motion.div
             variants={itemVariants}
-            className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-slate-700/50 hover:border-navratri-pink/30 transition-all duration-300 relative overflow-hidden group h-full"
-            whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-          >
+            className="flex flex-col justify-center items-center bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-slate-700/50 hover:border-navratri-pink/30 transition-all duration-300 relative overflow-hidden group h-full"
+            whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}>
             {/* Decorative background glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-navratri-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
             <motion.div
               className="text-3xl sm:text-4xl mb-2 sm:mb-3 relative z-10"
               animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
+              transition={{ duration: 2, repeat: Infinity }}>
               📍
             </motion.div>
             <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2 relative z-10">
               Venue
             </h3>
-            <p className="text-slate-300 relative z-10 text-sm sm:text-base">
+            <p className="text-slate-300 text-center relative z-10 text-sm sm:text-base">
               {eventDetails.venue}
             </p>
           </motion.div>
@@ -209,12 +202,11 @@ const EventDetails = ({ event }) => {
           {/* Ticket Price Card */}
           <motion.div
             variants={itemVariants}
-            className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-navratri-yellow/20 sm:col-span-2 lg:col-span-1 relative overflow-hidden group h-full"
+            className="flex flex-col justify-center bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-navratri-yellow/20 sm:col-span-2 lg:col-span-1 relative overflow-hidden group h-full"
             whileHover={{
               y: -5,
               boxShadow: "0 20px 40px rgba(255,215,0,0.1)",
-            }}
-          >
+            }}>
             <div className="absolute inset-0 bg-gradient-to-r from-navratri-yellow/5 to-transparent"></div>
             <motion.div
               className="text-3xl sm:text-4xl mb-2 sm:mb-3 relative z-10"
@@ -222,8 +214,7 @@ const EventDetails = ({ event }) => {
                 scale: [1, 1.1, 1],
                 rotate: [0, 3, -3, 0],
               }}
-              transition={{ duration: 2.5, repeat: Infinity }}
-            >
+              transition={{ duration: 2.5, repeat: Infinity }}>
               🎫
             </motion.div>
             <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2 relative z-10">
@@ -275,17 +266,11 @@ const EventDetails = ({ event }) => {
                     )}
                   </div>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-400">
-                  {eventDetails.capacity}
-                </p>
               </div>
             ) : (
               <div className="relative z-10">
                 <p className="text-2xl sm:text-3xl font-bold text-navratri-yellow">
                   {eventDetails.price}
-                </p>
-                <p className="text-xs sm:text-sm text-slate-400">
-                  {eventDetails.capacity}
                 </p>
               </div>
             )}
@@ -295,8 +280,7 @@ const EventDetails = ({ event }) => {
         {/* CTA Buttons - Fixed height container */}
         <motion.div
           variants={itemVariants}
-          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-6 sm:mb-10 px-4 min-h-[80px]"
-        >
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-6 sm:mb-10 px-4 min-h-[80px]">
           {/* Primary Buy Tickets Button */}
           <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-7 sm:px-8 py-3 sm:py-4">
             🎟️ Book Your Tickets Now
@@ -306,8 +290,7 @@ const EventDetails = ({ event }) => {
           {!user && (
             <GoogleSignInButton
               className="w-auto sm:w-auto text-base sm:text-xl px-10 sm:px-8 py-3 sm:py-4"
-              showTextOnMobile={true}
-            >
+              showTextOnMobile={true}>
               📱 Sign In with Google
             </GoogleSignInButton>
           )}
@@ -316,20 +299,18 @@ const EventDetails = ({ event }) => {
         {/* Limited Tickets Warning - Fixed height */}
         <motion.div
           variants={itemVariants}
-          className="text-center px-4 min-h-[40px] flex items-center justify-center"
-        >
+          className="text-center px-4 min-h-[40px] flex items-center justify-center">
           <motion.p
             className="text-navratri-yellow font-bold text-base sm:text-lg"
             animate={{
               opacity: [0.7, 1, 0.7],
               scale: [1, 1.02, 1],
             }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >
+            transition={{ duration: 1.5, repeat: Infinity }}>
             ⚡{" "}
             {event
-              ? `Only ${event.availableTickets} Tickets Available!`
-              : "Only 250 Tickets Available!"}
+              ? `Only ${event.availableTickets} Tickets Left!`
+              : "Only 250 Tickets Left!"}
           </motion.p>
         </motion.div>
       </motion.div>

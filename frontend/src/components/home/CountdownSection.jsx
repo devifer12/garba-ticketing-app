@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { formatTime } from '../../utils/helpers';
 
 const CountdownSection = ({ event }) => {
   const [timeLeft, setTimeLeft] = useState({
@@ -62,6 +63,12 @@ const CountdownSection = ({ event }) => {
     { label: 'Minutes', value: timeLeft.minutes, color: 'navratri-yellow' },
     { label: 'Seconds', value: timeLeft.seconds, color: 'navratri-green' }
   ];
+
+  const eventDetails = event
+      ? {
+          time: `${formatTime(event.startTime)}`,
+        }
+      : defaultEventDetails;
 
   return (
     <section className="py-12 sm:py-20 relative overflow-hidden">
@@ -140,7 +147,7 @@ const CountdownSection = ({ event }) => {
               </p>
               {event.startTime && (
                 <p className="text-slate-300 text-sm mt-1">
-                  Starting at {event.startTime}
+                  Starting at {eventDetails.time}
                 </p>
               )}
             </div>

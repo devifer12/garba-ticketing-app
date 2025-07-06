@@ -26,17 +26,17 @@ const TicketsDetails = () => {
   useEffect(() => {
     const handleToast = (event) => {
       const { message, type } = event.detail;
-      if (type === 'success') {
+      if (type === "success") {
         toast.success(message);
-      } else if (type === 'error') {
+      } else if (type === "error") {
         toast.error(message);
       } else {
         toast(message);
       }
     };
 
-    window.addEventListener('showToast', handleToast);
-    return () => window.removeEventListener('showToast', handleToast);
+    window.addEventListener("showToast", handleToast);
+    return () => window.removeEventListener("showToast", handleToast);
   }, []);
 
   const fetchData = async (showRefreshIndicator = false) => {
@@ -47,31 +47,39 @@ const TicketsDetails = () => {
         setLoading(true);
       }
       setError(null);
-      
-      // Fetch user's tickets and event details in parallel
+
+      // Create abort controller for this request
+      const abortController = new AbortController();
+
+      // Fetch user's tickets and event details in parallel with caching
       const [ticketsResponse, eventResponse] = await Promise.all([
-        ticketAPI.getMyTickets().catch(err => {
-          console.warn('Failed to fetch tickets:', err);
+        ticketAPI.getMyTickets(abortController.signal).catch((err) => {
+          if (err.name !== "AbortError") {
+            console.warn("Failed to fetch tickets:", err);
+          }
           return { data: { tickets: [] } };
         }),
-        eventAPI.getCurrentEvent().catch(err => {
-          console.warn('Failed to fetch event:', err);
+        eventAPI.getCurrentEvent(abortController.signal).catch((err) => {
+          if (err.name !== "AbortError") {
+            console.warn("Failed to fetch event:", err);
+          }
           return { data: { data: null } };
-        })
+        }),
       ]);
 
       setTickets(ticketsResponse.data.tickets || []);
       setEvent(eventResponse.data.data);
-      
+
       if (showRefreshIndicator) {
-        toast.success('Data refreshed successfully!');
+        toast.success("Data refreshed successfully!");
       }
-      
     } catch (err) {
-      console.error('Failed to fetch data:', err);
-      const errorMessage = apiUtils.formatErrorMessage(err);
-      setError(errorMessage);
-      toast.error(`Failed to load data: ${errorMessage}`);
+      if (err.name !== "AbortError") {
+        console.error("Failed to fetch data:", err);
+        const errorMessage = apiUtils.formatErrorMessage(err);
+        setError(errorMessage);
+        toast.error(`Failed to load data: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -81,45 +89,50 @@ const TicketsDetails = () => {
   const handlePurchaseTickets = async (quantity) => {
     try {
       setPurchasing(true);
-      
-      const response = await ticketAPI.createBooking({ quantity });
-      
+
+      const abortController = new AbortController();
+      const response = await ticketAPI.createBooking(
+        { quantity },
+        abortController.signal,
+      );
+
       if (response.data.success) {
         toast.success(`🎉 ${quantity} ticket(s) purchased successfully!`);
         setShowPurchaseModal(false);
-        
+
         // Refresh tickets and event data
         await fetchData();
       }
-      
     } catch (err) {
-      console.error('Failed to purchase tickets:', err);
-      const errorMessage = apiUtils.formatErrorMessage(err);
-      toast.error(`Failed to purchase tickets: ${errorMessage}`);
+      if (err.name !== "AbortError") {
+        console.error("Failed to purchase tickets:", err);
+        const errorMessage = apiUtils.formatErrorMessage(err);
+        toast.error(`Failed to purchase tickets: ${errorMessage}`);
+      }
     } finally {
       setPurchasing(false);
     }
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'TBD';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    if (!dateString) return "TBD";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
   const formatTime = (timeString) => {
-    if (!timeString) return '';
+    if (!timeString) return "";
     try {
-      const [hours, minutes] = timeString.split(':');
+      const [hours, minutes] = timeString.split(":");
       const date = new Date();
       date.setHours(parseInt(hours), parseInt(minutes));
-      return date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
+      return date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
       });
     } catch (error) {
       return timeString;
@@ -127,8 +140,8 @@ const TicketsDetails = () => {
   };
 
   // Filter tickets by status
-  const activeTickets = tickets.filter(t => t.status === 'active');
-  const usedTickets = tickets.filter(t => t.status === 'used');
+  const activeTickets = tickets.filter((t) => t.status === "active");
+  const usedTickets = tickets.filter((t) => t.status === "used");
 
   if (loading) {
     return (
@@ -139,8 +152,12 @@ const TicketsDetails = () => {
           animate={{ opacity: 1, scale: 1 }}
         >
           <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-navratri-orange mx-auto mb-4"></div>
-          <h2 className="text-lg sm:text-xl font-bold text-white mb-2">Loading Tickets</h2>
-          <p className="text-slate-400 text-sm sm:text-base">Please wait while we fetch your tickets...</p>
+          <h2 className="text-lg sm:text-xl font-bold text-white mb-2">
+            Loading Tickets
+          </h2>
+          <p className="text-slate-400 text-sm sm:text-base">
+            Please wait while we fetch your tickets...
+          </p>
         </motion.div>
       </div>
     );
@@ -156,7 +173,9 @@ const TicketsDetails = () => {
         >
           <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-slate-700/30">
             <div className="text-4xl sm:text-6xl mb-4">⚠️</div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Error Loading Tickets</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">
+              Error Loading Tickets
+            </h2>
             <p className="text-slate-400 mb-6 text-sm sm:text-base">{error}</p>
             <motion.button
               onClick={() => fetchData()}
@@ -185,20 +204,26 @@ const TicketsDetails = () => {
             My Tickets
           </h1>
           <div className="w-16 sm:w-24 h-1 bg-gradient-to-r from-navratri-orange to-navratri-pink rounded-full mx-auto mb-4"></div>
-          
+
           {/* Quick Stats */}
           <div className="flex justify-center gap-4 sm:gap-6 text-xs sm:text-sm">
             <div className="text-center">
               <span className="text-slate-400">Total:</span>
-              <span className="text-white font-bold ml-1">{tickets.length}</span>
+              <span className="text-white font-bold ml-1">
+                {tickets.length}
+              </span>
             </div>
             <div className="text-center">
               <span className="text-green-400">Active:</span>
-              <span className="text-white font-bold ml-1">{activeTickets.length}</span>
+              <span className="text-white font-bold ml-1">
+                {activeTickets.length}
+              </span>
             </div>
             <div className="text-center">
               <span className="text-blue-400">Used:</span>
-              <span className="text-white font-bold ml-1">{usedTickets.length}</span>
+              <span className="text-white font-bold ml-1">
+                {usedTickets.length}
+              </span>
             </div>
           </div>
         </motion.div>
@@ -212,26 +237,38 @@ const TicketsDetails = () => {
             transition={{ delay: 0.2 }}
           >
             <div className="text-center mb-4 sm:mb-6">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">{event.name}</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
+                {event.name}
+              </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                 <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4">
                   <div className="text-xl sm:text-2xl mb-2">📅</div>
-                  <h3 className="text-white font-semibold mb-1 text-sm sm:text-base">Date</h3>
-                  <p className="text-slate-300 text-sm sm:text-base">{formatDate(event.date)}</p>
+                  <h3 className="text-white font-semibold mb-1 text-sm sm:text-base">
+                    Date
+                  </h3>
+                  <p className="text-slate-300 text-sm sm:text-base">
+                    {formatDate(event.date)}
+                  </p>
                 </div>
-                
+
                 <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4">
                   <div className="text-xl sm:text-2xl mb-2">🕐</div>
-                  <h3 className="text-white font-semibold mb-1 text-sm sm:text-base">Time</h3>
+                  <h3 className="text-white font-semibold mb-1 text-sm sm:text-base">
+                    Time
+                  </h3>
                   <p className="text-slate-300 text-sm sm:text-base">
                     {formatTime(event.startTime)} - {formatTime(event.endTime)}
                   </p>
                 </div>
-                
+
                 <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4 sm:col-span-2 md:col-span-1">
                   <div className="text-xl sm:text-2xl mb-2">📍</div>
-                  <h3 className="text-white font-semibold mb-1 text-sm sm:text-base">Venue</h3>
-                  <p className="text-slate-300 text-sm sm:text-base">{event.venue}</p>
+                  <h3 className="text-white font-semibold mb-1 text-sm sm:text-base">
+                    Venue
+                  </h3>
+                  <p className="text-slate-300 text-sm sm:text-base">
+                    {event.venue}
+                  </p>
                 </div>
               </div>
             </div>
@@ -239,14 +276,15 @@ const TicketsDetails = () => {
             {/* Purchase Section */}
             <div className="text-center">
               <div className="bg-gradient-to-r from-navratri-orange/20 to-navratri-yellow/20 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
-                <h4 className="text-white font-bold text-lg sm:text-xl mb-2">Ticket Price: ₹{event.ticketPrice}</h4>
+                <h4 className="text-white font-bold text-lg sm:text-xl mb-2">
+                  Ticket Price: ₹{event.ticketPrice}
+                </h4>
                 <p className="text-slate-300 mb-3 sm:mb-4 text-sm sm:text-base">
-                  {event.availableTickets > 0 
-                    ? `${event.availableTickets} tickets remaining` 
-                    : 'Sold Out!'
-                  }
+                  {event.availableTickets > 0
+                    ? `${event.availableTickets} tickets remaining`
+                    : "Sold Out!"}
                 </p>
-                
+
                 <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
                   {event.availableTickets > 0 ? (
                     <motion.button
@@ -257,7 +295,7 @@ const TicketsDetails = () => {
                       disabled={purchasing}
                     >
                       <span className="text-lg sm:text-xl">🎟️</span>
-                      {purchasing ? 'Processing...' : 'Buy More Tickets'}
+                      {purchasing ? "Processing..." : "Buy More Tickets"}
                     </motion.button>
                   ) : (
                     <div className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-red-600/50 text-red-200 font-bold rounded-xl border border-red-500/30 text-sm sm:text-base">
@@ -265,7 +303,7 @@ const TicketsDetails = () => {
                       Event Sold Out
                     </div>
                   )}
-                  
+
                   <motion.button
                     onClick={() => fetchData(true)}
                     disabled={refreshing}
@@ -273,8 +311,8 @@ const TicketsDetails = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <span className={refreshing ? 'animate-spin' : ''}>🔄</span>
-                    {refreshing ? 'Refreshing...' : 'Refresh'}
+                    <span className={refreshing ? "animate-spin" : ""}>🔄</span>
+                    {refreshing ? "Refreshing..." : "Refresh"}
                   </motion.button>
                 </div>
               </div>
@@ -342,11 +380,14 @@ const TicketsDetails = () => {
             >
               <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-slate-700/30">
                 <div className="text-4xl sm:text-6xl mb-4 sm:mb-6">🎫</div>
-                <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">No Tickets Yet</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
+                  No Tickets Yet
+                </h3>
                 <p className="text-slate-400 mb-6 sm:mb-8 max-w-md mx-auto text-sm sm:text-base">
-                  You haven't purchased any tickets yet. Get your tickets now and join the celebration!
+                  You haven't purchased any tickets yet. Get your tickets now
+                  and join the celebration!
                 </p>
-                
+
                 {event && event.availableTickets > 0 && (
                   <motion.button
                     onClick={() => setShowPurchaseModal(true)}
