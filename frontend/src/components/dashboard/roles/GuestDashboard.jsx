@@ -209,12 +209,31 @@ const PurchaseSection = ({ event, onPurchase, purchasing }) => (
       </h3>
 
       <div className="bg-slate-800/50 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
-        <h4 className="text-white font-bold text-lg sm:text-xl mb-2">
-          ₹{event.ticketPrice}
-        </h4>
-        <p className="text-slate-300 mb-3 sm:mb-4 text-sm sm:text-base">
-          per ticket
-        </p>
+        <div className="space-y-2 mb-3">
+          <div className="text-center">
+            <h4 className="text-white font-bold text-sm mb-2">Pricing Tiers</h4>
+          </div>
+          <div className="grid grid-cols-1 gap-2 text-xs">
+            <div className="flex justify-between items-center bg-slate-700/30 rounded-lg p-2">
+              <span className="text-slate-300">Individual (1-3):</span>
+              <span className="text-white font-medium">
+                ₹{event.ticketPrice}
+              </span>
+            </div>
+            <div className="flex justify-between items-center bg-slate-700/30 rounded-lg p-2">
+              <span className="text-slate-300">Group 4+ (4-7):</span>
+              <span className="text-green-400 font-medium">
+                ₹{event.groupPrice4 || event.ticketPrice}
+              </span>
+            </div>
+            <div className="flex justify-between items-center bg-slate-700/30 rounded-lg p-2">
+              <span className="text-slate-300">Group 8+ (8+):</span>
+              <span className="text-yellow-400 font-medium">
+                ₹{event.groupPrice8 || event.ticketPrice}
+              </span>
+            </div>
+          </div>
+        </div>
         <p className="text-slate-300 text-xs sm:text-sm">
           {event.availableTickets > 0
             ? `${event.availableTickets} tickets remaining`

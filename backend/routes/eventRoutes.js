@@ -50,6 +50,8 @@ router.post("/", verifyToken, isAdmin, async (req, res) => {
       endTime,
       venue,
       ticketPrice,
+      groupPrice4,
+      groupPrice8,
       totalTickets,
       eventImage,
       features,
@@ -101,6 +103,26 @@ router.post("/", verifyToken, isAdmin, async (req, res) => {
       });
     }
     if (
+      groupPrice4 === undefined ||
+      groupPrice4 === null ||
+      groupPrice4 === ""
+    ) {
+      validationErrors.push({
+        field: "groupPrice4",
+        message: "Group price for 4+ tickets is required",
+      });
+    }
+    if (
+      groupPrice8 === undefined ||
+      groupPrice8 === null ||
+      groupPrice8 === ""
+    ) {
+      validationErrors.push({
+        field: "groupPrice8",
+        message: "Group price for 8+ tickets is required",
+      });
+    }
+    if (
       totalTickets === undefined ||
       totalTickets === null ||
       totalTickets === ""
@@ -113,6 +135,8 @@ router.post("/", verifyToken, isAdmin, async (req, res) => {
 
     // Numeric validations
     const parsedTicketPrice = parseFloat(ticketPrice);
+    const parsedGroupPrice4 = parseFloat(groupPrice4);
+    const parsedGroupPrice8 = parseFloat(groupPrice8);
     const parsedTotalTickets = parseInt(totalTickets);
 
     if (isNaN(parsedTicketPrice) || parsedTicketPrice < 0) {
@@ -120,6 +144,20 @@ router.post("/", verifyToken, isAdmin, async (req, res) => {
         field: "ticketPrice",
         message:
           "Ticket price must be a valid number greater than or equal to 0",
+      });
+    }
+    if (isNaN(parsedGroupPrice4) || parsedGroupPrice4 < 0) {
+      validationErrors.push({
+        field: "groupPrice4",
+        message:
+          "Group price for 4+ tickets must be a valid number greater than or equal to 0",
+      });
+    }
+    if (isNaN(parsedGroupPrice8) || parsedGroupPrice8 < 0) {
+      validationErrors.push({
+        field: "groupPrice8",
+        message:
+          "Group price for 8+ tickets must be a valid number greater than or equal to 0",
       });
     }
     if (isNaN(parsedTotalTickets) || parsedTotalTickets < 1) {
@@ -230,6 +268,8 @@ router.post("/", verifyToken, isAdmin, async (req, res) => {
       endTime: endTime.trim(),
       venue: venue.trim(),
       ticketPrice: parsedTicketPrice,
+      groupPrice4: parsedGroupPrice4,
+      groupPrice8: parsedGroupPrice8,
       totalTickets: parsedTotalTickets,
       eventImage: eventImage?.trim() || "",
       features: Array.isArray(features)
@@ -344,6 +384,26 @@ router.put("/", verifyToken, isAdmin, async (req, res) => {
           field: "ticketPrice",
           message:
             "Ticket price must be a valid number greater than or equal to 0",
+        });
+      }
+    }
+    if (updateData.groupPrice4 !== undefined) {
+      const parsedGroupPrice4 = parseFloat(updateData.groupPrice4);
+      if (isNaN(parsedGroupPrice4) || parsedGroupPrice4 < 0) {
+        validationErrors.push({
+          field: "groupPrice4",
+          message:
+            "Group price for 4+ tickets must be a valid number greater than or equal to 0",
+        });
+      }
+    }
+    if (updateData.groupPrice8 !== undefined) {
+      const parsedGroupPrice8 = parseFloat(updateData.groupPrice8);
+      if (isNaN(parsedGroupPrice8) || parsedGroupPrice8 < 0) {
+        validationErrors.push({
+          field: "groupPrice8",
+          message:
+            "Group price for 8+ tickets must be a valid number greater than or equal to 0",
         });
       }
     }

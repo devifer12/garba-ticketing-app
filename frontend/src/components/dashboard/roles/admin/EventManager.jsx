@@ -106,6 +106,8 @@ const EventManager = () => {
     startTime: "",
     endTime: "",
     ticketPrice: "",
+    groupPrice4: "",
+    groupPrice8: "",
     totalTickets: "",
     eventImage: "",
     features: [],
@@ -270,11 +272,21 @@ const EventManager = () => {
 
     // Numeric validations
     const ticketPrice = parseFloat(formData.ticketPrice);
+    const groupPrice4 = parseFloat(formData.groupPrice4);
+    const groupPrice8 = parseFloat(formData.groupPrice8);
     const totalTickets = parseInt(formData.totalTickets);
 
     if (!formData.ticketPrice || isNaN(ticketPrice) || ticketPrice <= 0) {
       newErrors.ticketPrice =
         "Valid ticket price is required (must be greater than 0)";
+    }
+    if (!formData.groupPrice4 || isNaN(groupPrice4) || groupPrice4 <= 0) {
+      newErrors.groupPrice4 =
+        "Valid group price for 4+ tickets is required (must be greater than 0)";
+    }
+    if (!formData.groupPrice8 || isNaN(groupPrice8) || groupPrice8 <= 0) {
+      newErrors.groupPrice8 =
+        "Valid group price for 8+ tickets is required (must be greater than 0)";
     }
     if (!formData.totalTickets || isNaN(totalTickets) || totalTickets <= 0) {
       newErrors.totalTickets =
@@ -362,6 +374,8 @@ const EventManager = () => {
         startTime: formData.startTime.trim(),
         endTime: formData.endTime.trim(),
         ticketPrice: parseFloat(formData.ticketPrice),
+        groupPrice4: parseFloat(formData.groupPrice4),
+        groupPrice8: parseFloat(formData.groupPrice8),
         totalTickets: parseInt(formData.totalTickets),
         eventImage: formData.eventImage?.trim() || "", // This will be base64 data or empty
         features: Array.isArray(formData.features) ? formData.features : [],
@@ -441,6 +455,8 @@ const EventManager = () => {
       startTime: event.startTime || "",
       endTime: event.endTime || "",
       ticketPrice: event.ticketPrice?.toString() || "",
+      groupPrice4: event.groupPrice4?.toString() || "",
+      groupPrice8: event.groupPrice8?.toString() || "",
       totalTickets: event.totalTickets?.toString() || "",
       eventImage: event.eventImage || "",
       features: event.features || [],
@@ -610,13 +626,32 @@ const EventManager = () => {
             </div>
 
             {/* Ticket Information */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <div className="bg-green-900/30 backdrop-blur-xl rounded-xl p-4 border border-green-700/30 text-center">
                 <span className="text-2xl block mb-2">💰</span>
-                <p className="text-green-300 font-medium">Ticket Price</p>
+                <p className="text-green-300 font-medium">Individual Price</p>
                 <p className="text-white text-xl font-bold">
                   ₹{event.ticketPrice}
                 </p>
+                <p className="text-green-200 text-xs mt-1">1-3 tickets</p>
+              </div>
+
+              <div className="bg-orange-900/30 backdrop-blur-xl rounded-xl p-4 border border-orange-700/30 text-center">
+                <span className="text-2xl block mb-2">👥</span>
+                <p className="text-orange-300 font-medium">Group Price (4+)</p>
+                <p className="text-white text-xl font-bold">
+                  ₹{event.groupPrice4}
+                </p>
+                <p className="text-orange-200 text-xs mt-1">4-7 tickets</p>
+              </div>
+
+              <div className="bg-purple-900/30 backdrop-blur-xl rounded-xl p-4 border border-purple-700/30 text-center">
+                <span className="text-2xl block mb-2">👨‍👩‍👧‍👦</span>
+                <p className="text-purple-300 font-medium">Group Price (8+)</p>
+                <p className="text-white text-xl font-bold">
+                  ₹{event.groupPrice8}
+                </p>
+                <p className="text-purple-200 text-xs mt-1">8+ tickets</p>
               </div>
 
               <div className="bg-blue-900/30 backdrop-blur-xl rounded-xl p-4 border border-blue-700/30 text-center">
@@ -805,11 +840,11 @@ const EventManager = () => {
                 <div className="flex-1 h-px bg-gradient-to-r from-green-500/50 to-transparent"></div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <InputField
                   type="number"
                   name="ticketPrice"
-                  placeholder="Ticket Price (₹)"
+                  placeholder="Individual Price (₹)"
                   icon="💰"
                   min="0"
                   step="1"
@@ -817,6 +852,32 @@ const EventManager = () => {
                   value={formData.ticketPrice}
                   onChange={handleInputChange}
                   error={errors.ticketPrice}
+                />
+
+                <InputField
+                  type="number"
+                  name="groupPrice4"
+                  placeholder="Group Price (4+) (₹)"
+                  icon="👥"
+                  min="0"
+                  step="1"
+                  required
+                  value={formData.groupPrice4}
+                  onChange={handleInputChange}
+                  error={errors.groupPrice4}
+                />
+
+                <InputField
+                  type="number"
+                  name="groupPrice8"
+                  placeholder="Group Price (8+) (₹)"
+                  icon="👨‍👩‍👧‍👦"
+                  min="0"
+                  step="1"
+                  required
+                  value={formData.groupPrice8}
+                  onChange={handleInputChange}
+                  error={errors.groupPrice8}
                 />
 
                 <InputField
@@ -830,6 +891,40 @@ const EventManager = () => {
                   onChange={handleInputChange}
                   error={errors.totalTickets}
                 />
+              </div>
+
+              {/* Pricing Information */}
+              <div className="bg-slate-600/30 rounded-xl p-4 border border-slate-500/30">
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <span className="text-lg">💡</span>
+                  Pricing Tiers Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                  <div className="bg-slate-700/40 rounded-lg p-3">
+                    <p className="text-slate-300 font-medium">
+                      Individual (1-3 tickets)
+                    </p>
+                    <p className="text-slate-400 text-xs">
+                      Standard price per ticket
+                    </p>
+                  </div>
+                  <div className="bg-slate-700/40 rounded-lg p-3">
+                    <p className="text-slate-300 font-medium">
+                      Group 4+ (4-7 tickets)
+                    </p>
+                    <p className="text-slate-400 text-xs">
+                      Discounted price for small groups
+                    </p>
+                  </div>
+                  <div className="bg-slate-700/40 rounded-lg p-3">
+                    <p className="text-slate-300 font-medium">
+                      Group 8+ (8+ tickets)
+                    </p>
+                    <p className="text-slate-400 text-xs">
+                      Best price for large groups
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 

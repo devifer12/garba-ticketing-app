@@ -59,7 +59,7 @@ router.post("/", verifyToken, async (req, res) => {
     }
 
     // Check if enough tickets are available
-    const availableTickets = event.totalTickets - event.soldTickets;
+    const availableTickets = await event.getAvailableTicketsCount();
     if (availableTickets < quantity) {
       return res.status(400).json({
         success: false,
@@ -92,17 +92,22 @@ router.post("/", verifyToken, async (req, res) => {
         // Generate QR code image
         const qrCodeImage = await generateQRCodeImage(qrCode);
 
+        // Calculate price based on quantity (tiered pricing)
+        const pricePerTicket = event.calculatePrice(quantity);
+
         // Create ticket
         const ticket = new Ticket({
           user: user._id,
           eventName: event.name,
-          price: event.ticketPrice,
+          price: pricePerTicket,
           qrCode: qrCode,
           qrCodeImage: qrCodeImage,
           metadata: {
             purchaseMethod: "online",
             deviceInfo: req.headers["user-agent"] || "",
             ipAddress: req.ip || req.connection.remoteAddress || "",
+            quantity: quantity,
+            totalAmount: event.calculateTotalAmount(quantity),
           },
         });
 
@@ -145,20 +150,30 @@ router.post("/", verifyToken, async (req, res) => {
     }));
 
     // Get updated event data
-    const updatedEvent = await Event.findOne();
+    const updatedEvent = await Event.getEventWithTicketCounts();
+    const totalAmount = event.calculateTotalAmount(quantity);
+    const pricePerTicket = event.calculatePrice(quantity);
 
     res.status(201).json({
       success: true,
       message: `${quantity} ticket(s) booked successfully!`,
       tickets: responseTickets,
-      totalAmount: event.ticketPrice * quantity,
+      totalAmount: totalAmount,
+      pricePerTicket: pricePerTicket,
+      pricing: {
+        quantity: quantity,
+        pricePerTicket: pricePerTicket,
+        totalAmount: totalAmount,
+        appliedTier:
+          quantity >= 8 ? "group8" : quantity >= 4 ? "group4" : "individual",
+      },
       event: {
         name: updatedEvent.name,
         date: updatedEvent.date,
         venue: updatedEvent.venue,
         totalTickets: updatedEvent.totalTickets,
-        soldTickets: updatedEvent.soldTickets,
-        availableTickets: updatedEvent.totalTickets - updatedEvent.soldTickets,
+        soldTickets: updatedEvent._soldTickets || 0,
+        availableTickets: updatedEvent.availableTickets,
       },
     });
   } catch (error) {

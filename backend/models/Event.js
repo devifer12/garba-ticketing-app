@@ -71,6 +71,20 @@ const eventSchema = new mongoose.Schema({
     max: [50000, "Ticket price cannot exceed ₹50,000"],
   },
 
+  groupPrice4: {
+    type: Number,
+    required: [true, "Group price for 4+ tickets is required"],
+    min: [0, "Group price cannot be negative"],
+    max: [50000, "Group price cannot exceed ₹50,000"],
+  },
+
+  groupPrice8: {
+    type: Number,
+    required: [true, "Group price for 8+ tickets is required"],
+    min: [0, "Group price cannot be negative"],
+    max: [50000, "Group price cannot exceed ₹50,000"],
+  },
+
   totalTickets: {
     type: Number,
     required: [true, "Total tickets count is required"],
@@ -269,6 +283,23 @@ eventSchema.methods.getTicketAvailability = async function () {
     isSoldOut: soldTicketsCount >= this.totalTickets,
     soldPercentage: Math.round((soldTicketsCount / this.totalTickets) * 100),
   };
+};
+
+// Instance method to calculate price based on quantity
+eventSchema.methods.calculatePrice = function (quantity) {
+  if (quantity >= 8) {
+    return this.groupPrice8;
+  } else if (quantity >= 4) {
+    return this.groupPrice4;
+  } else {
+    return this.ticketPrice;
+  }
+};
+
+// Instance method to calculate total amount
+eventSchema.methods.calculateTotalAmount = function (quantity) {
+  const pricePerTicket = this.calculatePrice(quantity);
+  return pricePerTicket * quantity;
 };
 
 // Instance method to sell tickets (update sold count)
