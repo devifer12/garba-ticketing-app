@@ -11,10 +11,15 @@ const verifyToken = async (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    console.log("Full error:", err);
+    if (process.env.NODE_ENV === "development") {
+      console.log("Auth error:", err.message);
+    }
     res.status(401).json({
       error: "Invalid token",
-      details: err.message,
+      details:
+        process.env.NODE_ENV === "development"
+          ? err.message
+          : "Authentication failed",
     });
   }
 };

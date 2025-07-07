@@ -1,16 +1,20 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { eventAPI } from '../services/api';
-import Navbar from '../components/common/navbar/Navbar';
-import Footer from '../components/common/footer/Footer';
-import Hero from '../components/home/Hero';
+import React, { useState, useEffect, Suspense, lazy } from "react";
+import { eventAPI } from "../services/api";
+import Navbar from "../components/common/navbar/Navbar";
+import Footer from "../components/common/footer/Footer";
+import Hero from "../components/home/Hero";
 
 // Lazy load non-critical components
-const AboutSection = lazy(() => import('../components/home/AboutSection'));
-const EventDetails = lazy(() => import('../components/home/EventDetails'));
-const CountdownSection = lazy(() => import('../components/home/CountdownSection'));
-const FeaturesSection = lazy(() => import('../components/home/FeaturesSection'));
-const VenueSection = lazy(() => import('../components/home/VenueSection'));
-const FAQSection = lazy(() => import('../components/home/FAQSection'));
+const AboutSection = lazy(() => import("../components/home/AboutSection"));
+const EventDetails = lazy(() => import("../components/home/EventDetails"));
+const CountdownSection = lazy(() =>
+  import("../components/home/CountdownSection")
+);
+const FeaturesSection = lazy(() =>
+  import("../components/home/FeaturesSection")
+);
+const VenueSection = lazy(() => import("../components/home/VenueSection"));
+const FAQSection = lazy(() => import("../components/home/FAQSection"));
 
 // Skeleton components to prevent layout shift
 const SectionSkeleton = ({ height = "400px" }) => (
@@ -19,14 +23,18 @@ const SectionSkeleton = ({ height = "400px" }) => (
       <div className="max-w-6xl mx-auto">
         {/* Title skeleton */}
         <div className="text-center mb-8 sm:mb-12">
-          <div className="h-12 sm:h-16 bg-slate-700/30 rounded-lg mx-auto mb-4 animate-pulse" style={{ width: '60%' }}></div>
+          <div
+            className="h-12 sm:h-16 bg-slate-700/30 rounded-lg mx-auto mb-4 animate-pulse"
+            style={{ width: "60%" }}></div>
           <div className="w-24 h-1 bg-slate-600/30 rounded-full mx-auto mb-6"></div>
         </div>
-        
+
         {/* Content skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-slate-800/30 rounded-2xl p-6 border border-slate-700/30 animate-pulse">
+            <div
+              key={i}
+              className="bg-slate-800/30 rounded-2xl p-6 border border-slate-700/30 animate-pulse">
               <div className="h-6 bg-slate-700/30 rounded mb-4"></div>
               <div className="h-4 bg-slate-700/30 rounded mb-2"></div>
               <div className="h-4 bg-slate-700/30 rounded w-3/4"></div>
@@ -47,7 +55,9 @@ const Home = () => {
         const response = await eventAPI.getCurrentEvent();
         setEvent(response.data.data);
       } catch (err) {
-        console.error('Failed to fetch event data:', err);
+        if (process.env.NODE_ENV === "development") {
+          console.error("Failed to fetch event data:", err);
+        }
         // Don't block the UI - show default content
       }
     };

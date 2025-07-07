@@ -2,15 +2,17 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://garba-rass-2025.onrender.com/sitemap.xml
+Sitemap: https://garba-ticketing-app.vercel.app/sitemap.xml
 
 # Crawl-delay
 Crawl-delay: 1
 
-# Disallow admin areas
+# Disallow admin and private areas
 Disallow: /dashboard/admin
 Disallow: /dashboard/manager
 Disallow: /dashboard/qrchecker
+Disallow: /dashboard
+Disallow: /api/
 
 # Allow public pages
 Allow: /
@@ -18,3 +20,11 @@ Allow: /privacy-policy
 Allow: /cancellation-policy
 Allow: /refund-policy
 Allow: /terms-of-service
+
+# Block common bot paths
+Disallow: /*.json$
+Disallow: /*.xml$
+Disallow: /wp-admin/
+Disallow: /admin/
+Disallow: /login
+Disallow: /signin

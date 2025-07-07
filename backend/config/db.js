@@ -9,7 +9,9 @@ const connectDB = async () => {
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
       bufferCommands: true, // Enable mongoose buffering to prevent errors before initial connection
     });
-    console.log("✅ MongoDB Connected to garba-ticketing-app database");
+    if (process.env.NODE_ENV !== "production") {
+      console.log("✅ MongoDB Connected to garba-ticketing-app database");
+    }
   } catch (err) {
     console.error("❌ MongoDB Connection Error:", err.message);
     process.exit(1);

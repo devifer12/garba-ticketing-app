@@ -35,9 +35,12 @@ export default defineConfig({
     minify: "terser",
     terserOptions: {
       compress: {
-        drop_console: true,
+        drop_console: process.env.NODE_ENV === "production",
         drop_debugger: true,
-        pure_funcs: ["console.log", "console.info", "console.debug"],
+        pure_funcs:
+          process.env.NODE_ENV === "production"
+            ? ["console.log", "console.info", "console.debug"]
+            : [],
         passes: 2,
       },
       mangle: {
@@ -76,8 +79,11 @@ export default defineConfig({
     exclude: ["qr-scanner"],
   },
 
-  // ✅ Define how to handle different file types
+  // Define environment variables
   define: {
     __DEV__: process.env.NODE_ENV === "development",
+    "process.env.NODE_ENV": JSON.stringify(
+      process.env.NODE_ENV || "development",
+    ),
   },
 });

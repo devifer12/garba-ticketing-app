@@ -13,12 +13,8 @@ class EmailService {
       // Check if required environment variables are set
       if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
         console.error(
-          "❌ Email credentials not configured. EMAIL_USER and EMAIL_PASS environment variables are required.",
+          "Email credentials not configured. EMAIL_USER and EMAIL_PASS environment variables are required.",
         );
-        console.log("📧 Available env vars:", {
-          EMAIL_USER: process.env.EMAIL_USER ? "Set" : "Missing",
-          EMAIL_PASS: process.env.EMAIL_PASS ? "Set" : "Missing",
-        });
         return;
       }
 
@@ -36,38 +32,52 @@ class EmailService {
         },
       });
 
-      console.log(
-        "✅ Email service initialized successfully with user:",
-        process.env.EMAIL_USER,
-      );
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          "✅ Email service initialized successfully with user:",
+          process.env.EMAIL_USER,
+        );
+      }
 
       // Verify connection immediately
       this.verifyConnection()
         .then((isValid) => {
-          if (isValid) {
-            console.log("✅ Email service connection verified successfully");
-          } else {
-            console.error("❌ Email service connection verification failed");
+          if (process.env.NODE_ENV === "development") {
+            if (isValid) {
+              console.log("✅ Email service connection verified successfully");
+            } else {
+              console.error("❌ Email service connection verification failed");
+            }
           }
         })
         .catch((err) => {
-          console.error(
-            "❌ Email service connection verification error:",
-            err.message,
-          );
+          if (process.env.NODE_ENV === "development") {
+            console.error(
+              "❌ Email service connection verification error:",
+              err.message,
+            );
+          }
         });
     } catch (error) {
-      console.error("❌ Failed to initialize email service:", error);
+      console.error(
+        "Failed to initialize email service:",
+        process.env.NODE_ENV === "development" ? error : error.message,
+      );
     }
   }
 
   async verifyConnection() {
     try {
       await this.transporter.verify();
-      console.log("✅ Email service connection verified");
+      if (process.env.NODE_ENV === "development") {
+        console.log("✅ Email service connection verified");
+      }
       return true;
     } catch (error) {
-      console.error("❌ Email service connection failed:", error);
+      console.error(
+        "Email service connection failed:",
+        process.env.NODE_ENV === "development" ? error : error.message,
+      );
       return false;
     }
   }
@@ -75,7 +85,6 @@ class EmailService {
   async generateTicketPDF(ticketData, eventData) {
     let browser;
     try {
-      console.log("🔧 Launching Puppeteer for PDF generation...");
       browser = await puppeteer.launch({
         headless: "new",
         args: [
@@ -89,7 +98,6 @@ class EmailService {
           "--disable-gpu",
         ],
       });
-      console.log("✅ Puppeteer launched successfully");
 
       const page = await browser.newPage();
 
@@ -287,7 +295,7 @@ class EmailService {
               
               <div class="footer">
                 <p>Thank you for choosing Garba Rass 2025! 🎉</p>
-                <p>For support, contact us at support@garbarass2025.com</p>
+                <p>For support, contact us at hyyevents@gmail.com</p>
                 <p>This is a computer-generated ticket. No signature required.</p>
               </div>
             </div>
@@ -308,26 +316,26 @@ class EmailService {
         },
       });
 
-      console.log(
-        "✅ PDF generated successfully, size:",
-        pdfBuffer.length,
-        "bytes",
-      );
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          "✅ PDF generated successfully, size:",
+          pdfBuffer.length,
+          "bytes",
+        );
+      }
       return pdfBuffer;
     } catch (error) {
-      console.error("❌ Error generating PDF:", error);
-      console.error("PDF Error details:", {
-        message: error.message,
-        stack: error.stack?.split("\n").slice(0, 5).join("\n"),
-      });
+      console.error(
+        "Error generating PDF:",
+        process.env.NODE_ENV === "development" ? error : error.message,
+      );
       throw error;
     } finally {
       if (browser) {
         try {
           await browser.close();
-          console.log("🔧 Puppeteer browser closed");
         } catch (closeError) {
-          console.error("⚠️ Error closing browser:", closeError.message);
+          console.error("Error closing browser:", closeError.message);
         }
       }
     }
@@ -557,7 +565,7 @@ class EmailService {
               </div>
               
               <div style="text-align: center; margin: 20px 0;">
-                <p>Questions? Contact us at <strong>support@garbarass2025.com</strong></p>
+                <p>Questions? Contact us at <strong>hyyevents@gmail.com</strong></p>
               </div>
             </div>
             
@@ -725,7 +733,7 @@ class EmailService {
               
               <div style="text-align: center; margin: 30px 0;">
                 <p>We're sorry to see you go! We hope to see you at future events.</p>
-                <p>Questions? Contact us at <strong>support@garbarass2025.com</strong></p>
+                <p>Questions? Contact us at <strong>hyyevents@gmail.com</strong></p>
               </div>
             </div>
             
@@ -770,35 +778,32 @@ class EmailService {
     quantity,
   ) {
     try {
-      console.log("📧 Starting email send process...");
+      if (process.env.NODE_ENV === "development") {
+        console.log("📧 Starting email send process...");
+      }
 
       if (!this.transporter) {
-        console.error("❌ Email transporter not initialized");
         throw new Error(
           "Email service not initialized - check EMAIL_USER and EMAIL_PASS environment variables",
         );
       }
 
-      console.log(
-        `📧 Sending purchase confirmation email to ${userData.email}`,
-      );
-      console.log("📊 Email data:", {
-        userEmail: userData.email,
-        userName: userData.name,
-        ticketCount: ticketData.length,
-        eventName: eventData.name,
-        totalAmount,
-      });
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          `📧 Sending purchase confirmation email to ${userData.email}`,
+        );
+      }
 
       // Generate PDF attachments for each ticket
       const attachments = [];
-      console.log(`🎫 Generating ${ticketData.length} PDF ticket(s)...`);
 
       for (let i = 0; i < ticketData.length; i++) {
         const ticket = ticketData[i];
-        console.log(
-          `📄 Generating PDF for ticket ${i + 1}/${ticketData.length}: ${ticket.ticketId}`,
-        );
+        if (process.env.NODE_ENV === "development") {
+          console.log(
+            `📄 Generating PDF for ticket ${i + 1}/${ticketData.length}: ${ticket.ticketId}`,
+          );
+        }
 
         try {
           const pdfBuffer = await this.generateTicketPDF(ticket, eventData);
@@ -807,23 +812,20 @@ class EmailService {
             content: pdfBuffer,
             contentType: "application/pdf",
           });
-          console.log(`✅ PDF generated for ticket ${ticket.ticketId}`);
+          if (process.env.NODE_ENV === "development") {
+            console.log(`✅ PDF generated for ticket ${ticket.ticketId}`);
+          }
         } catch (pdfError) {
           console.error(
-            `❌ Failed to generate PDF for ticket ${ticket.ticketId}:`,
+            `Failed to generate PDF for ticket ${ticket.ticketId}:`,
             pdfError.message,
           );
           // Continue without this attachment rather than failing the entire email
-          console.log(
-            "⚠️ Continuing email send without PDF attachment for this ticket",
-          );
         }
       }
 
-      console.log(`📎 Generated ${attachments.length} PDF attachments`);
-
       // If no PDFs were generated, send email without attachments
-      if (attachments.length === 0) {
+      if (attachments.length === 0 && process.env.NODE_ENV === "development") {
         console.log(
           "⚠️ No PDF attachments generated, sending email without attachments",
         );
@@ -846,48 +848,47 @@ class EmailService {
         attachments: attachments,
       };
 
-      console.log("📤 Sending email with options:", {
-        from: mailOptions.from,
-        to: mailOptions.to,
-        subject: mailOptions.subject,
-        attachmentCount: mailOptions.attachments.length,
-      });
+      if (process.env.NODE_ENV === "development") {
+        console.log("📤 Sending email with options:", {
+          from: mailOptions.from,
+          to: mailOptions.to,
+          subject: mailOptions.subject,
+          attachmentCount: mailOptions.attachments.length,
+        });
+      }
 
       const result = await this.transporter.sendMail(mailOptions);
-      console.log(
-        "✅ Purchase confirmation email sent successfully:",
-        result.messageId,
-      );
-      console.log("📧 Email result:", {
-        messageId: result.messageId,
-        response: result.response,
-      });
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          "✅ Purchase confirmation email sent successfully:",
+          result.messageId,
+        );
+      }
       return result;
     } catch (error) {
-      console.error("❌ Failed to send purchase confirmation email:", error);
-      console.error("📧 Email error details:", {
-        message: error.message,
-        code: error.code,
-        command: error.command,
-        response: error.response,
-        responseCode: error.responseCode,
-      });
+      console.error(
+        "Failed to send purchase confirmation email:",
+        process.env.NODE_ENV === "development" ? error : error.message,
+      );
       throw error;
     }
   }
 
   async sendTicketCancellationEmail(userData, ticketData, eventData) {
     try {
-      console.log("📧 Starting cancellation email send process...");
+      if (process.env.NODE_ENV === "development") {
+        console.log("📧 Starting cancellation email send process...");
+      }
 
       if (!this.transporter) {
-        console.error("❌ Email transporter not initialized for cancellation");
         throw new Error(
           "Email service not initialized - check EMAIL_USER and EMAIL_PASS environment variables",
         );
       }
 
-      console.log(`📧 Sending cancellation email to ${userData.email}`);
+      if (process.env.NODE_ENV === "development") {
+        console.log(`📧 Sending cancellation email to ${userData.email}`);
+      }
 
       const mailOptions = {
         from: {
@@ -903,28 +904,27 @@ class EmailService {
         ),
       };
 
-      console.log("📤 Sending cancellation email with options:", {
-        from: mailOptions.from,
-        to: mailOptions.to,
-        subject: mailOptions.subject,
-      });
+      if (process.env.NODE_ENV === "development") {
+        console.log("📤 Sending cancellation email with options:", {
+          from: mailOptions.from,
+          to: mailOptions.to,
+          subject: mailOptions.subject,
+        });
+      }
 
       const result = await this.transporter.sendMail(mailOptions);
-      console.log("✅ Cancellation email sent successfully:", result.messageId);
-      console.log("📧 Cancellation email result:", {
-        messageId: result.messageId,
-        response: result.response,
-      });
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          "✅ Cancellation email sent successfully:",
+          result.messageId,
+        );
+      }
       return result;
     } catch (error) {
-      console.error("❌ Failed to send cancellation email:", error);
-      console.error("📧 Cancellation email error details:", {
-        message: error.message,
-        code: error.code,
-        command: error.command,
-        response: error.response,
-        responseCode: error.responseCode,
-      });
+      console.error(
+        "Failed to send cancellation email:",
+        process.env.NODE_ENV === "development" ? error : error.message,
+      );
       throw error;
     }
   }
@@ -948,10 +948,15 @@ class EmailService {
       };
 
       const result = await this.transporter.sendMail(mailOptions);
-      console.log("✅ Custom email sent successfully:", result.messageId);
+      if (process.env.NODE_ENV === "development") {
+        console.log("✅ Custom email sent successfully:", result.messageId);
+      }
       return result;
     } catch (error) {
-      console.error("❌ Failed to send custom email:", error);
+      console.error(
+        "Failed to send custom email:",
+        process.env.NODE_ENV === "development" ? error : error.message,
+      );
       throw error;
     }
   }

@@ -10,13 +10,16 @@ app.use(compression());
 
 // Enhanced CORS configuration
 const corsOptions = {
-  origin: [
-    process.env.FRONTEND_URL,
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://localhost:5174",
-    "https://garba-ticketing-app.vercel.app",
-  ],
+  origin:
+    process.env.NODE_ENV === "production"
+      ? [process.env.FRONTEND_URL, "https://garba-ticketing-app.vercel.app"]
+      : [
+          process.env.FRONTEND_URL,
+          "http://localhost:3000",
+          "http://127.0.0.1:5173",
+          "http://localhost:5174",
+          "https://garba-ticketing-app.vercel.app",
+        ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: [
@@ -37,12 +40,14 @@ const corsOptions = {
   preflightContinue: false,
 };
 
-app.use((req, res, next) => {
-  console.log("Incoming request origin:", req.headers.origin);
-  next();
-});
-
-console.log("Allowed frontend URL:", process.env.FRONTEND_URL);
+// Log CORS info only in development
+if (process.env.NODE_ENV === "development") {
+  app.use((req, res, next) => {
+    console.log("Incoming request origin:", req.headers.origin);
+    next();
+  });
+  console.log("Allowed frontend URL:", process.env.FRONTEND_URL);
+}
 
 // Apply CORS middleware first
 app.use(cors(corsOptions));
@@ -51,8 +56,8 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 // Body parsing middleware with optimized limits
-app.use(express.json({ limit: "5mb" })); // Reduced from 10mb
-app.use(express.urlencoded({ extended: true, limit: "5mb" }));
+app.use(express.json({ limit: "2mb" })); // Further reduced for production
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
 // ✅ FIXED: Proper static file serving with correct MIME types
 if (process.env.NODE_ENV === "production") {
@@ -100,10 +105,6 @@ if (process.env.NODE_ENV === "production") {
 if (process.env.NODE_ENV === "development") {
   app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    console.log("Headers:", req.headers);
-    if (req.body && Object.keys(req.body).length > 0) {
-      console.log("Body:", req.body);
-    }
     next();
   });
 }
@@ -240,7 +241,10 @@ if (process.env.NODE_ENV === "production") {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error("Global error handler:", err);
+  console.error(
+    "Global error handler:",
+    process.env.NODE_ENV === "development" ? err : err.message,
+  );
 
   if (err.message && err.message.includes("CORS")) {
     return res.status(403).json({
@@ -259,12 +263,18 @@ app.use(errorHandler);
 
 // Handle uncaught exceptions
 process.on("uncaughtException", (err) => {
-  console.error("Uncaught Exception:", err);
+  console.error(
+    "Uncaught Exception:",
+    process.env.NODE_ENV === "development" ? err : err.message,
+  );
   process.exit(1);
 });
 
 process.on("unhandledRejection", (err) => {
-  console.error("Unhandled Rejection:", err);
+  console.error(
+    "Unhandled Rejection:",
+    process.env.NODE_ENV === "development" ? err : err.message,
+  );
   process.exit(1);
 });
 

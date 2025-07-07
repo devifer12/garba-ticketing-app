@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <!-- Cache Control Headers -->
+    <!-- Cache Control Headers for HTML only -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -64,20 +64,20 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://garba-ticketing-app.onrender.com">
     
-    <!-- Version timestamp for cache busting - Fixed for better caching -->
+    <!-- Version timestamp for cache busting -->
     <script>
-      window.APP_VERSION = '2025.01.01.001'; // Static version that only changes on deployment
+      window.APP_VERSION = '2025.01.01.002'; // Updated for production
     </script>
   </head>
   <body>
     <div id="root">
-    <!-- Google Analytics (replace with your tracking ID) -->
+    <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TLZE1WJ2ZY"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'GA_MEASUREMENT_ID');
+      gtag('config', 'G-TLZE1WJ2ZY');
     </script>
     
     <script type="module" src="/src/main.jsx"></script>

@@ -41,7 +41,9 @@ export const AuthProvider = ({ children }) => {
       setBackendUser(response.data.user);
       return { user: response.data.user, isNewUser: response.data.isNewUser };
     } catch (error) {
-      console.error("Backend sync failed:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Backend sync failed:", error);
+      }
     }
   };
 
@@ -79,7 +81,9 @@ export const AuthProvider = ({ children }) => {
         isNewUser: syncResult.isNewUser,
       };
     } catch (error) {
-      console.error("Google Sign-In Error:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Google Sign-In Error:", error);
+      }
       clearUserState();
 
       let errorMessage = "Sign-in failed. Please try again.";
@@ -106,14 +110,18 @@ export const AuthProvider = ({ children }) => {
         await api.post("/auth/logout");
       } catch (backendError) {
         // Ignore backend logout errors as they're not critical
-        console.log("Backend logout error (ignored):", backendError.message);
+        if (process.env.NODE_ENV === "development") {
+          console.log("Backend logout error (ignored):", backendError.message);
+        }
       }
 
       // Clear state and sign out from Firebase
       clearUserState();
       await signOut(auth);
     } catch (error) {
-      console.error("Logout error:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Logout error:", error);
+      }
       // Don't show error for logout - just clear state
       clearUserState();
     } finally {
@@ -127,7 +135,9 @@ export const AuthProvider = ({ children }) => {
       setBackendUser(response.data.user);
       return response.data.user;
     } catch (error) {
-      console.error("Failed to fetch user profile:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Failed to fetch user profile:", error);
+      }
       return null;
     }
   };
@@ -138,7 +148,9 @@ export const AuthProvider = ({ children }) => {
       setBackendUser(response.data.user);
       return response.data.user;
     } catch (error) {
-      console.error("Failed to update user profile:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Failed to update user profile:", error);
+      }
       throw error;
     }
   };
@@ -164,7 +176,9 @@ export const AuthProvider = ({ children }) => {
           clearUserState();
         }
       } catch (error) {
-        console.error("Auth state change error:", error);
+        if (process.env.NODE_ENV === "development") {
+          console.error("Auth state change error:", error);
+        }
         setError("Authentication error occurred");
       } finally {
         setInitializing(false);

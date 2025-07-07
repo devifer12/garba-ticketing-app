@@ -7,12 +7,13 @@ const verifyToken = require("../middlewares/authMiddleware");
 // Google Sign-In Route
 router.post("/google-signin", async (req, res) => {
   try {
-    console.log("Google signin request received:", req.body);
+    if (process.env.NODE_ENV === "development") {
+      console.log("Google signin request received");
+    }
 
     const { idToken } = req.body;
 
     if (!idToken) {
-      console.error("No idToken provided");
       return res.status(400).json({ error: "ID token is required" });
     }
 
@@ -128,10 +129,12 @@ router.post("/logout", async (req, res) => {
         }
       } catch (tokenError) {
         // Token might be expired during logout, which is fine
-        console.log(
-          "Token verification failed during logout (expected):",
-          tokenError.message,
-        );
+        if (process.env.NODE_ENV === "development") {
+          console.log(
+            "Token verification failed during logout (expected):",
+            tokenError.message,
+          );
+        }
       }
     }
 

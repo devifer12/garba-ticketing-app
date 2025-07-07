@@ -35,7 +35,6 @@ export const useApi = () => {
       if (cacheKey) {
         const cached = apiCache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < cacheDuration) {
-          console.log("🚀 Cache hit for:", cacheKey);
           return cached.data;
         }
       }
@@ -67,7 +66,6 @@ export const useApi = () => {
     } catch (err) {
       // Don't show error if request was aborted
       if (err.name === "AbortError") {
-        console.log("Request aborted");
         return;
       }
 

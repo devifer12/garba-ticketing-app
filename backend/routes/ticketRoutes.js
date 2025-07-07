@@ -157,12 +157,9 @@ router.post("/", verifyToken, async (req, res) => {
 
     // Send email notification
     try {
-      console.log("📧 Attempting to send purchase confirmation email...");
-      console.log("📊 Email service status:", {
-        hasTransporter: !!emailService.transporter,
-        emailUser: process.env.EMAIL_USER ? "Set" : "Missing",
-        emailPass: process.env.EMAIL_PASS ? "Set" : "Missing",
-      });
+      if (process.env.NODE_ENV === "development") {
+        console.log("📧 Attempting to send purchase confirmation email...");
+      }
 
       await emailService.sendTicketPurchaseEmail(
         user,
@@ -171,19 +168,16 @@ router.post("/", verifyToken, async (req, res) => {
         totalAmount,
         quantity,
       );
-      console.log("✅ Purchase confirmation email sent successfully");
+      if (process.env.NODE_ENV === "development") {
+        console.log("✅ Purchase confirmation email sent successfully");
+      }
     } catch (emailError) {
       console.error(
-        "⚠️ Failed to send purchase confirmation email:",
-        emailError,
+        "Failed to send purchase confirmation email:",
+        process.env.NODE_ENV === "development"
+          ? emailError
+          : emailError.message,
       );
-      console.error("📧 Email error details:", {
-        message: emailError.message,
-        code: emailError.code,
-        command: emailError.command,
-        response: emailError.response,
-        stack: emailError.stack?.split("\n").slice(0, 3).join("\n"),
-      });
       // Don't fail the ticket creation if email fails
     }
 
@@ -345,13 +339,14 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
   try {
     const { qrCode } = req.body;
 
-    console.log("🔍 QR Verification Request:", {
-      qrCode: qrCode ? qrCode.substring(0, 20) + "..." : "null",
-      userUID: req.user.uid,
-    });
+    if (process.env.NODE_ENV === "development") {
+      console.log("🔍 QR Verification Request:", {
+        qrCode: qrCode ? qrCode.substring(0, 20) + "..." : "null",
+        userUID: req.user.uid,
+      });
+    }
 
     if (!qrCode) {
-      console.log("❌ No QR code provided");
       return res.status(400).json({
         success: false,
         error: "QR code is required",
@@ -359,12 +354,9 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
     }
 
     // Validate QR code format
-    console.log("🔍 Validating QR code format...");
     const isValidFormat = Ticket.isValidQRCode(qrCode);
-    console.log("📋 QR Code format valid:", isValidFormat);
 
     if (!isValidFormat) {
-      console.log("❌ Invalid QR code format:", qrCode);
       return res.status(400).json({
         success: false,
         error: "Invalid QR code format",
@@ -372,46 +364,19 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
     }
 
     // Find ticket by QR code
-    console.log("🔍 Searching for ticket with QR code...");
     const ticket = await Ticket.findOne({ qrCode: qrCode })
       .populate("user", "name email role")
       .populate("scannedBy", "name email");
 
-    console.log(
-      "🎫 Ticket search result:",
-      ticket
-        ? {
-            id: ticket._id,
-            ticketId: ticket.ticketId,
-            status: ticket.status,
-            userEmail: ticket.user?.email,
-          }
-        : "Not found",
-    );
-
     if (!ticket) {
-      console.log("❌ Ticket not found in database");
-
-      // Additional debugging: Check if any tickets exist
-      const totalTickets = await Ticket.countDocuments();
-      console.log("📊 Total tickets in database:", totalTickets);
-
       return res.status(404).json({
         success: false,
         error: "Ticket not found",
-        debug:
-          process.env.NODE_ENV === "development"
-            ? {
-                totalTickets,
-                searchedQR: qrCode.substring(0, 20) + "...",
-              }
-            : undefined,
       });
     }
 
     // Check ticket status
     if (ticket.status === "used") {
-      console.log("⚠️ Ticket already used");
       return res.status(400).json({
         success: false,
         error: "This ticket has already been used",
@@ -424,7 +389,6 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
     }
 
     // Return ticket information for verification
-    console.log("✅ Valid ticket found");
     res.status(200).json({
       success: true,
       message: "Valid ticket found",
@@ -444,7 +408,10 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ QR verification error:", error);
+    console.error(
+      "QR verification error:",
+      process.env.NODE_ENV === "development" ? error : error.message,
+    );
     res.status(500).json({
       success: false,
       error: "Failed to verify QR code",
@@ -459,10 +426,12 @@ router.post("/mark-used", verifyToken, async (req, res) => {
   try {
     const { qrCode } = req.body;
 
-    console.log("🎯 Mark as used request:", {
-      qrCode: qrCode ? qrCode.substring(0, 20) + "..." : "null",
-      userUID: req.user.uid,
-    });
+    if (process.env.NODE_ENV === "development") {
+      console.log("🎯 Mark as used request:", {
+        qrCode: qrCode ? qrCode.substring(0, 20) + "..." : "null",
+        userUID: req.user.uid,
+      });
+    }
 
     if (!qrCode) {
       return res.status(400).json({
@@ -482,7 +451,6 @@ router.post("/mark-used", verifyToken, async (req, res) => {
 
     // Check if user has permission to mark tickets as used
     if (!["admin", "qrchecker", "manager"].includes(checker.role)) {
-      console.log("❌ Insufficient permissions:", checker.role);
       return res.status(403).json({
         success: false,
         error: "Insufficient permissions to mark tickets as used",
@@ -496,7 +464,6 @@ router.post("/mark-used", verifyToken, async (req, res) => {
     );
 
     if (!ticket) {
-      console.log("❌ Ticket not found for marking as used");
       return res.status(404).json({
         success: false,
         error: "Ticket not found",
@@ -518,7 +485,6 @@ router.post("/mark-used", verifyToken, async (req, res) => {
 
     // Mark ticket as used
     await ticket.markAsUsed(checker._id);
-    console.log("✅ Ticket marked as used successfully");
 
     res.status(200).json({
       success: true,
@@ -540,7 +506,10 @@ router.post("/mark-used", verifyToken, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ Mark ticket as used error:", error);
+    console.error(
+      "Mark ticket as used error:",
+      process.env.NODE_ENV === "development" ? error : error.message,
+    );
     res.status(500).json({
       success: false,
       error: "Failed to mark ticket as used",
@@ -671,20 +640,24 @@ router.delete("/admin/:ticketId", verifyToken, isAdmin, async (req, res) => {
 
     // Send cancellation email before deleting
     try {
-      console.log("📧 Attempting to send cancellation email...");
+      if (process.env.NODE_ENV === "development") {
+        console.log("📧 Attempting to send cancellation email...");
+      }
       await emailService.sendTicketCancellationEmail(
         ticket.user,
         ticket,
         event,
       );
-      console.log("✅ Cancellation email sent successfully");
+      if (process.env.NODE_ENV === "development") {
+        console.log("✅ Cancellation email sent successfully");
+      }
     } catch (emailError) {
-      console.error("⚠️ Failed to send cancellation email:", emailError);
-      console.error("📧 Cancellation email error details:", {
-        message: emailError.message,
-        code: emailError.code,
-        response: emailError.response,
-      });
+      console.error(
+        "Failed to send cancellation email:",
+        process.env.NODE_ENV === "development"
+          ? emailError
+          : emailError.message,
+      );
       // Continue with deletion even if email fails
     }
 
@@ -735,7 +708,7 @@ router.get("/admin/stats", verifyToken, isManager, async (req, res) => {
 // Test email endpoint (Admin only) - for debugging
 router.post("/admin/test-email", verifyToken, isAdmin, async (req, res) => {
   try {
-    console.log("🧪 Admin email test requested");
+    // Admin email test endpoint
 
     // Find admin user
     const user = await User.findOne({ firebaseUID: req.user.uid });
@@ -783,15 +756,21 @@ router.post("/admin/test-email", verifyToken, isAdmin, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ Email test failed:", error);
+    console.error(
+      "Email test failed:",
+      process.env.NODE_ENV === "development" ? error : error.message,
+    );
     res.status(500).json({
       success: false,
       error: "Email test failed",
-      details: {
-        message: error.message,
-        code: error.code,
-        response: error.response,
-      },
+      details:
+        process.env.NODE_ENV === "development"
+          ? {
+              message: error.message,
+              code: error.code,
+              response: error.response,
+            }
+          : undefined,
     });
   }
 });
