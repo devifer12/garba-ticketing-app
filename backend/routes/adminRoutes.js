@@ -91,7 +91,7 @@ router.patch("/users/:userId/role", verifyToken, isAdmin, async (req, res) => {
     const user = await User.findByIdAndUpdate(
       userId,
       { role },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select("-firebaseUID");
 
     if (!user) {
@@ -179,6 +179,9 @@ router.get(
       const totalTickets = await Ticket.countDocuments();
       const activeTickets = await Ticket.countDocuments({ status: "active" });
       const usedTickets = await Ticket.countDocuments({ status: "used" });
+      const cancelledTickets = await Ticket.countDocuments({
+        status: "cancelled",
+      });
 
       // Calculate total revenue from ALL tickets (active + used)
       const revenueResult = await Ticket.aggregate([
@@ -200,6 +203,7 @@ router.get(
         total: totalTickets,
         active: activeTickets,
         used: usedTickets,
+        cancelled: cancelledTickets,
         revenue: totalRevenue,
         recentBookings,
       });
@@ -210,7 +214,7 @@ router.get(
         error: "Failed to fetch ticket statistics",
       });
     }
-  }
+  },
 );
 
 // Get comprehensive dashboard analytics - Available to both admin and manager
@@ -305,7 +309,7 @@ router.get(
             availableTickets: event.totalTickets - event.soldTickets,
             ticketPrice: event.ticketPrice,
             soldPercentage: Math.round(
-              (event.soldTickets / event.totalTickets) * 100
+              (event.soldTickets / event.totalTickets) * 100,
             ),
           }
         : null;
@@ -314,7 +318,7 @@ router.get(
       const peakSalesHour = todayHourlySales.reduce(
         (peak, current) =>
           current.count > (peak?.count || 0) ? current : peak,
-        null
+        null,
       );
 
       res.status(200).json({
@@ -354,7 +358,7 @@ router.get(
         error: "Failed to fetch dashboard analytics",
       });
     }
-  }
+  },
 );
 
 // Helper function to calculate sales velocity
@@ -425,7 +429,7 @@ router.get(
         error: "Failed to fetch ticket management data",
       });
     }
-  }
+  },
 );
 
 // Bulk update ticket status (admin only)
@@ -440,7 +444,7 @@ router.patch("/tickets/bulk-update", verifyToken, isAdmin, async (req, res) => {
       });
     }
 
-    const validStatuses = ["active", "used"];
+    const validStatuses = ["active", "used", "cancelled"];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -450,7 +454,7 @@ router.patch("/tickets/bulk-update", verifyToken, isAdmin, async (req, res) => {
 
     const result = await Ticket.updateMany(
       { _id: { $in: ticketIds } },
-      { status }
+      { status },
     );
 
     res.status(200).json({
@@ -487,14 +491,14 @@ router.get(
         const csvData = tickets
           .map(
             (ticket) =>
-              `${ticket._id},${ticket.user.name},${ticket.user.email},${ticket.eventName},${ticket.price},${ticket.status},${ticket.createdAt}`
+              `${ticket._id},${ticket.user.name},${ticket.user.email},${ticket.eventName},${ticket.price},${ticket.status},${ticket.createdAt}`,
           )
           .join("\n");
 
         res.setHeader("Content-Type", "text/csv");
         res.setHeader(
           "Content-Disposition",
-          "attachment; filename=tickets.csv"
+          "attachment; filename=tickets.csv",
         );
         res.send(csvHeader + csvData);
       } else {
@@ -513,7 +517,7 @@ router.get(
         error: "Failed to export tickets",
       });
     }
-  }
+  },
 );
 
 // System health check (admin only)

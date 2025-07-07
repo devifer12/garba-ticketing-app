@@ -27,7 +27,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Simplified response interceptor
@@ -51,7 +51,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(enhanceError(error));
-  }
+  },
 );
 
 const enhanceError = (error) => {
@@ -99,6 +99,8 @@ export const ticketAPI = {
     api.post(API_ENDPOINTS.TICKETS.VERIFY_QR, { qrCode }),
   markTicketAsUsed: (qrCode) =>
     api.post(API_ENDPOINTS.TICKETS.MARK_USED, { qrCode }),
+  cancelTicket: (ticketId, reason) =>
+    api.patch(`${API_ENDPOINTS.TICKETS.BASE}/cancel/${ticketId}`, { reason }),
 };
 
 // Admin API with  support and error handling

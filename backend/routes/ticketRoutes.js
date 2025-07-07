@@ -519,6 +519,142 @@ router.post("/mark-used", verifyToken, async (req, res) => {
   }
 });
 
+// Cancel ticket endpoint (for users)
+router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const { reason } = req.body;
+
+    console.log("🚫 Cancel ticket request:", {
+      ticketId,
+      reason: reason ? reason.substring(0, 50) + "..." : "No reason provided",
+      userUID: req.user.uid,
+    });
+
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: "Cancellation reason is required",
+      });
+    }
+
+    // Find user by Firebase UID
+    const user = await User.findOne({ firebaseUID: req.user.uid });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    // Find ticket and ensure it belongs to the requesting user
+    const ticket = await Ticket.findOne({
+      _id: ticketId,
+      user: user._id,
+    }).populate("user", "name email");
+
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        error: "Ticket not found or you don't have permission to cancel it",
+      });
+    }
+
+    // Check if ticket is already cancelled or used
+    if (ticket.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        error: "This ticket has already been cancelled",
+      });
+    }
+
+    if (ticket.status === "used") {
+      return res.status(400).json({
+        success: false,
+        error: "Cannot cancel a ticket that has already been used",
+      });
+    }
+
+    // Get event details to check cancellation policy
+    const event = await Event.findOne();
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: "Event not found",
+      });
+    }
+
+    // Check if cancellation is allowed (at least 10 days before event)
+    const eventDate = new Date(event.date);
+    const currentDate = new Date();
+    const daysDifference = Math.ceil(
+      (eventDate - currentDate) / (1000 * 60 * 60 * 24),
+    );
+
+    console.log("📅 Cancellation policy check:", {
+      eventDate: eventDate.toISOString(),
+      currentDate: currentDate.toISOString(),
+      daysDifference,
+      minDaysRequired: 10,
+    });
+
+    if (daysDifference < 10) {
+      return res.status(400).json({
+        success: false,
+        error: `Tickets can only be cancelled at least 10 days before the event. Only ${daysDifference} days remaining.`,
+      });
+    }
+
+    // Cancel the ticket
+    await ticket.cancelTicket(reason.trim());
+    console.log("✅ Ticket cancelled successfully:", ticket.ticketId);
+
+    // Send cancellation email
+    try {
+      console.log("📧 Attempting to send cancellation email...");
+      await emailService.sendTicketCancellationEmail(
+        ticket.user,
+        ticket,
+        event,
+      );
+      console.log("✅ Cancellation email sent successfully");
+    } catch (emailError) {
+      console.error("⚠️ Failed to send cancellation email:", emailError);
+      console.error("📧 Cancellation email error details:", {
+        message: emailError.message,
+        code: emailError.code,
+        response: emailError.response,
+      });
+      // Continue with cancellation even if email fails
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Ticket cancelled successfully",
+      ticket: {
+        id: ticket._id,
+        ticketId: ticket.ticketId,
+        status: ticket.status,
+        cancelledAt: ticket.cancelledAt,
+        cancellationReason: ticket.cancellationReason,
+        isRefundDone: ticket.isRefundDone,
+        user: {
+          name: ticket.user.name,
+          email: ticket.user.email,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("❌ Cancel ticket error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to cancel ticket",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
 // Admin routes (for managing all tickets)
 const { isAdmin, isManager } = require("../middlewares/roleMiddleware");
 
@@ -583,7 +719,7 @@ router.patch(
       const { ticketId } = req.params;
       const { status } = req.body;
 
-      if (!["active", "used"].includes(status)) {
+      if (!["active", "used", "cancelled"].includes(status)) {
         return res.status(400).json({
           success: false,
           error: "Invalid status",
@@ -701,76 +837,6 @@ router.get("/admin/stats", verifyToken, isManager, async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to fetch ticket statistics",
-    });
-  }
-});
-
-// Test email endpoint (Admin only) - for debugging
-router.post("/admin/test-email", verifyToken, isAdmin, async (req, res) => {
-  try {
-    // Admin email test endpoint
-
-    // Find admin user
-    const user = await User.findOne({ firebaseUID: req.user.uid });
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found",
-      });
-    }
-
-    // Test basic email connection
-    const isConnected = await emailService.verifyConnection();
-    if (!isConnected) {
-      return res.status(500).json({
-        success: false,
-        error: "Email service connection failed",
-        details: "Check EMAIL_USER and EMAIL_PASS environment variables",
-      });
-    }
-
-    // Send test email
-    const testResult = await emailService.sendCustomEmail(
-      user.email,
-      "🧪 Test Email - Garba Rass 2025",
-      `
-        <h1>Email Test Successful!</h1>
-        <p>This test email confirms that the email service is working correctly.</p>
-        <p><strong>Test Details:</strong></p>
-        <ul>
-          <li>Sent to: ${user.email}</li>
-          <li>Sent at: ${new Date().toISOString()}</li>
-          <li>From: ${process.env.EMAIL_USER}</li>
-        </ul>
-        <p>If you received this email, the email service is configured correctly.</p>
-      `,
-    );
-
-    res.status(200).json({
-      success: true,
-      message: "Test email sent successfully",
-      details: {
-        messageId: testResult.messageId,
-        sentTo: user.email,
-        sentAt: new Date().toISOString(),
-      },
-    });
-  } catch (error) {
-    console.error(
-      "Email test failed:",
-      process.env.NODE_ENV === "development" ? error : error.message,
-    );
-    res.status(500).json({
-      success: false,
-      error: "Email test failed",
-      details:
-        process.env.NODE_ENV === "development"
-          ? {
-              message: error.message,
-              code: error.code,
-              response: error.response,
-            }
-          : undefined,
     });
   }
 });

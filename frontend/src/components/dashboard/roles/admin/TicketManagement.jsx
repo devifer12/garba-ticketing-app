@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { adminAPI, apiUtils } from '../../../../services/api';
-import { toast } from 'react-toastify';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { adminAPI, apiUtils } from "../../../../services/api";
+import { toast } from "react-toastify";
 
 const TicketManagement = () => {
   const [tickets, setTickets] = useState([]);
@@ -11,17 +11,17 @@ const TicketManagement = () => {
     current: 1,
     total: 1,
     count: 0,
-    totalTickets: 0
+    totalTickets: 0,
   });
   const [filters, setFilters] = useState({
-    status: 'all',
-    search: '',
+    status: "all",
+    search: "",
     page: 1,
-    limit: 20
+    limit: 20,
   });
   const [selectedTickets, setSelectedTickets] = useState([]);
   const [showBulkModal, setShowBulkModal] = useState(false);
-  const [bulkStatus, setBulkStatus] = useState('');
+  const [bulkStatus, setBulkStatus] = useState("");
 
   useEffect(() => {
     fetchTickets();
@@ -31,13 +31,12 @@ const TicketManagement = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await adminAPI.getTicketManagement(filters);
       setTickets(response.data.tickets);
       setPagination(response.data.pagination);
-      
     } catch (err) {
-      console.error('Failed to fetch tickets:', err);
+      console.error("Failed to fetch tickets:", err);
       const errorMessage = apiUtils.formatErrorMessage(err);
       setError(errorMessage);
       toast.error(`Failed to load tickets: ${errorMessage}`);
@@ -47,20 +46,20 @@ const TicketManagement = () => {
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       [key]: value,
-      page: key !== 'page' ? 1 : value
+      page: key !== "page" ? 1 : value,
     }));
   };
 
   const handleStatusUpdate = async (ticketId, newStatus) => {
     try {
       await adminAPI.updateTicketStatus(ticketId, newStatus);
-      toast.success('Ticket status updated successfully');
+      toast.success("Ticket status updated successfully");
       fetchTickets();
     } catch (err) {
-      console.error('Failed to update ticket status:', err);
+      console.error("Failed to update ticket status:", err);
       const errorMessage = apiUtils.formatErrorMessage(err);
       toast.error(`Failed to update status: ${errorMessage}`);
     }
@@ -68,7 +67,7 @@ const TicketManagement = () => {
 
   const handleBulkUpdate = async () => {
     if (selectedTickets.length === 0 || !bulkStatus) {
-      toast.error('Please select tickets and status');
+      toast.error("Please select tickets and status");
       return;
     }
 
@@ -77,62 +76,64 @@ const TicketManagement = () => {
       toast.success(`Updated ${selectedTickets.length} tickets successfully`);
       setSelectedTickets([]);
       setShowBulkModal(false);
-      setBulkStatus('');
+      setBulkStatus("");
       fetchTickets();
     } catch (err) {
-      console.error('Failed to bulk update tickets:', err);
+      console.error("Failed to bulk update tickets:", err);
       const errorMessage = apiUtils.formatErrorMessage(err);
       toast.error(`Failed to update tickets: ${errorMessage}`);
     }
   };
 
-  const handleExport = async (format = 'json') => {
+  const handleExport = async (format = "json") => {
     try {
       const response = await adminAPI.exportTickets(format);
-      
-      if (format === 'csv') {
+
+      if (format === "csv") {
         // Handle CSV download
-        const blob = new Blob([response.data], { type: 'text/csv' });
+        const blob = new Blob([response.data], { type: "text/csv" });
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
-        a.download = 'tickets.csv';
+        a.download = "tickets.csv";
         a.click();
         window.URL.revokeObjectURL(url);
       } else {
         // Handle JSON download
-        const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(response.data, null, 2)], {
+          type: "application/json",
+        });
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
-        a.download = 'tickets.json';
+        a.download = "tickets.json";
         a.click();
         window.URL.revokeObjectURL(url);
       }
-      
-      toast.success('Tickets exported successfully');
+
+      toast.success("Tickets exported successfully");
     } catch (err) {
-      console.error('Failed to export tickets:', err);
+      console.error("Failed to export tickets:", err);
       const errorMessage = apiUtils.formatErrorMessage(err);
       toast.error(`Failed to export: ${errorMessage}`);
     }
   };
 
   const handleSelectTicket = (ticketId) => {
-    setSelectedTickets(prev => 
-      prev.includes(ticketId) 
-        ? prev.filter(id => id !== ticketId)
-        : [...prev, ticketId]
+    setSelectedTickets((prev) =>
+      prev.includes(ticketId)
+        ? prev.filter((id) => id !== ticketId)
+        : [...prev, ticketId],
     );
   };
 
   const handleDeleteTicket = async (ticketId) => {
     try {
       await adminAPI.deleteTicket(ticketId);
-      toast.success('Ticket deleted successfully');
+      toast.success("Ticket deleted successfully");
       fetchTickets();
     } catch (err) {
-      console.error('Failed to delete ticket:', err);
+      console.error("Failed to delete ticket:", err);
       const errorMessage = apiUtils.formatErrorMessage(err);
       toast.error(`Failed to delete: ${errorMessage}`);
     }
@@ -142,25 +143,26 @@ const TicketManagement = () => {
     if (selectedTickets.length === tickets.length) {
       setSelectedTickets([]);
     } else {
-      setSelectedTickets(tickets.map(ticket => ticket._id));
+      setSelectedTickets(tickets.map((ticket) => ticket._id));
     }
   };
 
   const getStatusColor = (status) => {
     const colors = {
-      active: 'bg-green-900/30 text-green-300 border-green-700/30',
-      used: 'bg-blue-900/30 text-blue-300 border-blue-700/30'
+      active: "bg-green-900/30 text-green-300 border-green-700/30",
+      used: "bg-blue-900/30 text-blue-300 border-blue-700/30",
+      cancelled: "bg-red-900/30 text-red-300 border-red-700/30",
     };
     return colors[status] || colors.active;
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -170,8 +172,12 @@ const TicketManagement = () => {
         <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/30">
           <div className="flex flex-col items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500 mb-4"></div>
-            <h2 className="text-2xl font-bold text-white mb-2">Loading Tickets</h2>
-            <p className="text-slate-400">Please wait while we fetch ticket data...</p>
+            <h2 className="text-2xl font-bold text-white mb-2">
+              Loading Tickets
+            </h2>
+            <p className="text-slate-400">
+              Please wait while we fetch ticket data...
+            </p>
           </div>
         </div>
       </div>
@@ -209,7 +215,7 @@ const TicketManagement = () => {
                 type="text"
                 placeholder="Search by user name or email..."
                 value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
+                onChange={(e) => handleFilterChange("search", e.target.value)}
                 className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600/30 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30"
               />
             </div>
@@ -218,12 +224,13 @@ const TicketManagement = () => {
             <div className="flex items-center gap-4 flex-wrap">
               <select
                 value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
+                onChange={(e) => handleFilterChange("status", e.target.value)}
                 className="px-4 py-2 bg-slate-700/50 border border-slate-600/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500/30"
               >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
                 <option value="used">Used</option>
+                <option value="cancelled">Cancelled</option>
               </select>
 
               {selectedTickets.length > 0 && (
@@ -237,13 +244,13 @@ const TicketManagement = () => {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleExport('json')}
+                  onClick={() => handleExport("json")}
                   className="px-4 py-2 bg-purple-600/50 hover:bg-purple-600/70 text-white rounded-lg transition-all flex items-center gap-2"
                 >
                   📄 Export JSON
                 </button>
                 <button
-                  onClick={() => handleExport('csv')}
+                  onClick={() => handleExport("csv")}
                   className="px-4 py-2 bg-purple-600/50 hover:bg-purple-600/70 text-white rounded-lg transition-all flex items-center gap-2"
                 >
                   📊 Export CSV
@@ -303,14 +310,30 @@ const TicketManagement = () => {
                       className="rounded border-slate-600 bg-slate-700 text-green-500 focus:ring-green-500/30"
                     />
                   </th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Ticket ID</th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium">User</th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Event</th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Price</th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Status</th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Created</th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Actions</th>
-                  <th className="text-left py-3 px-4 text-slate-300 font-medium">Cautions</th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">
+                    Ticket ID
+                  </th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">
+                    User
+                  </th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">
+                    Event
+                  </th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">
+                    Price
+                  </th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">
+                    Status
+                  </th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">
+                    Created
+                  </th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">
+                    Actions
+                  </th>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium">
+                    Details
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -338,11 +361,15 @@ const TicketManagement = () => {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-green-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
-                          {ticket.user?.name?.charAt(0) || 'U'}
+                          {ticket.user?.name?.charAt(0) || "U"}
                         </div>
                         <div>
-                          <p className="text-white font-medium">{ticket.user?.name || 'Unknown'}</p>
-                          <p className="text-slate-400 text-sm">{ticket.user?.email || 'No email'}</p>
+                          <p className="text-white font-medium">
+                            {ticket.user?.name || "Unknown"}
+                          </p>
+                          <p className="text-slate-400 text-sm">
+                            {ticket.user?.email || "No email"}
+                          </p>
                         </div>
                       </div>
                     </td>
@@ -353,7 +380,9 @@ const TicketManagement = () => {
                       ₹{ticket.price}
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}
+                      >
                         {ticket.status}
                       </span>
                     </td>
@@ -364,22 +393,65 @@ const TicketManagement = () => {
                       <div className="flex items-center gap-2">
                         <select
                           value={ticket.status}
-                          onChange={(e) => handleStatusUpdate(ticket._id, e.target.value)}
+                          onChange={(e) =>
+                            handleStatusUpdate(ticket._id, e.target.value)
+                          }
                           className="px-2 py-1 bg-slate-700/50 border border-slate-600/30 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-green-500/30"
                         >
                           <option value="active">Active</option>
                           <option value="used">Used</option>
+                          <option value="cancelled">Cancelled</option>
                         </select>
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleDeleteTicket(ticket._id)}
-                          className="px-2 py-1 bg-red-600/50 border border-red-500/30 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-red-500/30"
-                        >
-                          Delete
-                        </button>
+                      <div className="space-y-1">
+                        {ticket.status === "cancelled" && (
+                          <>
+                            {ticket.cancellationReason && (
+                              <div className="text-xs">
+                                <span className="text-slate-400">Reason:</span>
+                                <p
+                                  className="text-red-300 bg-red-900/20 rounded p-1 mt-1 max-w-xs truncate"
+                                  title={ticket.cancellationReason}
+                                >
+                                  {ticket.cancellationReason}
+                                </p>
+                              </div>
+                            )}
+                            {ticket.cancelledAt && (
+                              <div className="text-xs text-slate-400">
+                                Cancelled: {formatDate(ticket.cancelledAt)}
+                              </div>
+                            )}
+                            <div className="text-xs">
+                              <span className="text-slate-400">Refund:</span>
+                              <span
+                                className={`ml-1 px-2 py-1 rounded text-xs ${
+                                  ticket.isRefundDone === true
+                                    ? "bg-green-900/30 text-green-300"
+                                    : ticket.isRefundDone === false
+                                      ? "bg-red-900/30 text-red-300"
+                                      : "bg-yellow-900/30 text-yellow-300"
+                                }`}
+                              >
+                                {ticket.isRefundDone === true
+                                  ? "Done"
+                                  : ticket.isRefundDone === false
+                                    ? "Failed"
+                                    : "Pending"}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                        {ticket.status !== "cancelled" && (
+                          <button
+                            onClick={() => handleDeleteTicket(ticket._id)}
+                            className="px-2 py-1 bg-red-600/50 border border-red-500/30 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-red-500/30"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </motion.tr>
@@ -387,12 +459,18 @@ const TicketManagement = () => {
               </tbody>
             </table>
           </div>
-        ) : !loading && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🎫</div>
-            <h3 className="text-xl font-bold text-white mb-2">No Tickets Found</h3>
-            <p className="text-slate-400">No tickets match your current filters.</p>
-          </div>
+        ) : (
+          !loading && (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🎫</div>
+              <h3 className="text-xl font-bold text-white mb-2">
+                No Tickets Found
+              </h3>
+              <p className="text-slate-400">
+                No tickets match your current filters.
+              </p>
+            </div>
+          )
         )}
 
         {/* Pagination */}
@@ -403,14 +481,18 @@ const TicketManagement = () => {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleFilterChange('page', pagination.current - 1)}
+                onClick={() =>
+                  handleFilterChange("page", pagination.current - 1)
+                }
                 disabled={pagination.current === 1}
                 className="px-3 py-1 bg-slate-700/50 hover:bg-slate-700/70 text-white text-sm rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
               <button
-                onClick={() => handleFilterChange('page', pagination.current + 1)}
+                onClick={() =>
+                  handleFilterChange("page", pagination.current + 1)
+                }
                 disabled={pagination.current === pagination.total}
                 className="px-3 py-1 bg-slate-700/50 hover:bg-slate-700/70 text-white text-sm rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -432,7 +514,7 @@ const TicketManagement = () => {
             <h3 className="text-xl font-bold text-white mb-6 text-center">
               Bulk Update Tickets
             </h3>
-            
+
             <div className="space-y-4">
               <div>
                 <p className="text-slate-300 text-sm mb-2">
@@ -446,9 +528,10 @@ const TicketManagement = () => {
                   <option value="">Select Status</option>
                   <option value="active">Active</option>
                   <option value="used">Used</option>
+                  <option value="cancelled">Cancelled</option>
                 </select>
               </div>
-              
+
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={handleBulkUpdate}
@@ -460,7 +543,7 @@ const TicketManagement = () => {
                 <button
                   onClick={() => {
                     setShowBulkModal(false);
-                    setBulkStatus('');
+                    setBulkStatus("");
                   }}
                   className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all"
                 >

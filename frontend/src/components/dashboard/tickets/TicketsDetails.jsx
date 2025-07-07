@@ -5,6 +5,7 @@ import { ticketAPI, eventAPI, apiUtils } from "../../../services/api";
 import { toast } from "react-toastify";
 import TicketCard from "./TicketCard";
 import PurchaseTicketModal from "./PurchaseTicketModal";
+import CancelTicketModal from "./CancelTicketModal";
 
 const TicketsDetails = () => {
   const { user, backendUser } = useAuth();
@@ -13,6 +14,9 @@ const TicketsDetails = () => {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -114,6 +118,41 @@ const TicketsDetails = () => {
     }
   };
 
+  const handleCancelTicket = async (ticketId, reason) => {
+    try {
+      setCancelling(true);
+
+      const abortController = new AbortController();
+      const response = await ticketAPI.cancelTicket(
+        ticketId,
+        reason,
+        abortController.signal,
+      );
+
+      if (response.data.success) {
+        toast.success("🚫 Ticket cancelled successfully!");
+        setShowCancelModal(false);
+        setSelectedTicket(null);
+
+        // Refresh tickets and event data
+        await fetchData();
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        console.error("Failed to cancel ticket:", err);
+        const errorMessage = apiUtils.formatErrorMessage(err);
+        toast.error(`Failed to cancel ticket: ${errorMessage}`);
+      }
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleOpenCancelModal = (ticket) => {
+    setSelectedTicket(ticket);
+    setShowCancelModal(true);
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return "TBD";
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -142,6 +181,7 @@ const TicketsDetails = () => {
   // Filter tickets by status
   const activeTickets = tickets.filter((t) => t.status === "active");
   const usedTickets = tickets.filter((t) => t.status === "used");
+  const cancelledTickets = tickets.filter((t) => t.status === "cancelled");
 
   if (loading) {
     return (
@@ -223,6 +263,12 @@ const TicketsDetails = () => {
               <span className="text-blue-400">Used:</span>
               <span className="text-white font-bold ml-1">
                 {usedTickets.length}
+              </span>
+            </div>
+            <div className="text-center">
+              <span className="text-red-400">Cancelled:</span>
+              <span className="text-white font-bold ml-1">
+                {cancelledTickets.length}
               </span>
             </div>
           </div>
@@ -342,8 +388,21 @@ const TicketsDetails = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 * index }}
+                        className="relative"
                       >
                         <TicketCard ticket={ticket} />
+                        {ticket.status === "active" && (
+                          <div className="absolute top-4 right-4">
+                            <motion.button
+                              onClick={() => handleOpenCancelModal(ticket)}
+                              className="px-3 py-1 bg-red-600/50 hover:bg-red-600/70 text-red-200 text-xs rounded-lg transition-all border border-red-500/30"
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              Cancel
+                            </motion.button>
+                          </div>
+                        )}
                       </motion.div>
                     ))}
                   </div>
@@ -359,6 +418,28 @@ const TicketsDetails = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                     {usedTickets.map((ticket, index) => (
+                      <motion.div
+                        key={ticket.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 * index }}
+                      >
+                        <TicketCard ticket={ticket} />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cancelled Tickets */}
+              {cancelledTickets.length > 0 && (
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                    <span className="text-red-400">❌</span>
+                    Cancelled Tickets ({cancelledTickets.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                    {cancelledTickets.map((ticket, index) => (
                       <motion.div
                         key={ticket.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -412,6 +493,20 @@ const TicketsDetails = () => {
           onClose={() => setShowPurchaseModal(false)}
           onPurchase={handlePurchaseTickets}
           purchasing={purchasing}
+        />
+      )}
+
+      {/* Cancel Modal */}
+      {showCancelModal && selectedTicket && (
+        <CancelTicketModal
+          ticket={selectedTicket}
+          event={event}
+          onClose={() => {
+            setShowCancelModal(false);
+            setSelectedTicket(null);
+          }}
+          onCancel={handleCancelTicket}
+          cancelling={cancelling}
         />
       )}
     </div>

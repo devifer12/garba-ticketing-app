@@ -47,7 +47,7 @@ const ticketSchema = new mongoose.Schema(
     // Ticket status
     status: {
       type: String,
-      enum: ["active", "used"],
+      enum: ["active", "used", "cancelled"],
       default: "active",
     },
 
@@ -66,6 +66,22 @@ const ticketSchema = new mongoose.Schema(
 
     scannedAt: {
       type: Date,
+      default: null,
+    },
+
+    // Cancellation tracking
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
+
+    cancellationReason: {
+      type: String,
+      default: null,
+    },
+
+    isRefundDone: {
+      type: Boolean,
       default: null,
     },
 
@@ -107,6 +123,11 @@ ticketSchema.virtual("hasEntered").get(function () {
   return !!this.entryTime;
 });
 
+// Virtual for cancellation status
+ticketSchema.virtual("isCancelled").get(function () {
+  return this.status === "cancelled";
+});
+
 // Virtual for ticket age
 ticketSchema.virtual("ticketAge").get(function () {
   const now = new Date();
@@ -127,6 +148,7 @@ ticketSchema.statics.generateQRCode = function () {
 // Static method to validate QR code format
 ticketSchema.statics.isValidQRCode = function (qrCode) {
   if (!qrCode || typeof qrCode !== "string") {
+    console.log("❌ QR Code validation failed: Invalid input type");
     return false;
   }
 
@@ -161,6 +183,15 @@ ticketSchema.methods.markAsUsed = async function (scannedByUserId = null) {
   return await this.save();
 };
 
+// Instance method to cancel ticket
+ticketSchema.methods.cancelTicket = async function (reason = null) {
+  this.status = "cancelled";
+  this.cancelledAt = new Date();
+  this.cancellationReason = reason;
+  this.isRefundDone = null; // Set to null initially
+  return await this.save();
+};
+
 // Instance method to get safe ticket data (for API responses)
 ticketSchema.methods.getSafeTicketData = function () {
   return {
@@ -178,6 +209,10 @@ ticketSchema.methods.getSafeTicketData = function () {
     isScanned: this.isScanned,
     hasEntered: this.hasEntered,
     ticketAge: this.ticketAge,
+    cancelledAt: this.cancelledAt,
+    cancellationReason: this.cancellationReason,
+    isRefundDone: this.isRefundDone,
+    isCancelled: this.isCancelled,
     user: {
       name: this.user?.name,
       email: this.user?.email,
@@ -298,13 +333,17 @@ ticketSchema.statics.getTicketStats = async function () {
     total: 0,
     active: 0,
     used: 0,
+    cancelled: 0,
     totalRevenue: 0,
   };
 
   stats.forEach((stat) => {
     result.total += stat.count;
     result[stat._id] = stat.count;
-    result.totalRevenue += stat.totalRevenue;
+    // Only count revenue from active and used tickets
+    if (stat._id === "active" || stat._id === "used") {
+      result.totalRevenue += stat.totalRevenue;
+    }
   });
 
   return result;

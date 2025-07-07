@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
 
 const TicketCard = ({ ticket }) => {
   const [showQR, setShowQR] = useState(false);
@@ -7,42 +7,47 @@ const TicketCard = ({ ticket }) => {
 
   const getStatusColor = (status) => {
     const colors = {
-      active: 'bg-green-900/30 text-green-300 border-green-700/30',
-      used: 'bg-blue-900/30 text-blue-300 border-blue-700/30'
+      active: "bg-green-900/30 text-green-300 border-green-700/30",
+      used: "bg-blue-900/30 text-blue-300 border-blue-700/30",
+      cancelled: "bg-red-900/30 text-red-300 border-red-700/30",
     };
     return colors[status] || colors.active;
   };
 
   const getStatusIcon = (status) => {
     const icons = {
-      active: '✅',
-      used: '🎯'
+      active: "✅",
+      used: "🎯",
+      cancelled: "❌",
     };
-    return icons[status] || '🎫';
+    return icons[status] || "🎫";
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const handleDownloadQR = () => {
     if (ticket.qrCodeImage) {
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = ticket.qrCodeImage;
       link.download = `garba-ticket-${ticket.ticketId}-qr.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       // Show success message
-      const event = new CustomEvent('showToast', {
-        detail: { message: 'QR Code downloaded successfully!', type: 'success' }
+      const event = new CustomEvent("showToast", {
+        detail: {
+          message: "QR Code downloaded successfully!",
+          type: "success",
+        },
       });
       window.dispatchEvent(event);
     }
@@ -51,20 +56,20 @@ const TicketCard = ({ ticket }) => {
   const handleCopyTicketId = async () => {
     try {
       await navigator.clipboard.writeText(ticket.ticketId);
-      
+
       // Show success message
-      const event = new CustomEvent('showToast', {
-        detail: { message: 'Ticket ID copied to clipboard!', type: 'success' }
+      const event = new CustomEvent("showToast", {
+        detail: { message: "Ticket ID copied to clipboard!", type: "success" },
       });
       window.dispatchEvent(event);
     } catch (error) {
-      console.error('Failed to copy ticket ID:', error);
+      console.error("Failed to copy ticket ID:", error);
     }
   };
 
   const handlePrintTicket = () => {
     // Create a printable version of the ticket
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     const ticketHTML = `
       <!DOCTYPE html>
       <html>
@@ -126,7 +131,7 @@ const TicketCard = ({ ticket }) => {
               <div><span class="label">Price:</span> ₹${ticket.price}</div>
               <div><span class="label">Status:</span> ${ticket.status.toUpperCase()}</div>
               <div><span class="label">Purchased:</span> ${formatDate(ticket.createdAt)}</div>
-              ${ticket.entryTime ? `<div><span class="label">Entry Time:</span> ${formatDate(ticket.entryTime)}</div>` : ''}
+              ${ticket.entryTime ? `<div><span class="label">Entry Time:</span> ${formatDate(ticket.entryTime)}</div>` : ""}
             </div>
             
             <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #666;">
@@ -142,7 +147,7 @@ const TicketCard = ({ ticket }) => {
         </body>
       </html>
     `;
-    
+
     printWindow.document.write(ticketHTML);
     printWindow.document.close();
   };
@@ -159,11 +164,17 @@ const TicketCard = ({ ticket }) => {
           <div className="flex items-center gap-3">
             <span className="text-2xl">{getStatusIcon(ticket.status)}</span>
             <div>
-              <h3 className="text-white font-bold text-lg">{ticket.eventName}</h3>
-              <p className="text-slate-400 text-sm">#{ticket.ticketId.slice(-8)}</p>
+              <h3 className="text-white font-bold text-lg">
+                {ticket.eventName}
+              </h3>
+              <p className="text-slate-400 text-sm">
+                #{ticket.ticketId.slice(-8)}
+              </p>
             </div>
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}>
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}
+          >
             {ticket.status.toUpperCase()}
           </span>
         </div>
@@ -179,26 +190,73 @@ const TicketCard = ({ ticket }) => {
           </div>
           <div className="text-center">
             <span className="text-slate-400 text-sm">Purchased</span>
-            <p className="text-slate-300 text-sm">{formatDate(ticket.createdAt)}</p>
+            <p className="text-slate-300 text-sm">
+              {formatDate(ticket.createdAt)}
+            </p>
           </div>
         </div>
 
         {/* Entry Status */}
-        {ticket.status === 'used' && ticket.entryTime && (
+        {ticket.status === "used" && ticket.entryTime && (
           <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-blue-400">🎯</span>
               <span className="text-blue-300 font-medium">Entry Completed</span>
             </div>
-            <p className="text-blue-200 text-sm">Entered at: {formatDate(ticket.entryTime)}</p>
+            <p className="text-blue-200 text-sm">
+              Entered at: {formatDate(ticket.entryTime)}
+            </p>
             {ticket.scannedBy && (
-              <p className="text-blue-200 text-xs">Scanned by: {ticket.scannedBy.name}</p>
+              <p className="text-blue-200 text-xs">
+                Scanned by: {ticket.scannedBy.name}
+              </p>
             )}
           </div>
         )}
 
+        {/* Cancellation Status */}
+        {ticket.status === "cancelled" && (
+          <div className="bg-red-900/20 border border-red-700/30 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-red-400">❌</span>
+              <span className="text-red-300 font-medium">Ticket Cancelled</span>
+            </div>
+            {ticket.cancelledAt && (
+              <p className="text-red-200 text-sm">
+                Cancelled at: {formatDate(ticket.cancelledAt)}
+              </p>
+            )}
+            {ticket.cancellationReason && (
+              <div className="mt-2">
+                <p className="text-red-200 text-xs font-medium">Reason:</p>
+                <p className="text-red-200 text-xs bg-red-900/20 rounded p-2 mt-1">
+                  {ticket.cancellationReason}
+                </p>
+              </div>
+            )}
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-red-200 text-xs">Refund Status:</span>
+              <span
+                className={`text-xs px-2 py-1 rounded ${
+                  ticket.isRefundDone === true
+                    ? "bg-green-900/30 text-green-300"
+                    : ticket.isRefundDone === false
+                      ? "bg-red-900/30 text-red-300"
+                      : "bg-yellow-900/30 text-yellow-300"
+                }`}
+              >
+                {ticket.isRefundDone === true
+                  ? "Completed"
+                  : ticket.isRefundDone === false
+                    ? "Failed"
+                    : "Pending"}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* QR Code Section */}
-        {ticket.status === 'active' && (
+        {ticket.status === "active" && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-slate-400 font-medium">QR Code:</span>
@@ -208,13 +266,13 @@ const TicketCard = ({ ticket }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                {showQR ? 'Hide QR' : 'Show QR'}
+                {showQR ? "Hide QR" : "Show QR"}
               </motion.button>
             </div>
 
             <motion.div
               initial={false}
-              animate={{ height: showQR ? 'auto' : 0, opacity: showQR ? 1 : 0 }}
+              animate={{ height: showQR ? "auto" : 0, opacity: showQR ? 1 : 0 }}
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
@@ -227,7 +285,7 @@ const TicketCard = ({ ticket }) => {
                       className="w-32 h-32 mx-auto"
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-3 gap-2">
                     <motion.button
                       onClick={handleDownloadQR}
@@ -238,7 +296,7 @@ const TicketCard = ({ ticket }) => {
                       <span>📥</span>
                       <span>Download</span>
                     </motion.button>
-                    
+
                     <motion.button
                       onClick={handleCopyTicketId}
                       className="px-3 py-2 bg-purple-600/50 text-purple-300 rounded text-xs hover:bg-purple-600/70 transition-colors flex items-center justify-center gap-1"
@@ -248,7 +306,7 @@ const TicketCard = ({ ticket }) => {
                       <span>📋</span>
                       <span>Copy ID</span>
                     </motion.button>
-                    
+
                     <motion.button
                       onClick={handlePrintTicket}
                       className="px-3 py-2 bg-green-600/50 text-green-300 rounded text-xs hover:bg-green-600/70 transition-colors flex items-center justify-center gap-1"
@@ -259,10 +317,11 @@ const TicketCard = ({ ticket }) => {
                       <span>Print</span>
                     </motion.button>
                   </div>
-                  
+
                   <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-3">
                     <p className="text-yellow-300 text-xs text-center">
-                      💡 Present this QR code at the venue entrance for quick check-in
+                      💡 Present this QR code at the venue entrance for quick
+                      check-in
                     </p>
                   </div>
                 </div>
@@ -286,10 +345,13 @@ const TicketCard = ({ ticket }) => {
               ▼
             </motion.span>
           </motion.button>
-          
+
           <motion.div
             initial={false}
-            animate={{ height: showFullDetails ? 'auto' : 0, opacity: showFullDetails ? 1 : 0 }}
+            animate={{
+              height: showFullDetails ? "auto" : 0,
+              opacity: showFullDetails ? 1 : 0,
+            }}
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
@@ -297,22 +359,30 @@ const TicketCard = ({ ticket }) => {
               <div className="mt-3 space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Full Ticket ID:</span>
-                  <span className="text-slate-300 font-mono text-xs">{ticket.ticketId}</span>
+                  <span className="text-slate-300 font-mono text-xs">
+                    {ticket.ticketId}
+                  </span>
                 </div>
                 {ticket.qrCode && (
                   <div className="flex justify-between">
                     <span className="text-slate-400">QR Code:</span>
-                    <span className="text-slate-300 font-mono text-xs">{ticket.qrCode.slice(0, 20)}...</span>
+                    <span className="text-slate-300 font-mono text-xs">
+                      {ticket.qrCode.slice(0, 20)}...
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span className="text-slate-400">Created:</span>
-                  <span className="text-slate-300">{formatDate(ticket.createdAt)}</span>
+                  <span className="text-slate-300">
+                    {formatDate(ticket.createdAt)}
+                  </span>
                 </div>
                 {ticket.updatedAt && ticket.updatedAt !== ticket.createdAt && (
                   <div className="flex justify-between">
                     <span className="text-slate-400">Last Updated:</span>
-                    <span className="text-slate-300">{formatDate(ticket.updatedAt)}</span>
+                    <span className="text-slate-300">
+                      {formatDate(ticket.updatedAt)}
+                    </span>
                   </div>
                 )}
               </div>
@@ -322,15 +392,21 @@ const TicketCard = ({ ticket }) => {
 
         {/* Status Display */}
         <div className="pt-4 border-t border-slate-700/30">
-          {ticket.status === 'used' && (
+          {ticket.status === "used" && (
             <div className="text-center text-green-400 font-medium py-2">
               ✅ Ticket Used - Entry Completed
             </div>
           )}
-          
-          {ticket.status === 'active' && (
+
+          {ticket.status === "active" && (
             <div className="text-center text-green-400 font-medium py-2">
               🎫 Active Ticket - Ready for Entry
+            </div>
+          )}
+
+          {ticket.status === "cancelled" && (
+            <div className="text-center text-red-400 font-medium py-2">
+              ❌ Ticket Cancelled - Refund Pending
             </div>
           )}
         </div>
