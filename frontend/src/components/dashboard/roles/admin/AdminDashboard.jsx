@@ -36,68 +36,92 @@ const AdminDashboard = () => {
   const hasAdminAccess = isAdmin || isManager;
 
   const checkEventStatus = async () => {
-    await execute(
-      async (signal) => {
-        const existsResponse = await eventAPI.checkEventExists(signal);
-        const exists = existsResponse.data.exists;
+    try {
+      await execute(
+        async (signal) => {
+          const existsResponse = await eventAPI.checkEventExists(signal);
+          const exists = existsResponse.data.exists;
 
-        let eventData = null;
-        if (exists) {
-          try {
-            const eventResponse = await eventAPI.getCurrentEvent(signal);
-            eventData = eventResponse.data.data;
-          } catch (eventError) {
-            if (eventError.name !== "AbortError") {
-              console.warn(
-                "Event exists but could not fetch details:",
-                eventError,
-              );
+          let eventData = null;
+          if (exists) {
+            try {
+              const eventResponse = await eventAPI.getCurrentEvent(signal);
+              eventData = eventResponse.data.data;
+            } catch (eventError) {
+              if (eventError.name !== "AbortError") {
+                console.warn(
+                  "Event exists but could not fetch details:",
+                  eventError,
+                );
+              }
             }
           }
-        }
 
-        setEventStatus({ exists, loading: false, error: null, eventData });
-      },
-      {
-        cacheKey: "admin-event-status",
-        cacheDuration: 3 * 60 * 1000, // 3 minutes cache
-      },
-    );
+          setEventStatus({ exists, loading: false, error: null, eventData });
+        },
+        {
+          cacheKey: "admin-event-status",
+          cacheDuration: 3 * 60 * 1000, // 3 minutes cache
+        },
+      );
+    } catch (error) {
+      console.error("Failed to check event status:", error);
+      setEventStatus({
+        exists: false,
+        loading: false,
+        error: error.message,
+        eventData: null,
+      });
+    }
   };
 
   const fetchDashboardStats = async () => {
-    await execute(
-      async (signal) => {
-        const [usersResponse, analyticsResponse] = await Promise.all([
-          adminAPI.getUserCount(signal).catch(() => ({ data: { count: 0 } })),
-          adminAPI.getDashboardAnalytics(signal).catch(() => ({
-            data: {
+    try {
+      await execute(
+        async (signal) => {
+          const [usersResponse, analyticsResponse] = await Promise.all([
+            adminAPI.getUserCount(signal).catch(() => ({ data: { count: 0 } })),
+            adminAPI.getDashboardAnalytics(signal).catch(() => ({
               data: {
-                users: { total: 0 },
-                tickets: { total: 0 },
-                revenue: { total: 0, today: 0 },
+                data: {
+                  users: { total: 0 },
+                  tickets: { total: 0 },
+                  revenue: { total: 0, today: 0 },
+                },
               },
-            },
-          })),
-        ]);
+            })),
+          ]);
 
-        const analyticsData = analyticsResponse.data.data;
+          const analyticsData = analyticsResponse.data.data;
 
-        setStats({
-          totalUsers: usersResponse.data.count || 0,
-          totalTickets: analyticsData.tickets?.total || 0,
-          totalRevenue: analyticsData.revenue?.total || 0,
-          revenueToday: analyticsData.revenue?.today || 0,
-          averageTicketValue: analyticsData.analytics?.averageTicketValue || 0,
-          conversionRate: analyticsData.analytics?.conversionRate || 0,
-          loading: false,
-        });
-      },
-      {
-        cacheKey: "admin-dashboard-stats",
-        cacheDuration: 2 * 60 * 1000, // 2 minutes cache
-      },
-    );
+          setStats({
+            totalUsers: usersResponse.data.count || 0,
+            totalTickets: analyticsData.tickets?.total || 0,
+            totalRevenue: analyticsData.revenue?.total || 0,
+            revenueToday: analyticsData.revenue?.today || 0,
+            averageTicketValue:
+              analyticsData.analytics?.averageTicketValue || 0,
+            conversionRate: analyticsData.analytics?.conversionRate || 0,
+            loading: false,
+          });
+        },
+        {
+          cacheKey: "admin-dashboard-stats",
+          cacheDuration: 2 * 60 * 1000, // 2 minutes cache
+        },
+      );
+    } catch (error) {
+      console.error("Failed to fetch dashboard stats:", error);
+      setStats({
+        totalUsers: 0,
+        totalTickets: 0,
+        totalRevenue: 0,
+        revenueToday: 0,
+        averageTicketValue: 0,
+        conversionRate: 0,
+        loading: false,
+      });
+    }
   };
 
   const handleAssignAdminRole = async () => {
@@ -116,6 +140,8 @@ const AdminDashboard = () => {
           successMessage: "Admin role assigned successfully!",
         },
       );
+    } catch (error) {
+      console.error("Failed to assign admin role:", error);
     } finally {
       setRoleCheckLoading(false);
     }
@@ -125,10 +151,16 @@ const AdminDashboard = () => {
     if (backendUser) {
       if (!hasAdminAccess) {
         handleAssignAdminRole();
+      } else {
+        // Only fetch data if user has admin access
+        Promise.all([checkEventStatus(), fetchDashboardStats()]).catch(
+          (error) => {
+            console.error("Failed to load admin dashboard data:", error);
+          },
+        );
       }
-      Promise.all([checkEventStatus(), fetchDashboardStats()]);
     }
-  }, [backendUser]);
+  }, [backendUser, hasAdminAccess]);
 
   if (backendUser && !hasAdminAccess) {
     return (

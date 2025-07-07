@@ -390,19 +390,21 @@ const TicketsDetails = () => {
                         transition={{ delay: 0.1 * index }}
                         className="relative"
                       >
-                        <TicketCard ticket={ticket} />
-                        {ticket.status === "active" && (
-                          <div className="absolute top-4 right-4">
-                            <motion.button
-                              onClick={() => handleOpenCancelModal(ticket)}
-                              className="px-3 py-1 bg-red-600/50 hover:bg-red-600/70 text-red-200 text-xs rounded-lg transition-all border border-red-500/30"
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              Cancel
-                            </motion.button>
-                          </div>
-                        )}
+                        <div className="relative">
+                          <TicketCard ticket={ticket} />
+                          {ticket.status === "active" && (
+                            <div className="absolute top-3.5 right-22 z-10">
+                              <motion.button
+                                onClick={() => handleOpenCancelModal(ticket)}
+                                className="px-3 py-1 bg-red-600/80 hover:bg-red-600 text-red-100 text-xs rounded-full transition-all border border-red-500/50 backdrop-blur-sm shadow-lg"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                Cancel
+                              </motion.button>
+                            </div>
+                          )}
+                        </div>
                       </motion.div>
                     ))}
                   </div>

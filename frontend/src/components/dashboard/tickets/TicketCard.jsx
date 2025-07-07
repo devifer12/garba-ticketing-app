@@ -160,11 +160,13 @@ const TicketCard = ({ ticket }) => {
     >
       {/* Ticket Header */}
       <div className="bg-gradient-to-r from-navratri-orange/20 to-navratri-yellow/20 p-4 border-b border-slate-700/30">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">{getStatusIcon(ticket.status)}</span>
-            <div>
-              <h3 className="text-white font-bold text-lg">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <span className="text-2xl flex-shrink-0">
+              {getStatusIcon(ticket.status)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-white font-bold text-lg truncate">
                 {ticket.eventName}
               </h3>
               <p className="text-slate-400 text-sm">
@@ -173,7 +175,7 @@ const TicketCard = ({ ticket }) => {
             </div>
           </div>
           <span
-            className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}
+            className={`px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0 ${getStatusColor(ticket.status)}`}
           >
             {ticket.status.toUpperCase()}
           </span>
