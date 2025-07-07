@@ -7,7 +7,7 @@ const api = axios.create({
   timeout: 8000, // Further reduced for faster failures
   headers: {
     "Content-Type": "application/json",
-    "Accept": "application/json",
+    Accept: "application/json",
   },
   withCredentials: true,
 });
@@ -85,72 +85,55 @@ export const authAPI = {
 export const eventAPI = {
   getCurrentEvent: () => api.get("/event"),
   checkEventExists: () => api.get("/event/exists"),
-  createEvent: (eventData, ) => api.post("/event", eventData),
-  updateEvent: (eventData, ) => api.put("/event", eventData),
+  createEvent: (eventData) => api.post("/event", eventData),
+  updateEvent: (eventData) => api.put("/event", eventData),
 };
 
 // Ticket API with  support
 export const ticketAPI = {
-  createBooking: (bookingData, signal) =>
-    api.post(API_ENDPOINTS.TICKETS.BASE, bookingData, { signal }),
-  getMyTickets: (signal) =>
-    api.get(API_ENDPOINTS.TICKETS.MY_TICKETS, { signal }),
-  getTicket: (ticketId, signal) =>
-    api.get(`${API_ENDPOINTS.TICKETS.BASE}/${ticketId}`, { signal }),
-  verifyQRCode: (qrCode, signal) =>
-    api.post(API_ENDPOINTS.TICKETS.VERIFY_QR, { qrCode }, { signal }),
-  markTicketAsUsed: (qrCode, signal) =>
-    api.post(API_ENDPOINTS.TICKETS.MARK_USED, { qrCode }, { signal }),
+  createBooking: (bookingData) =>
+    api.post(API_ENDPOINTS.TICKETS.BASE, bookingData),
+  getMyTickets: () => api.get(API_ENDPOINTS.TICKETS.MY_TICKETS),
+  getTicket: (ticketId) => api.get(`${API_ENDPOINTS.TICKETS.BASE}/${ticketId}`),
+  verifyQRCode: (qrCode) =>
+    api.post(API_ENDPOINTS.TICKETS.VERIFY_QR, { qrCode }),
+  markTicketAsUsed: (qrCode) =>
+    api.post(API_ENDPOINTS.TICKETS.MARK_USED, { qrCode }),
 };
 
-// Admin API with signal support and error handling
+// Admin API with  support and error handling
 export const adminAPI = {
-  getAllTickets: (params, signal) =>
-    api.get(API_ENDPOINTS.TICKETS.ADMIN_ALL, { params, signal }),
-  updateTicketStatus: (ticketId, status, signal) =>
-    api.patch(
-      `${API_ENDPOINTS.TICKETS.BASE}/admin/${ticketId}/status`,
-      { status },
-      { signal }
-    ),
-  getUserCount: (signal) =>
+  getAllTickets: (params) =>
+    api.get(API_ENDPOINTS.TICKETS.ADMIN_ALL, { params }),
+  updateTicketStatus: (ticketId, status) =>
+    api.patch(`${API_ENDPOINTS.TICKETS.BASE}/admin/${ticketId}/status`, {
+      status,
+    }),
+  getUserCount: () =>
     api
-      .get(API_ENDPOINTS.ADMIN.USER_COUNT, { signal })
+      .get(API_ENDPOINTS.ADMIN.USER_COUNT)
       .catch(() => ({ data: { count: 0 } })),
-  getAllUsers: (params, signal) =>
-    api.get(API_ENDPOINTS.ADMIN.USERS, { params, signal }),
-  updateUserRole: (userId, role, signal) =>
-    api.patch(
-      `${API_ENDPOINTS.ADMIN.USERS}/${userId}/role`,
-      { role },
-      { signal }
-    ),
-  deleteUser: (userId, signal) =>
-    api.delete(`${API_ENDPOINTS.ADMIN.USERS}/${userId}`, { signal }),
-  deleteTicket: (ticketId, signal) =>
-    api.delete(`${API_ENDPOINTS.ADMIN.TICKETS}/${ticketId}`, { signal }),
-  getTicketStats: (signal) =>
+  getAllUsers: (params) => api.get(API_ENDPOINTS.ADMIN.USERS, { params }),
+  updateUserRole: (userId, role) =>
+    api.patch(`${API_ENDPOINTS.ADMIN.USERS}/${userId}/role`, { role }),
+  deleteUser: (userId) => api.delete(`${API_ENDPOINTS.ADMIN.USERS}/${userId}`),
+  deleteTicket: (ticketId) =>
+    api.delete(`${API_ENDPOINTS.ADMIN.TICKETS}/${ticketId}`),
+  getTicketStats: () =>
     api
-      .get(API_ENDPOINTS.TICKETS.ADMIN_STATS, { signal })
+      .get(API_ENDPOINTS.TICKETS.ADMIN_STATS)
       .catch(() => ({ data: { total: 0, revenue: 0 } })),
-  getDashboardAnalytics: (signal) =>
-    api.get(API_ENDPOINTS.ADMIN.ANALYTICS, { signal }),
-  getTicketManagement: (params, signal) =>
-    api.get(API_ENDPOINTS.ADMIN.TICKET_MANAGEMENT, { params, signal }),
-  bulkUpdateTickets: (ticketIds, status, signal) =>
-    api.patch(
-      API_ENDPOINTS.ADMIN.BULK_UPDATE,
-      { ticketIds, status },
-      { signal }
-    ),
-  exportTickets: (format, signal) =>
+  getDashboardAnalytics: () => api.get(API_ENDPOINTS.ADMIN.ANALYTICS),
+  getTicketManagement: (params) =>
+    api.get(API_ENDPOINTS.ADMIN.TICKET_MANAGEMENT, { params }),
+  bulkUpdateTickets: (ticketIds, status) =>
+    api.patch(API_ENDPOINTS.ADMIN.BULK_UPDATE, { ticketIds, status }),
+  exportTickets: (format) =>
     api.get(API_ENDPOINTS.ADMIN.EXPORT, {
       params: { format },
       responseType: format === "csv" ? "text" : "json",
-      signal,
     }),
-  getSystemHealth: (signal) =>
-    api.get(API_ENDPOINTS.ADMIN.SYSTEM_HEALTH, { signal }),
+  getSystemHealth: () => api.get(API_ENDPOINTS.ADMIN.SYSTEM_HEALTH),
 };
 
 // Utility functions
