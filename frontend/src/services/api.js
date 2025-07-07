@@ -83,13 +83,13 @@ export const authAPI = {
 
 // Event API with caching
 export const eventAPI = {
-  getCurrentEvent: (signal) => api.get("/event", { signal }),
-  checkEventExists: (signal) => api.get("/event/exists", { signal }),
-  createEvent: (eventData, signal) => api.post("/event", eventData, { signal }),
-  updateEvent: (eventData, signal) => api.put("/event", eventData, { signal }),
+  getCurrentEvent: () => api.get("/event"),
+  checkEventExists: () => api.get("/event/exists"),
+  createEvent: (eventData, ) => api.post("/event", eventData),
+  updateEvent: (eventData, ) => api.put("/event", eventData),
 };
 
-// Ticket API with signal support
+// Ticket API with  support
 export const ticketAPI = {
   createBooking: (bookingData, signal) =>
     api.post(API_ENDPOINTS.TICKETS.BASE, bookingData, { signal }),

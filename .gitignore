@@ -13,3 +13,7 @@ package-lock.json
 .vscode/
 .idea/
 *.swp
+
+# Build
+dist/
+build/

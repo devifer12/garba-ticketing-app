@@ -59,8 +59,6 @@ const Footer = () => {
   const socialLinks = [
     { name: 'Facebook', icon: <FontAwesomeIcon icon={faFacebook} style={{ color: 'blue' }} />, url: '#' },
     { name: 'Instagram', icon: <FontAwesomeIcon icon={faInstagram} style={{ color: 'red' }}/>, url: 'https://lnk.ink/HYYEVENTS' },
-    { name: 'Twitter', icon: <FontAwesomeIcon icon={faTwitter} style={{ color: 'blue' }}/>, url: '#' },
-    { name: 'WhatsApp', icon: <FontAwesomeIcon icon={faWhatsapp} style={{ color: 'green' }} />, url: '#' }
   ];
 
   return (
@@ -113,10 +111,6 @@ const Footer = () => {
                 </a>
               </div>
               <div className="flex items-center gap-2">
-                <span>📞</span>
-                <a href="tel:+919082807701" className="hover:text-navratri-orange transition-colors">
-                  +91 9082807701
-                </a>
               </div>
               <div className="flex items-center gap-2">
                 <span>📍</span>
