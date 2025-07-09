@@ -297,9 +297,9 @@ const RefundPolicy = () => {
                 <section>
                   <h2 className="text-2xl font-bold text-white mb-4">Contact for Refunds</h2>
                   <div className="bg-slate-700/50 rounded-xl p-6 space-y-2">
-                    <p><strong>Refund Email:</strong> refunds@garbarass2025.com</p>
-                    <p><strong>Support Phone:</strong> +91 98765 43210</p>
-                    <p><strong>WhatsApp:</strong> +91 98765 43211</p>
+                    <p><strong>Refund Email:</strong> hyyevents@gmail.com</p>
+                    <p><strong>Support Phone:</strong> +91 9082807701</p>
+                    <p><strong>WhatsApp:</strong> +91 9082807701</p>
                     <p><strong>Support Hours:</strong> 10:00 AM - 8:00 PM (Monday to Saturday)</p>
                     <p><strong>Response Time:</strong> Within 24 hours for refund queries</p>
                   </div>

@@ -112,7 +112,7 @@ const CancellationPolicy = () => {
                     <h3 className="text-xl font-semibold text-navratri-orange mb-2 mt-6">Email Cancellation</h3>
                     <p className="mb-2">If you cannot access your account, email us at:</p>
                     <div className="bg-slate-700/50 rounded-xl p-4">
-                      <p><strong>Email:</strong> cancellations@garbarass2025.com</p>
+                      <p><strong>Email:</strong> hyyevents@gmail.com</p>
                       <p><strong>Subject:</strong> Ticket Cancellation Request</p>
                       <p><strong>Include:</strong> Your full name, email address, and ticket ID</p>
                     </div>
@@ -203,7 +203,7 @@ const CancellationPolicy = () => {
                   <h2 className="text-2xl font-bold text-white mb-4">Contact Information</h2>
                   <p className="mb-4">For cancellation support and queries:</p>
                   <div className="bg-slate-700/50 rounded-xl p-6 space-y-2">
-                    <p><strong>Cancellation Email:</strong> cancellations@garbarass2025.com</p>
+                    <p><strong>Cancellation Email:</strong> hyyevents@gmail.com</p>
                     <p><strong>Support Phone:</strong> +91 98765 43210</p>
                     <p><strong>Support Hours:</strong> 10:00 AM - 8:00 PM (Monday to Saturday)</p>
                     <p><strong>Emergency Contact:</strong> +91 98765 43211 (Event day only)</p>

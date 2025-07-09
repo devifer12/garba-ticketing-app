@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://garba-ticketing-app.vercel.app/sitemap.xml
+Sitemap: https://www.hyyevents.com/sitemap.xml
 
 # Crawl-delay
 Crawl-delay: 1

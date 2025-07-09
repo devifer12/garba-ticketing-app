@@ -10,7 +10,7 @@ const connectDB = async () => {
       bufferCommands: true, // Enable mongoose buffering to prevent errors before initial connection
     });
     if (process.env.NODE_ENV !== "production") {
-      console.log("✅ MongoDB Connected to garba-ticketing-app database");
+      console.log("✅ MongoDB Connected to hyyevents database");
     }
   } catch (err) {
     console.error("❌ MongoDB Connection Error:", err.message);

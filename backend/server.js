@@ -12,7 +12,7 @@ app.use(compression());
 const corsOptions = {
   origin:
     process.env.NODE_ENV === "production"
-      ? [process.env.FRONTEND_URL, "https://garba-ticketing-app.vercel.app"]
+      ? [process.env.FRONTEND_URL, "https://hyyevents.com", "https://www.hyyevents.com"]
       : [
           process.env.FRONTEND_URL,
           "http://localhost:3000",

@@ -273,8 +273,8 @@ const TermsOfService = () => {
                   <h2 className="text-2xl font-bold text-white mb-4">Contact Information</h2>
                   <p className="mb-4">If you have any questions about these Terms of Service, please contact us:</p>
                   <div className="bg-slate-700/50 rounded-xl p-6 space-y-2">
-                    <p><strong>Email:</strong> legal@garbarass2025.com</p>
-                    <p><strong>Phone:</strong> +91 98765 43210</p>
+                    <p><strong>Email:</strong> hyyevents@gmail.com</p>
+                    <p><strong>Phone:</strong> +91 9082807701</p>
                     <p><strong>Address:</strong> Mumbai, Maharashtra, India</p>
                     <p><strong>Business Hours:</strong> 10:00 AM - 6:00 PM (Monday to Friday)</p>
                   </div>
