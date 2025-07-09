@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
-import { eventAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { adminAPI } from "../services/api";
 import Navbar from "../components/common/navbar/Navbar";
 import Footer from "../components/common/footer/Footer";
 import Hero from "../components/home/Hero";
@@ -7,11 +8,11 @@ import Hero from "../components/home/Hero";
 // Lazy load non-critical components
 const AboutSection = lazy(() => import("../components/home/AboutSection"));
 const EventDetails = lazy(() => import("../components/home/EventDetails"));
-const CountdownSection = lazy(() =>
-  import("../components/home/CountdownSection")
+const CountdownSection = lazy(
+  () => import("../components/home/CountdownSection"),
 );
-const FeaturesSection = lazy(() =>
-  import("../components/home/FeaturesSection")
+const FeaturesSection = lazy(
+  () => import("../components/home/FeaturesSection"),
 );
 const VenueSection = lazy(() => import("../components/home/VenueSection"));
 const FAQSection = lazy(() => import("../components/home/FAQSection"));
@@ -25,7 +26,8 @@ const SectionSkeleton = ({ height = "400px" }) => (
         <div className="text-center mb-8 sm:mb-12">
           <div
             className="h-12 sm:h-16 bg-slate-700/30 rounded-lg mx-auto mb-4 animate-pulse"
-            style={{ width: "60%" }}></div>
+            style={{ width: "60%" }}
+          ></div>
           <div className="w-24 h-1 bg-slate-600/30 rounded-full mx-auto mb-6"></div>
         </div>
 
@@ -34,7 +36,8 @@ const SectionSkeleton = ({ height = "400px" }) => (
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="bg-slate-800/30 rounded-2xl p-6 border border-slate-700/30 animate-pulse">
+              className="bg-slate-800/30 rounded-2xl p-6 border border-slate-700/30 animate-pulse"
+            >
               <div className="h-6 bg-slate-700/30 rounded mb-4"></div>
               <div className="h-4 bg-slate-700/30 rounded mb-2"></div>
               <div className="h-4 bg-slate-700/30 rounded w-3/4"></div>
@@ -46,25 +49,61 @@ const SectionSkeleton = ({ height = "400px" }) => (
   </div>
 );
 
-const Home = () => {
-  const [event, setEvent] = useState(null);
+const Home = ({ eventData, eventLoading }) => {
+  const { isAuthenticated, backendUser, initializing } = useAuth();
+  const [dashboardDataPreloaded, setDashboardDataPreloaded] = useState(false);
 
+  // Preload dashboard data if user is authenticated and event data is loaded
   useEffect(() => {
-    const fetchEventData = async () => {
+    const preloadDashboardData = async () => {
+      if (
+        !isAuthenticated ||
+        !backendUser ||
+        eventLoading ||
+        initializing ||
+        dashboardDataPreloaded
+      ) {
+        return;
+      }
+
       try {
-        const response = await eventAPI.getCurrentEvent();
-        setEvent(response.data.data);
+        // Preload dashboard data based on user role
+        const role = backendUser.role || "guest";
+
+        if (role === "admin") {
+          // Preload admin dashboard data
+          Promise.all([
+            adminAPI.getDashboardAnalytics().catch(() => null),
+            adminAPI.getTicketStats().catch(() => null),
+            adminAPI.getUserCount().catch(() => null),
+          ]);
+        } else if (role === "guest") {
+          // Preload user's tickets
+          import("../services/api").then(({ ticketAPI }) => {
+            ticketAPI.getMyTickets().catch(() => null);
+          });
+        }
+
+        setDashboardDataPreloaded(true);
+
+        if (process.env.NODE_ENV === "development") {
+          console.log(`Dashboard data preloaded for role: ${role}`);
+        }
       } catch (err) {
         if (process.env.NODE_ENV === "development") {
-          console.error("Failed to fetch event data:", err);
+          console.error("Failed to preload dashboard data:", err);
         }
-        // Don't block the UI - show default content
       }
     };
 
-    // Fetch immediately without delay
-    fetchEventData();
-  }, []);
+    preloadDashboardData();
+  }, [
+    isAuthenticated,
+    backendUser,
+    eventLoading,
+    initializing,
+    dashboardDataPreloaded,
+  ]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden relative">
@@ -78,29 +117,29 @@ const Home = () => {
 
       <main className="relative z-10">
         {/* Hero Section - Always load immediately */}
-        <Hero event={event} />
+        <Hero event={eventData} />
 
         {/* Lazy loaded sections with skeleton fallbacks */}
         <Suspense fallback={<SectionSkeleton height="500px" />}>
-          <AboutSection event={event} />
+          <AboutSection event={eventData} />
         </Suspense>
 
         <Suspense fallback={<SectionSkeleton height="600px" />}>
-          <EventDetails event={event} />
+          <EventDetails event={eventData} />
         </Suspense>
 
         <Suspense fallback={<SectionSkeleton height="400px" />}>
-          <CountdownSection event={event} />
+          <CountdownSection event={eventData} />
         </Suspense>
 
-        {event?.features && event.features.length > 0 && (
+        {eventData?.features && eventData.features.length > 0 && (
           <Suspense fallback={<SectionSkeleton height="500px" />}>
-            <FeaturesSection event={event} />
+            <FeaturesSection event={eventData} />
           </Suspense>
         )}
 
         <Suspense fallback={<SectionSkeleton height="600px" />}>
-          <VenueSection event={event} />
+          <VenueSection event={eventData} />
         </Suspense>
 
         <Suspense fallback={<SectionSkeleton height="700px" />}>

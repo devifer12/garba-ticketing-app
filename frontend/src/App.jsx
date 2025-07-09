@@ -10,10 +10,33 @@ import RefundPolicy from "./pages/RefundPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import ErrorNotification from "./components/common/ErrorNotification";
 import Preloader from "./components/common/Preloader.jsx";
+import { AuthProvider } from "./context/AuthContext";
+import { eventAPI } from "./services/api";
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [showContent, setShowContent] = useState(false);
+  const [eventData, setEventData] = useState(null);
+  const [eventLoading, setEventLoading] = useState(true);
+
+  // Fetch event data immediately when app starts
+  useEffect(() => {
+    const fetchEventData = async () => {
+      try {
+        const response = await eventAPI.getCurrentEvent();
+        setEventData(response.data.data);
+      } catch (err) {
+        if (process.env.NODE_ENV === "development") {
+          console.error("Failed to fetch event data:", err);
+        }
+        // Don't block the UI - continue without event data
+      } finally {
+        setEventLoading(false);
+      }
+    };
+
+    fetchEventData();
+  }, []);
 
   // Preload resources in background
   useEffect(() => {
@@ -56,41 +79,48 @@ function App() {
       {isLoading && <Preloader onComplete={handlePreloaderComplete} />}
 
       {showContent && (
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/dashboard/:role" element={<Dashboard />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route
-              path="/cancellation-policy"
-              element={<CancellationPolicy />}
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <Home eventData={eventData} eventLoading={eventLoading} />
+                }
+              />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/:role" element={<Dashboard />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route
+                path="/cancellation-policy"
+                element={<CancellationPolicy />}
+              />
+              <Route path="/refund-policy" element={<RefundPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
+            </Routes>
+
+            {/* Global Error Notification */}
+            <ErrorNotification />
+
+            {/* Toast Notifications */}
+            <ToastContainer
+              position="top-right"
+              autoClose={5000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              theme="dark"
+              toastStyle={{
+                backgroundColor: "#1e293b",
+                color: "#f1f5f9",
+                border: "1px solid #334155",
+              }}
             />
-            <Route path="/refund-policy" element={<RefundPolicy />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
-          </Routes>
-
-          {/* Global Error Notification */}
-          <ErrorNotification />
-
-          {/* Toast Notifications */}
-          <ToastContainer
-            position="top-right"
-            autoClose={5000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            theme="dark"
-            toastStyle={{
-              backgroundColor: "#1e293b",
-              color: "#f1f5f9",
-              border: "1px solid #334155",
-            }}
-          />
-        </BrowserRouter>
+          </BrowserRouter>
+        </AuthProvider>
       )}
     </>
   );
