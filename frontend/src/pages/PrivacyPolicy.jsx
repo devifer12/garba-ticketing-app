@@ -181,7 +181,9 @@ const PrivacyPolicy = () => {
                     <strong>Last Updated:</strong> January 2025<br/>
                     <strong>Effective Date:</strong> January 1, 2025
                   </p>
-                  <p> Owned by HEET JAIN</p>
+                  <p className='text-m text-slate-400'> 
+                    <strong>Ownership :</strong> HEET JAIN, YASH LIMBAD, YASH JAIN
+                  </p>
                 </section>
               </div>
             </div>
