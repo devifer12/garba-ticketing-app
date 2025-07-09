@@ -226,7 +226,7 @@ const EventDetails = ({ event }) => {
                   <div className="bg-slate-700/30 rounded-lg p-2">
                     <div className="flex justify-between items-center">
                       <span className="text-slate-300 text-sm">
-                        Individual (1-3):
+                        Individual (1-5):
                       </span>
                       <span className="text-white font-bold">
                         ₹{event.ticketPrice}
@@ -236,31 +236,15 @@ const EventDetails = ({ event }) => {
                   <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-2">
                     <div className="flex justify-between items-center">
                       <span className="text-green-300 text-sm">
-                        Group 4+ (4-7):
+                        Group 6+
                       </span>
                       <span className="text-green-300 font-bold">
-                        ₹{event.groupPrice4}
+                        ₹{event.groupPrice6}
                       </span>
                     </div>
-                    {event.ticketPrice - event.groupPrice4 > 0 && (
+                    {event.ticketPrice - event.groupPrice6 > 0 && (
                       <p className="text-green-400 text-xs mt-1">
-                        💰 Save ₹{event.ticketPrice - event.groupPrice4} per
-                        ticket!
-                      </p>
-                    )}
-                  </div>
-                  <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-yellow-300 text-sm">
-                        Group 8+ (8+):
-                      </span>
-                      <span className="text-yellow-300 font-bold">
-                        ₹{event.groupPrice8}
-                      </span>
-                    </div>
-                    {event.ticketPrice - event.groupPrice8 > 0 && (
-                      <p className="text-yellow-400 text-xs mt-1">
-                        🎉 Save ₹{event.ticketPrice - event.groupPrice8} per
+                        💰 Save ₹{event.ticketPrice - event.groupPrice6} per
                         ticket!
                       </p>
                     )}

@@ -181,6 +181,7 @@ const PrivacyPolicy = () => {
                     <strong>Last Updated:</strong> January 2025<br/>
                     <strong>Effective Date:</strong> January 1, 2025
                   </p>
+                  <p> Owned by HEET JAIN</p>
                 </section>
               </div>
             </div>

@@ -222,40 +222,24 @@ const PurchaseSection = ({ event, onPurchase, purchasing }) => (
           </div>
           <div className="grid grid-cols-1 gap-2 text-xs">
             <div className="flex justify-between items-center bg-slate-700/30 rounded-lg p-2">
-              <span className="text-slate-300">Individual (1-3):</span>
+              <span className="text-slate-300">Individual (1-5):</span>
               <span className="text-white font-medium">
                 ₹{event.ticketPrice}
               </span>
             </div>
             <div className="flex justify-between items-center bg-green-900/20 border border-green-700/30 rounded-lg p-2">
-              <span className="text-green-300">Group 4+ (4-7):</span>
+              <span className="text-green-300">Group 6+</span>
               <span className="text-green-400 font-medium">
-                ₹{event.groupPrice4 || event.ticketPrice}
+                ₹{event.groupPrice6 || event.ticketPrice}
               </span>
             </div>
-            {event.ticketPrice - (event.groupPrice4 || event.ticketPrice) >
+            {event.ticketPrice - (event.groupPrice6 || event.ticketPrice) >
               0 && (
               <div className="text-center">
                 <span className="text-green-400 text-xs">
                   💰 Save ₹
-                  {event.ticketPrice - (event.groupPrice4 || event.ticketPrice)}{" "}
-                  when booking 4 or more!
-                </span>
-              </div>
-            )}
-            <div className="flex justify-between items-center bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-2">
-              <span className="text-yellow-300">Group 8+ (8+):</span>
-              <span className="text-yellow-400 font-medium">
-                ₹{event.groupPrice8 || event.ticketPrice}
-              </span>
-            </div>
-            {event.ticketPrice - (event.groupPrice8 || event.ticketPrice) >
-              0 && (
-              <div className="text-center">
-                <span className="text-yellow-400 text-xs">
-                  🎉 Save ₹
-                  {event.ticketPrice - (event.groupPrice8 || event.ticketPrice)}{" "}
-                  when booking 8 or more!
+                  {event.ticketPrice - (event.groupPrice6 || event.ticketPrice)}{" "}
+                  when booking 6 or more!
                 </span>
               </div>
             )}

@@ -125,7 +125,7 @@ const Hero = memo(({ event }) => {
                 <div className="text-2xl mb-2">🎫</div>
                 <p className="text-navratri-yellow text-sm">Price</p>
                 <p className="text-white font-bold text-lg">
-                  ₹{event?.ticketPrice || "349"}/-
+                  ₹{event?.ticketPrice || "299"}/-
                 </p>
                 <p className="text-navratri-yellow/70 text-sm">
                   Group Discounts Available

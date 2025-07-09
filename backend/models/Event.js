@@ -71,16 +71,9 @@ const eventSchema = new mongoose.Schema({
     max: [50000, "Ticket price cannot exceed ₹50,000"],
   },
 
-  groupPrice4: {
+  groupPrice6: {
     type: Number,
-    required: [true, "Group price for 4+ tickets is required"],
-    min: [0, "Group price cannot be negative"],
-    max: [50000, "Group price cannot exceed ₹50,000"],
-  },
-
-  groupPrice8: {
-    type: Number,
-    required: [true, "Group price for 8+ tickets is required"],
+    required: [true, "Group price for 6+ tickets is required"],
     min: [0, "Group price cannot be negative"],
     max: [50000, "Group price cannot exceed ₹50,000"],
   },
@@ -294,10 +287,8 @@ eventSchema.methods.getTicketAvailability = async function () {
 
 // Instance method to calculate price based on quantity
 eventSchema.methods.calculatePrice = function (quantity) {
-  if (quantity >= 8) {
-    return this.groupPrice8;
-  } else if (quantity >= 4) {
-    return this.groupPrice4;
+  if (quantity >= 6) {
+    return this.groupPrice6;
   } else {
     return this.ticketPrice;
   }
@@ -307,14 +298,6 @@ eventSchema.methods.calculatePrice = function (quantity) {
 eventSchema.methods.calculateTotalAmount = function (quantity) {
   const pricePerTicket = this.calculatePrice(quantity);
   return pricePerTicket * quantity;
-};
-
-// Instance method to sell tickets (update sold count)
-eventSchema.methods.sellTickets = async function (quantity) {
-  // This method doesn't need to do anything since we calculate sold tickets
-  // dynamically from the Ticket collection. It's here for compatibility.
-  console.log(`✅ Sold ${quantity} tickets for event: ${this.name}`);
-  return this;
 };
 
 const Event = mongoose.model("Event", eventSchema);

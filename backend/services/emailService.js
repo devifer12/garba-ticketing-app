@@ -752,12 +752,9 @@ class EmailService {
     const individualPrice = eventData.ticketPrice;
     let actualPrice, tier;
 
-    if (quantity >= 8) {
-      actualPrice = eventData.groupPrice8;
-      tier = "as a group of 8+";
-    } else if (quantity >= 4) {
-      actualPrice = eventData.groupPrice4;
-      tier = "as a group of 4+";
+    if (quantity >= 6) {
+      actualPrice = eventData.groupPrice6;
+      tier = "as a group of 6+";
     } else {
       actualPrice = individualPrice;
       tier = "";

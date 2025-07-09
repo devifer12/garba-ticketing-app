@@ -9,10 +9,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
   // Calculate price based on quantity (tiered pricing)
   const calculatePrice = (qty) => {
     if (!event) return 0;
-    if (qty >= 8) {
-      return event.groupPrice8 || event.ticketPrice;
-    } else if (qty >= 4) {
-      return event.groupPrice4 || event.ticketPrice;
+    if (qty >= 6) {
+      return event.groupPrice6 || event.ticketPrice;
     } else {
       return event.ticketPrice;
     }
@@ -23,8 +21,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
 
   // Get pricing tier info
   const getPricingTier = (qty) => {
-    if (qty >= 8) return { name: "Group 8+", discount: true };
-    if (qty >= 4) return { name: "Group 4+", discount: true };
+    if (qty >= 6) return { name: "Group 6+", discount: true };
     return { name: "Individual", discount: false };
   };
 
@@ -100,20 +97,14 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                 <div
                   className={`flex justify-between ${quantity >= 1 && quantity <= 3 ? "text-blue-200 font-medium" : "text-blue-300/70"}`}
                 >
-                  <span>Individual (1-3 tickets):</span>
+                  <span>Individual (1-5 tickets):</span>
                   <span>₹{event.ticketPrice} each</span>
                 </div>
                 <div
                   className={`flex justify-between ${quantity >= 4 && quantity <= 7 ? "text-green-200 font-medium" : "text-blue-300/70"}`}
                 >
-                  <span>Group 4+ (4-7 tickets):</span>
-                  <span>₹{event.groupPrice4 || event.ticketPrice} each</span>
-                </div>
-                <div
-                  className={`flex justify-between ${quantity >= 8 ? "text-yellow-200 font-medium" : "text-blue-300/70"}`}
-                >
-                  <span>Group 8+ (8+ tickets):</span>
-                  <span>₹{event.groupPrice8 || event.ticketPrice} each</span>
+                  <span>Group 6+</span>
+                  <span>₹{event.groupPrice6 || event.ticketPrice} each</span>
                 </div>
               </div>
             </div>
