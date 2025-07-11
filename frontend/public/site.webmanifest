@@ -3,23 +3,11 @@
   "short_name": "Garba Rass 2025",
   "description": "Join Mumbai's biggest Pre-Navratri celebration with traditional Garba and Dandiya dance, live music, and cultural festivities.",
   "start_url": "/",
-  "icons": [
-    {
-      "src": "/android-chrome-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/android-chrome-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ],
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#ff6500",
   "orientation": "portrait-primary",
-  "categories": ["entertainment", "events", "culture"],
+  "categories": ["entertainment", "events", "culture", "dance", "festivals"],
   "lang": "en-IN",
   "scope": "/",
   "prefer_related_applications": false

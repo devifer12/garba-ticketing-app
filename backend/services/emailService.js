@@ -84,7 +84,34 @@ class EmailService {
 
   async generateTicketPDF(ticketData, eventData) {
     let browser;
+    let page;
     try {
+      // Generate QR code first to avoid browser resource waste if this fails
+      let qrCodeDataURL;
+      try {
+        qrCodeDataURL = await QRCode.toDataURL(ticketData.qrCode, {
+          errorCorrectionLevel: "M",
+          type: "image/png",
+          quality: 0.92,
+          margin: 1,
+          color: {
+            dark: "#000000",
+            light: "#FFFFFF",
+          },
+          width: 200,
+        });
+
+        if (process.env.NODE_ENV === "development") {
+          console.log("✅ QR Code generated successfully for PDF");
+        }
+      } catch (qrError) {
+        console.error("QR Code generation failed:", qrError.message);
+        // Use a fallback QR code or text
+        qrCodeDataURL =
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+      }
+
+      // Enhanced Puppeteer configuration with more stability options
       browser = await puppeteer.launch({
         headless: "new",
         args: [
@@ -94,24 +121,43 @@ class EmailService {
           "--disable-accelerated-2d-canvas",
           "--no-first-run",
           "--no-zygote",
-          "--single-process",
           "--disable-gpu",
+          "--disable-web-security",
+          "--disable-features=VizDisplayCompositor",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--disable-ipc-flooding-protection",
+          "--disable-hang-monitor",
+          "--disable-prompt-on-repost",
+          "--disable-domain-reliability",
+          "--disable-component-extensions-with-background-pages",
         ],
+        timeout: 60000, // Increased timeout to 60 seconds
+        protocolTimeout: 60000,
       });
 
-      const page = await browser.newPage();
+      // Add browser disconnect handler
+      browser.on("disconnected", () => {
+        if (process.env.NODE_ENV === "development") {
+          console.log("⚠️ Browser disconnected during PDF generation");
+        }
+      });
 
-      // Generate QR code as base64
-      const qrCodeDataURL = await QRCode.toDataURL(ticketData.qrCode, {
-        errorCorrectionLevel: "M",
-        type: "image/png",
-        quality: 0.92,
-        margin: 1,
-        color: {
-          dark: "#000000",
-          light: "#FFFFFF",
-        },
-        width: 200,
+      page = await browser.newPage();
+
+      // Set longer timeouts and viewport
+      await page.setDefaultTimeout(60000);
+      await page.setDefaultNavigationTimeout(60000);
+      await page.setViewport({ width: 800, height: 1200 });
+
+      // Add page error handlers
+      page.on("error", (err) => {
+        console.error("Page error during PDF generation:", err.message);
+      });
+
+      page.on("pageerror", (err) => {
+        console.error("Page script error during PDF generation:", err.message);
       });
 
       const htmlContent = `
@@ -267,18 +313,6 @@ class EmailService {
                   <div class="detail-label">💰 Price Paid</div>
                   <div class="detail-value">₹${ticketData.price}</div>
                 </div>
-                <div class="detail-item">
-                  <div class="detail-label">🎟️ Ticket Status</div>
-                  <div class="detail-value">${ticketData.status.toUpperCase()}</div>
-                </div>
-                <div class="detail-item">
-                  <div class="detail-label">📅 Purchase Date</div>
-                  <div class="detail-value">${new Date(ticketData.createdAt).toLocaleDateString("en-US")}</div>
-                </div>
-              </div>
-              
-              <div class="ticket-id">
-                <strong>Ticket ID:</strong> ${ticketData.ticketId}
               </div>
               
               <div class="instructions">
@@ -303,18 +337,67 @@ class EmailService {
         </html>
       `;
 
-      await page.setContent(htmlContent, { waitUntil: "networkidle0" });
-
-      const pdfBuffer = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        margin: {
-          top: "20px",
-          right: "20px",
-          bottom: "20px",
-          left: "20px",
-        },
+      // Set content with better error handling and longer timeout
+      await page.setContent(htmlContent, {
+        waitUntil: "networkidle0",
+        timeout: 60000,
       });
+
+      if (process.env.NODE_ENV === "development") {
+        console.log("✅ HTML content loaded successfully");
+      }
+
+      // Wait a bit more to ensure everything is fully rendered
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Check if page is still connected before generating PDF
+      if (page.isClosed()) {
+        throw new Error("Page was closed before PDF generation");
+      }
+
+      if (browser.isConnected && browser.isConnected() === false) {
+        throw new Error("Browser disconnected before PDF generation");
+      }
+
+      // Generate PDF with enhanced options and error handling
+      let pdfBuffer;
+      try {
+        pdfBuffer = await Promise.race([
+          page.pdf({
+            format: "A4",
+            printBackground: true,
+            preferCSSPageSize: false,
+            displayHeaderFooter: false,
+            margin: {
+              top: "20px",
+              right: "20px",
+              bottom: "20px",
+              left: "20px",
+            },
+          }),
+          new Promise((_, reject) =>
+            setTimeout(
+              () =>
+                reject(new Error("PDF generation timeout after 45 seconds")),
+              45000,
+            ),
+          ),
+        ]);
+      } catch (pdfError) {
+        if (
+          pdfError.message.includes("Target closed") ||
+          pdfError.message.includes("Session closed")
+        ) {
+          throw new Error(
+            "Browser session closed during PDF generation - this may be due to system resource constraints",
+          );
+        }
+        throw pdfError;
+      }
+
+      if (!pdfBuffer || pdfBuffer.length === 0) {
+        throw new Error("Generated PDF buffer is empty or invalid");
+      }
 
       if (process.env.NODE_ENV === "development") {
         console.log(
@@ -331,9 +414,24 @@ class EmailService {
       );
       throw error;
     } finally {
-      if (browser) {
+      // Clean up resources in the correct order
+      if (page && !page.isClosed()) {
+        try {
+          await page.close();
+          if (process.env.NODE_ENV === "development") {
+            console.log("✅ Page closed successfully");
+          }
+        } catch (closeError) {
+          console.error("Error closing page:", closeError.message);
+        }
+      }
+
+      if (browser && browser.isConnected && browser.isConnected()) {
         try {
           await browser.close();
+          if (process.env.NODE_ENV === "development") {
+            console.log("✅ Browser closed successfully");
+          }
         } catch (closeError) {
           console.error("Error closing browser:", closeError.message);
         }
@@ -791,8 +889,9 @@ class EmailService {
         );
       }
 
-      // Generate PDF attachments for each ticket
+      // Generate PDF attachments for each ticket with better error handling
       const attachments = [];
+      const maxRetries = 2;
 
       for (let i = 0; i < ticketData.length; i++) {
         const ticket = ticketData[i];
@@ -802,30 +901,78 @@ class EmailService {
           );
         }
 
-        try {
-          const pdfBuffer = await this.generateTicketPDF(ticket, eventData);
-          attachments.push({
-            filename: `garba-ticket-${ticket.ticketId}.pdf`,
-            content: pdfBuffer,
-            contentType: "application/pdf",
-          });
-          if (process.env.NODE_ENV === "development") {
-            console.log(`✅ PDF generated for ticket ${ticket.ticketId}`);
+        let pdfGenerated = false;
+        let retryCount = 0;
+
+        while (!pdfGenerated && retryCount < maxRetries) {
+          try {
+            const pdfBuffer = await this.generateTicketPDF(ticket, eventData);
+
+            // Validate PDF buffer
+            if (!pdfBuffer || pdfBuffer.length === 0) {
+              throw new Error("Generated PDF buffer is empty");
+            }
+
+            attachments.push({
+              filename: `garba-ticket-${ticket.ticketId}.pdf`,
+              content: pdfBuffer,
+              contentType: "application/pdf",
+            });
+
+            if (process.env.NODE_ENV === "development") {
+              console.log(
+                `✅ PDF generated for ticket ${ticket.ticketId} (${pdfBuffer.length} bytes)`,
+              );
+            }
+
+            pdfGenerated = true;
+          } catch (pdfError) {
+            retryCount++;
+            console.error(
+              `Failed to generate PDF for ticket ${ticket.ticketId} (attempt ${retryCount}/${maxRetries}):`,
+              pdfError.message,
+            );
+
+            if (retryCount < maxRetries) {
+              // Wait longer before retry, especially for resource-related errors
+              const waitTime =
+                pdfError.message.includes("Target closed") ||
+                pdfError.message.includes("Session closed") ||
+                pdfError.message.includes("resource constraints")
+                  ? 5000
+                  : 2000;
+
+              if (process.env.NODE_ENV === "development") {
+                console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+              }
+
+              await new Promise((resolve) => setTimeout(resolve, waitTime));
+            }
           }
-        } catch (pdfError) {
+        }
+
+        if (!pdfGenerated) {
           console.error(
-            `Failed to generate PDF for ticket ${ticket.ticketId}:`,
-            pdfError.message,
+            `❌ Failed to generate PDF for ticket ${ticket.ticketId} after ${maxRetries} attempts`,
           );
-          // Continue without this attachment rather than failing the entire email
         }
       }
 
-      // If no PDFs were generated, send email without attachments
-      if (attachments.length === 0 && process.env.NODE_ENV === "development") {
-        console.log(
+      // Check PDF generation results
+      if (attachments.length === 0) {
+        console.error(
           "⚠️ No PDF attachments generated, sending email without attachments",
         );
+      } else if (attachments.length < ticketData.length) {
+        console.warn(
+          `⚠️ Only ${attachments.length}/${ticketData.length} PDF attachments generated successfully`,
+        );
+      } else {
+        if (process.env.NODE_ENV === "development") {
+          console.log(
+            `✅ All ${attachments.length} PDF attachments generated successfully`,
+          );
+        }
       }
 
       const mailOptions = {
@@ -859,9 +1006,10 @@ class EmailService {
         console.log(
           "✅ Purchase confirmation email sent successfully:",
           result.messageId,
+          `with ${attachments.length} PDF attachments`,
         );
       }
-      return result;
+      return { ...result, attachmentCount: attachments.length };
     } catch (error) {
       console.error(
         "Failed to send purchase confirmation email:",

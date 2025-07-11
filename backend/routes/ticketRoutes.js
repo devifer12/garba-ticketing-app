@@ -33,14 +33,6 @@ router.post("/", verifyToken, async (req, res) => {
   try {
     const { quantity = 1, eventId } = req.body;
 
-    // Validate quantity
-    if (quantity < 1 || quantity > 10) {
-      return res.status(400).json({
-        success: false,
-        error: "Quantity must be between 1 and 10 tickets",
-      });
-    }
-
     // Find user by Firebase UID
     const user = await User.findOne({ firebaseUID: req.user.uid });
     if (!user) {
@@ -65,20 +57,6 @@ router.post("/", verifyToken, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: `Only ${availableTickets} tickets available`,
-      });
-    }
-
-    // Check if user already has active tickets (optional limit)
-    const existingActiveTickets = await Ticket.countDocuments({
-      user: user._id,
-      status: { $in: ["active", "used"] },
-    });
-
-    const maxTicketsPerUser = 10; // Configurable limit
-    if (existingActiveTickets + quantity > maxTicketsPerUser) {
-      return res.status(400).json({
-        success: false,
-        error: `Maximum ${maxTicketsPerUser} tickets allowed per user. You currently have ${existingActiveTickets} tickets.`,
       });
     }
 
@@ -123,16 +101,6 @@ router.post("/", verifyToken, async (req, res) => {
 
     // Wait for all tickets to be created
     const createdTickets = await Promise.all(ticketCreationPromises);
-
-    // Update event sold tickets count (method exists for compatibility)
-    try {
-      await event.sellTickets(quantity);
-    } catch (sellError) {
-      console.log(
-        "Event sellTickets method called (no action needed):",
-        sellError.message,
-      );
-    }
 
     // Prepare response data
     const responseTickets = createdTickets.map((ticket) => ({

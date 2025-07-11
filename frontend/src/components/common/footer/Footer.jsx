@@ -199,6 +199,9 @@ const Footer = () => {
               <span>🎫 Digital Tickets</span>
             </div>
           </div>
+          <div className="mt-4 pt-4 border-t border-slate-700/20">
+            <p className="text-slate-500 text-xs">Organised by HYY EVENTS</p>
+          </div>
         </motion.div>
 
         {/* Decorative Elements */}
