@@ -1,6 +1,8 @@
 const nodemailer = require("nodemailer");
 const puppeteer = require("puppeteer");
 const QRCode = require("qrcode");
+const fs = require("fs");
+const path = require("path");
 
 class EmailService {
   constructor() {
@@ -111,8 +113,8 @@ class EmailService {
           "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
       }
 
-      // Enhanced Puppeteer configuration with more stability options
-      browser = await puppeteer.launch({
+      // Enhanced Puppeteer configuration with Chrome path detection
+      const puppeteerConfig = {
         headless: "new",
         args: [
           "--no-sandbox",
@@ -135,7 +137,55 @@ class EmailService {
         ],
         timeout: 60000, // Increased timeout to 60 seconds
         protocolTimeout: 60000,
-      });
+      };
+
+      // Try to detect Chrome executable path for deployment environments
+      const fs = require("fs");
+      const path = require("path");
+
+      // Common Chrome paths in different environments
+      const chromePaths = [
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/google-chrome",
+        "/usr/bin/chromium-browser",
+        "/usr/bin/chromium",
+        "/opt/google/chrome/chrome",
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", // macOS
+        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", // Windows
+        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe", // Windows 32-bit
+      ];
+
+      // Check if any Chrome executable exists
+      let chromeExecutablePath = null;
+      for (const chromePath of chromePaths) {
+        try {
+          if (fs.existsSync(chromePath)) {
+            chromeExecutablePath = chromePath;
+            if (process.env.NODE_ENV === "development") {
+              console.log(`✅ Found Chrome at: ${chromePath}`);
+            }
+            break;
+          }
+        } catch (err) {
+          // Continue checking other paths
+        }
+      }
+
+      // If Chrome executable found, use it
+      if (chromeExecutablePath) {
+        puppeteerConfig.executablePath = chromeExecutablePath;
+      } else {
+        // In production environments, try to use bundled Chromium
+        if (process.env.NODE_ENV === "production") {
+          if (process.env.NODE_ENV === "development") {
+            console.log(
+              "⚠️ No Chrome executable found, using bundled Chromium",
+            );
+          }
+        }
+      }
+
+      browser = await puppeteer.launch(puppeteerConfig);
 
       // Add browser disconnect handler
       browser.on("disconnected", () => {
@@ -313,8 +363,6 @@ class EmailService {
                   <div class="detail-label">💰 Price Paid</div>
                   <div class="detail-value">₹${ticketData.price}</div>
                 </div>
-              </div>
-              
               <div class="instructions">
                 <h3>📋 Important Instructions:</h3>
                 <ul>
