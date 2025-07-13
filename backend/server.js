@@ -5,7 +5,10 @@ const path = require("path");
 const { connectDB } = require("./config/db.js");
 require("dotenv").config();
 
+
 const app = express();
+// Trust the first proxy (required for Vercel and express-rate-limit)
+app.set('trust proxy', 1);
 app.use(compression());
 
 // Enhanced CORS configuration
