@@ -119,15 +119,25 @@ class EmailService {
       }
 
 
+
       let puppeteerConfig;
       if (chromium) {
+        // Always use chrome-aws-lambda's executablePath and args in serverless
+        const execPath = await chromium.executablePath;
+        if (process.env.NODE_ENV === "development" || process.env.VERCEL) {
+          console.log(`[PDF] Using chrome-aws-lambda executablePath: ${execPath}`);
+        }
         puppeteerConfig = {
           args: chromium.args,
-          executablePath: await chromium.executablePath,
+          executablePath: execPath,
           headless: chromium.headless,
           defaultViewport: chromium.defaultViewport,
           timeout: 60000,
         };
+        // If execPath is null or empty, throw an error (prevents fallback to system Chrome)
+        if (!execPath) {
+          throw new Error("chrome-aws-lambda executablePath not found. Ensure chrome-aws-lambda is installed and compatible.");
+        }
       } else {
         // Local/dev/other environments
         const fs = require("fs");
