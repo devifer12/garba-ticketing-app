@@ -158,7 +158,7 @@ const GuestDashboard = () => {
 
           {/* Quick Actions */}
           <QuickActions tickets={tickets} onRefresh={fetchDashboardData} />
-        </div>
+        </div>  
       </motion.div>
 
       <div id="tickets-section">
@@ -222,34 +222,29 @@ const PurchaseSection = ({ event, onPurchase, purchasing }) => (
           </div>
           <div className="grid grid-cols-1 gap-2 text-xs">
             <div className="flex justify-between items-center bg-slate-700/30 rounded-lg p-2">
-              <span className="text-slate-300">Individual (1-5):</span>
+              <span className="text-slate-300">Individual (1-3):</span>
               <span className="text-white font-medium">
                 ₹{event.ticketPrice}
               </span>
             </div>
             <div className="flex justify-between items-center bg-green-900/20 border border-green-700/30 rounded-lg p-2">
-              <span className="text-green-300">Group 6+</span>
+              <span className="text-green-300">Group 4+</span>
               <span className="text-green-400 font-medium">
-                ₹{event.groupPrice6 || event.ticketPrice}
+                ₹{event.groupPrice4 || event.ticketPrice}
               </span>
             </div>
-            {event.ticketPrice - (event.groupPrice6 || event.ticketPrice) >
+            {event.ticketPrice - (event.groupPrice4 || event.ticketPrice) >
               0 && (
               <div className="text-center">
                 <span className="text-green-400 text-xs">
                   💰 Save ₹
-                  {event.ticketPrice - (event.groupPrice6 || event.ticketPrice)}{" "}
-                  when booking 6 or more!
+                  {event.ticketPrice - (event.groupPrice4 || event.ticketPrice)}{" "}
+                  when booking 4 or more!
                 </span>
               </div>
             )}
           </div>
         </div>
-        <p className="text-slate-300 text-xs sm:text-sm">
-          {event.availableTickets > 0
-            ? `${event.availableTickets} tickets remaining`
-            : "Sold Out!"}
-        </p>
       </div>
 
       {event.availableTickets > 0 ? (

@@ -9,8 +9,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
   // Calculate price based on quantity (tiered pricing)
   const calculatePrice = (qty) => {
     if (!event) return 0;
-    if (qty >= 6) {
-      return event.groupPrice6 || event.ticketPrice;
+    if (qty >= 4) {
+      return event.groupPrice4 || event.ticketPrice;
     } else {
       return event.ticketPrice;
     }
@@ -21,19 +21,19 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
 
   // Get pricing tier info
   const getPricingTier = (qty) => {
-    if (qty >= 6) return { name: "Group 6+", discount: true };
+    if (qty >= 4) return { name: "Group 4+", discount: true };
     return { name: "Individual", discount: false };
   };
 
   const currentTier = getPricingTier(quantity);
 
   const handleQuantityChange = (newQuantity) => {
-      setQuantity(newQuantity);
+    setQuantity(newQuantity);
   };
 
   const handlePurchase = () => {
-      onPurchase(quantity);
-      setShowConfirm(false);
+    onPurchase(quantity);
+    setShowConfirm(false);
   };
 
   if (!event) return null;
@@ -44,8 +44,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-      >
+        className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {!showConfirm ? (
           // Purchase Form
           <div className="p-4 sm:p-6 md:p-8">
@@ -73,12 +72,6 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                     </p>
                   )}
                 </div>
-                <div>
-                  <span className="text-slate-400">Available:</span>
-                  <p className="text-white font-bold text-sm sm:text-base">
-                    {event.availableTickets}
-                  </p>
-                </div>
                 <div className="col-span-2">
                   <span className="text-slate-400">Venue:</span>
                   <p className="text-white font-medium text-sm sm:text-base">
@@ -95,16 +88,22 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
               </h4>
               <div className="grid grid-cols-1 gap-2 text-xs sm:text-sm">
                 <div
-                  className={`flex justify-between ${quantity >= 1 && quantity <= 3 ? "text-blue-200 font-medium" : "text-blue-300/70"}`}
-                >
-                  <span>Individual (1-5 tickets):</span>
+                  className={`flex justify-between ${
+                    quantity >= 1 && quantity <= 3
+                      ? "text-blue-200 font-medium"
+                      : "text-blue-300/70"
+                  }`}>
+                  <span>Individual (1-3 tickets):</span>
                   <span>₹{event.ticketPrice} each</span>
                 </div>
                 <div
-                  className={`flex justify-between ${quantity >= 4 && quantity <= 7 ? "text-green-200 font-medium" : "text-blue-300/70"}`}
-                >
-                  <span>Group 6+</span>
-                  <span>₹{event.groupPrice6 || event.ticketPrice} each</span>
+                  className={`flex justify-between ${
+                    quantity >= 4
+                      ? "text-green-200 font-medium"
+                      : "text-blue-300/70"
+                  }`}>
+                  <span>Group 4+</span>
+                  <span>₹{event.groupPrice4 || event.ticketPrice} each</span>
                 </div>
               </div>
             </div>
@@ -121,8 +120,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                   disabled={quantity <= 1}
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg flex items-center justify-center font-bold text-base sm:text-lg"
                   whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
+                  whileTap={{ scale: 0.95 }}>
                   -
                 </motion.button>
 
@@ -136,8 +134,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                   onClick={() => handleQuantityChange(quantity + 1)}
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg flex items-center justify-center font-bold text-base sm:text-lg"
                   whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
+                  whileTap={{ scale: 0.95 }}>
                   +
                 </motion.button>
               </div>
@@ -165,10 +162,6 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                       </span>
                     </div>
                     <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-2">
-                      <p className="text-green-300 text-xs sm:text-sm text-center">
-                        🎉 You saved ₹{event.ticketPrice - pricePerTicket} per
-                        ticket by booking {currentTier.name}!
-                      </p>
                       <p className="text-green-400 text-xs text-center mt-1">
                         Total savings: ₹
                         {(event.ticketPrice - pricePerTicket) * quantity}
@@ -243,8 +236,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                 disabled={purchasing || quantity === 0 || !agreedToTerms}
                 className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-lg shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
+                whileTap={{ scale: 0.98 }}>
                 Continue to Purchase
               </motion.button>
 
@@ -253,8 +245,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                 disabled={purchasing}
                 className="px-4 sm:px-6 py-2 sm:py-3 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all disabled:opacity-50 text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
+                whileTap={{ scale: 0.98 }}>
                 Close
               </motion.button>
             </div>
@@ -339,8 +330,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                 disabled={purchasing}
                 className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-600 to-green-500 text-white font-bold rounded-lg shadow-lg hover:shadow-green-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
+                whileTap={{ scale: 0.98 }}>
                 {purchasing ? (
                   <>
                     <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-t-2 border-b-2 border-white"></div>
@@ -356,8 +346,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                 disabled={purchasing}
                 className="px-4 sm:px-6 py-2 sm:py-3 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all disabled:opacity-50 text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
+                whileTap={{ scale: 0.98 }}>
                 Back
               </motion.button>
             </div>

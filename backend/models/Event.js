@@ -71,9 +71,9 @@ const eventSchema = new mongoose.Schema({
     max: [50000, "Ticket price cannot exceed ₹50,000"],
   },
 
-  groupPrice6: {
+  groupPrice4: {
     type: Number,
-    required: [true, "Group price for 6+ tickets is required"],
+    required: [true, "Group price for 4+ tickets is required"],
     min: [0, "Group price cannot be negative"],
     max: [50000, "Group price cannot exceed ₹50,000"],
   },
@@ -287,8 +287,8 @@ eventSchema.methods.getTicketAvailability = async function () {
 
 // Instance method to calculate price based on quantity
 eventSchema.methods.calculatePrice = function (quantity) {
-  if (quantity >= 6) {
-    return this.groupPrice6;
+  if (quantity >= 4) {
+    return this.groupPrice4;
   } else {
     return this.ticketPrice;
   }

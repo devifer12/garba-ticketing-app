@@ -155,22 +155,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Optimized auth state listener
+  // Optimized auth state listener with memoization
   useEffect(() => {
+    let isMounted = true;
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!isMounted) return;
+
       try {
         if (firebaseUser) {
-          setUser({
+          const userData = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
             emailVerified: firebaseUser.emailVerified,
-          });
+          };
+
+          setUser(userData);
 
           // Only sync if we don't have backend user or it's different
           if (!backendUser || backendUser.firebaseUID !== firebaseUser.uid) {
-            await syncUserWithBackend(firebaseUser);
+            const syncResult = await syncUserWithBackend(firebaseUser);
+            if (isMounted && syncResult) {
+              // Sync successful
+            }
           }
         } else {
           clearUserState();
@@ -179,15 +188,22 @@ export const AuthProvider = ({ children }) => {
         if (process.env.NODE_ENV === "development") {
           console.error("Auth state change error:", error);
         }
-        setError("Authentication error occurred");
+        if (isMounted) {
+          setError("Authentication error occurred");
+        }
       } finally {
-        setInitializing(false);
-        setLoading(false);
+        if (isMounted) {
+          setInitializing(false);
+          setLoading(false);
+        }
       }
     });
 
-    return unsubscribe;
-  }, [backendUser]);
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   // Auto-clear errors
   useEffect(() => {

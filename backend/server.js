@@ -12,7 +12,11 @@ app.use(compression());
 const corsOptions = {
   origin:
     process.env.NODE_ENV === "production"
-      ? [process.env.FRONTEND_URL, "https://hyyevents.com", "https://www.hyyevents.com"]
+      ? [
+          process.env.FRONTEND_URL,
+          "https://hyyevents.com",
+          "https://www.hyyevents.com",
+        ]
       : [
           process.env.FRONTEND_URL,
           "http://localhost:3000",
@@ -117,6 +121,22 @@ connectDB();
 // Import middleware
 const verifyFirebaseToken = require("./middlewares/authMiddleware");
 const errorHandler = require("./middlewares/errorMiddleware");
+const {
+  performanceMiddleware,
+  dbPerformanceMiddleware,
+  memoryMonitoringMiddleware,
+  createRateLimiter,
+} = require("./middlewares/performanceMiddleware");
+
+// Apply performance middleware
+app.use(performanceMiddleware);
+app.use(dbPerformanceMiddleware);
+app.use(memoryMonitoringMiddleware);
+
+// Apply rate limiting
+if (process.env.NODE_ENV === "production") {
+  app.use("/api/", createRateLimiter());
+}
 
 // Import routes
 const authRoutes = require("./routes/authRoutes");

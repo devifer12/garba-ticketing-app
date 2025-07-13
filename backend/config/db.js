@@ -3,15 +3,36 @@ require("dotenv").config({ path: "../.env" });
 
 const connectDB = async () => {
   try {
+    // Use environment variables for connection pool settings
+    const maxPoolSize = parseInt(process.env.MONGODB_MAX_POOL_SIZE) || 20;
+    const minPoolSize = parseInt(process.env.MONGODB_MIN_POOL_SIZE) || 5;
+
     await mongoose.connect(process.env.MONGODB_URI, {
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      bufferCommands: true, // Enable mongoose buffering to prevent errors before initial connection
+      maxPoolSize, // Use environment variable or default
+      minPoolSize, // Use environment variable or default
+      serverSelectionTimeoutMS: 10000, // Increased timeout for serverless
+      socketTimeoutMS: 60000, // Increased socket timeout
+      connectTimeoutMS: 10000, // Connection timeout
+      bufferCommands: true,
+      // Performance optimizations
+      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+      heartbeatFrequencyMS: 10000, // Check connection health every 10 seconds
     });
-    if (process.env.NODE_ENV !== "production") {
-      console.log("✅ MongoDB Connected to hyyevents database");
-    }
+
+    // Connection event handlers
+    mongoose.connection.on("connected", () => {
+      if (process.env.NODE_ENV !== "production") {
+        console.log("✅ MongoDB Connected to hyyevents database");
+      }
+    });
+
+    mongoose.connection.on("error", (err) => {
+      console.error("❌ MongoDB Connection Error:", err.message);
+    });
+
+    mongoose.connection.on("disconnected", () => {
+      console.log("⚠️ MongoDB Disconnected");
+    });
   } catch (err) {
     console.error("❌ MongoDB Connection Error:", err.message);
     process.exit(1);

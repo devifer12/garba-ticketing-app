@@ -1,8 +1,13 @@
 const nodemailer = require("nodemailer");
-const puppeteer = require("puppeteer");
+let puppeteer;
+let chromium;
+if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_VERSION) {
+  chromium = require("chrome-aws-lambda");
+  puppeteer = require("puppeteer-core");
+} else {
+  puppeteer = require("puppeteer-core");
+}
 const QRCode = require("qrcode");
-const fs = require("fs");
-const path = require("path");
 
 class EmailService {
   constructor() {
@@ -113,75 +118,68 @@ class EmailService {
           "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
       }
 
-      // Enhanced Puppeteer configuration with Chrome path detection
-      const puppeteerConfig = {
-        headless: "new",
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--disable-gpu",
-          "--disable-web-security",
-          "--disable-features=VizDisplayCompositor",
-          "--disable-background-timer-throttling",
-          "--disable-backgrounding-occluded-windows",
-          "--disable-renderer-backgrounding",
-          "--disable-ipc-flooding-protection",
-          "--disable-hang-monitor",
-          "--disable-prompt-on-repost",
-          "--disable-domain-reliability",
-          "--disable-component-extensions-with-background-pages",
-        ],
-        timeout: 60000, // Increased timeout to 60 seconds
-        protocolTimeout: 60000,
-      };
 
-      // Try to detect Chrome executable path for deployment environments
-      const fs = require("fs");
-      const path = require("path");
-
-      // Common Chrome paths in different environments
-      const chromePaths = [
-        "/usr/bin/google-chrome-stable",
-        "/usr/bin/google-chrome",
-        "/usr/bin/chromium-browser",
-        "/usr/bin/chromium",
-        "/opt/google/chrome/chrome",
-        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", // macOS
-        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", // Windows
-        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe", // Windows 32-bit
-      ];
-
-      // Check if any Chrome executable exists
-      let chromeExecutablePath = null;
-      for (const chromePath of chromePaths) {
-        try {
-          if (fs.existsSync(chromePath)) {
-            chromeExecutablePath = chromePath;
-            if (process.env.NODE_ENV === "development") {
-              console.log(`✅ Found Chrome at: ${chromePath}`);
-            }
-            break;
-          }
-        } catch (err) {
-          // Continue checking other paths
-        }
-      }
-
-      // If Chrome executable found, use it
-      if (chromeExecutablePath) {
-        puppeteerConfig.executablePath = chromeExecutablePath;
+      let puppeteerConfig;
+      if (chromium) {
+        puppeteerConfig = {
+          args: chromium.args,
+          executablePath: await chromium.executablePath,
+          headless: chromium.headless,
+          defaultViewport: chromium.defaultViewport,
+          timeout: 60000,
+        };
       } else {
-        // In production environments, try to use bundled Chromium
-        if (process.env.NODE_ENV === "production") {
-          if (process.env.NODE_ENV === "development") {
-            console.log(
-              "⚠️ No Chrome executable found, using bundled Chromium",
-            );
-          }
+        // Local/dev/other environments
+        const fs = require("fs");
+        const path = require("path");
+        const chromePaths = [
+          "/usr/bin/google-chrome-stable",
+          "/usr/bin/google-chrome",
+          "/usr/bin/chromium-browser",
+          "/usr/bin/chromium",
+          "/opt/google/chrome/chrome",
+          "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+          "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+          "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+        ];
+        let chromeExecutablePath = null;
+        for (const chromePath of chromePaths) {
+          try {
+            if (fs.existsSync(chromePath)) {
+              chromeExecutablePath = chromePath;
+              if (process.env.NODE_ENV === "development") {
+                console.log(`✅ Found Chrome at: ${chromePath}`);
+              }
+              break;
+            }
+          } catch (err) {}
+        }
+        puppeteerConfig = {
+          headless: "new",
+          args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu",
+            "--disable-web-security",
+            "--disable-features=VizDisplayCompositor",
+            "--disable-background-timer-throttling",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-renderer-backgrounding",
+            "--disable-ipc-flooding-protection",
+            "--disable-hang-monitor",
+            "--disable-prompt-on-repost",
+            "--disable-domain-reliability",
+            "--disable-component-extensions-with-background-pages",
+          ],
+          timeout: 60000,
+          protocolTimeout: 60000,
+        };
+        if (chromeExecutablePath) {
+          puppeteerConfig.executablePath = chromeExecutablePath;
         }
       }
 
@@ -236,27 +234,31 @@ class EmailService {
                 margin: 0 auto;
                 box-shadow: 0 20px 40px rgba(0,0,0,0.1);
                 border: 3px solid #ff6500;
+                min-height: 900px;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
               }
               .header {
                 text-align: center;
-                margin-bottom: 30px;
+                margin-bottom: 24px;
                 border-bottom: 2px dashed #ff6500;
-                padding-bottom: 20px;
+                padding-bottom: 16px;
               }
               .event-title {
                 font-size: 32px;
                 font-weight: bold;
                 color: #ff6500;
-                margin-bottom: 10px;
+                margin-bottom: 8px;
               }
               .event-subtitle {
                 font-size: 18px;
                 color: #666;
-                margin-bottom: 5px;
+                margin-bottom: 4px;
               }
               .qr-section {
                 text-align: center;
-                margin: 30px 0;
+                margin: 24px 0 16px 0;
                 background: #f8f9fa;
                 padding: 20px;
                 border-radius: 15px;
@@ -265,22 +267,23 @@ class EmailService {
                 margin: 20px 0;
               }
               .qr-code img {
-                width: 200px;
-                height: 200px;
+                width: 180px;
+                height: 180px;
                 border: 3px solid #ff6500;
                 border-radius: 10px;
               }
-              .details-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
+              .details-row {
+                display: flex;
                 gap: 20px;
-                margin: 30px 0;
+                margin: 0 0 16px 0;
               }
               .detail-item {
+                flex: 1;
                 background: #f8f9fa;
                 padding: 15px;
                 border-radius: 10px;
                 border-left: 4px solid #ff6500;
+                min-width: 0;
               }
               .detail-label {
                 font-weight: bold;
@@ -291,23 +294,15 @@ class EmailService {
               .detail-value {
                 color: #666;
                 font-size: 16px;
-              }
-              .ticket-id {
-                text-align: center;
-                font-family: 'Courier New', monospace;
-                font-size: 14px;
-                color: #666;
-                margin-top: 20px;
-                padding: 10px;
-                background: #f0f0f0;
-                border-radius: 5px;
+                word-break: break-word;
               }
               .instructions {
                 background: #fff3cd;
                 border: 1px solid #ffeaa7;
                 border-radius: 10px;
                 padding: 20px;
-                margin-top: 30px;
+                margin: 24px 0 0 0;
+                width: 100%;
               }
               .instructions h3 {
                 color: #856404;
@@ -322,8 +317,8 @@ class EmailService {
               }
               .footer {
                 text-align: center;
-                margin-top: 30px;
-                padding-top: 20px;
+                margin-top: 24px;
+                padding-top: 16px;
                 border-top: 2px dashed #ff6500;
                 color: #666;
                 font-size: 12px;
@@ -333,28 +328,19 @@ class EmailService {
           <body>
             <div class="ticket">
               <div class="header">
-                <div class="event-title">🎭 ${eventData.name}</div>
-                <div class="event-subtitle">${new Date(
-                  eventData.date,
-                ).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}</div>
+                <div class="event-title">Garba Rass</div>
+                <div class="event-subtitle">${new Date(eventData.date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
                 <div class="event-subtitle">${eventData.startTime} - ${eventData.endTime}</div>
               </div>
-              
               <div class="qr-section">
-                <h3 style="color: #ff6500; margin-bottom: 10px;">🎫 Your Entry Pass</h3>
+                <h3 style="color: #ffb300; margin-bottom: 10px;">🎫 Your Entry Pass</h3>
                 <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Present this QR code at the venue entrance</p>
                 <div class="qr-code">
                   <img src="${qrCodeDataURL}" alt="QR Code" />
                 </div>
                 <p style="color: #666; font-size: 12px;">Scan this code for quick entry</p>
               </div>
-              
-              <div class="details-grid">
+              <div class="details-row">
                 <div class="detail-item">
                   <div class="detail-label">📍 Venue</div>
                   <div class="detail-value">${eventData.venue}</div>
@@ -363,6 +349,7 @@ class EmailService {
                   <div class="detail-label">💰 Price Paid</div>
                   <div class="detail-value">₹${ticketData.price}</div>
                 </div>
+              </div>
               <div class="instructions">
                 <h3>📋 Important Instructions:</h3>
                 <ul>
@@ -374,7 +361,6 @@ class EmailService {
                   <li>Follow the dress code: Traditional Indian attire preferred</li>
                 </ul>
               </div>
-              
               <div class="footer">
                 <p>Thank you for choosing Garba Rass 2025! 🎉</p>
                 <p>For support, contact us at hyyevents@gmail.com</p>
@@ -682,7 +668,6 @@ class EmailService {
                   ? `
                 <div class="savings-highlight">
                   <h3>🎉 Group Discount Applied!</h3>
-                  <p><strong>You saved ₹${savings.amount} per ticket by booking ${savings.tier}!</strong></p>
                   <p>Total savings: ₹${savings.amount * quantity}</p>
                 </div>
               `
@@ -898,9 +883,9 @@ class EmailService {
     const individualPrice = eventData.ticketPrice;
     let actualPrice, tier;
 
-    if (quantity >= 6) {
-      actualPrice = eventData.groupPrice6;
-      tier = "as a group of 6+";
+    if (quantity >= 4) {
+      actualPrice = eventData.groupPrice4;
+      tier = "as a group of 4+";
     } else {
       actualPrice = individualPrice;
       tier = "";

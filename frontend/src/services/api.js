@@ -4,12 +4,17 @@ import { API_ENDPOINTS, ERROR_MESSAGES } from "../utils/constants.js";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
-  timeout: 8000, // Further reduced for faster failures
+  timeout: 15000, // Increased for serverless cold starts
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
   withCredentials: true,
+  // Add retry configuration
+  retry: 3,
+  retryDelay: (retryCount) => {
+    return Math.pow(2, retryCount) * 1000; // Exponential backoff
+  },
 });
 
 // Optimized request interceptor
@@ -30,23 +35,71 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Simplified response interceptor
+// Optimized response interceptor with retry logic
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle network errors with exponential backoff
+    if (!error.response && error.code === "NETWORK_ERROR") {
+      const retryCount = originalRequest.__retryCount || 0;
+      if (retryCount < 3) {
+        originalRequest.__retryCount = retryCount + 1;
+        const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return api(originalRequest);
+      }
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
+
       try {
         const user = auth.currentUser;
         if (user) {
           const newToken = await user.getIdToken(true);
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          processQueue(null, newToken);
           return api(originalRequest);
         }
       } catch (tokenError) {
+        processQueue(tokenError, null);
         console.error("Token refresh failed:", tokenError);
+        // Redirect to login or clear auth state
+        if (typeof window !== "undefined") {
+          window.location.href = "/";
+        }
+      } finally {
+        isRefreshing = false;
       }
     }
 

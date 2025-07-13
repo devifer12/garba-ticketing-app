@@ -10,14 +10,24 @@ import RefundPolicy from "./pages/RefundPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import ErrorNotification from "./components/common/ErrorNotification";
 import Preloader from "./components/common/Preloader.jsx";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
 import { AuthProvider } from "./context/AuthContext";
 import { eventAPI } from "./services/api";
+import { logBundleSize, monitorMemoryUsage } from "./utils/performance";
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [showContent, setShowContent] = useState(false);
   const [eventData, setEventData] = useState(null);
   const [eventLoading, setEventLoading] = useState(true);
+
+  // Initialize performance monitoring
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      logBundleSize();
+      monitorMemoryUsage();
+    }
+  }, []);
 
   // Fetch event data immediately when app starts
   useEffect(() => {
@@ -75,7 +85,7 @@ function App() {
   };
 
   return (
-    <>
+    <ErrorBoundary>
       {isLoading && <Preloader onComplete={handlePreloaderComplete} />}
 
       {showContent && (
@@ -122,7 +132,7 @@ function App() {
           </BrowserRouter>
         </AuthProvider>
       )}
-    </>
+    </ErrorBoundary>
   );
 }
 

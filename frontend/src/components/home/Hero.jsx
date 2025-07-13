@@ -1,5 +1,6 @@
-import React, { memo, useMemo } from "react";
+import React, { memo, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
+import { debounce } from "../../utils/performance";
 import { PrimaryButton, GoogleSignInButton } from "../ui/Button";
 import { useAuth } from "../../context/AuthContext";
 import { formatDate, formatTime } from "../../utils/helpers";
@@ -9,6 +10,23 @@ import Dandiya from "../../assets/dandiya.webp";
 
 const Hero = memo(({ event }) => {
   const { user } = useAuth();
+
+  // Debounced event data processing to prevent excessive re-calculations
+  const debouncedEventProcessor = useCallback(
+    debounce((eventData) => {
+      if (eventData && process.env.NODE_ENV === "development") {
+        console.log("Processing event data:", eventData.name);
+      }
+    }, 300),
+    [],
+  );
+
+  // Process event data when it changes
+  React.useEffect(() => {
+    if (event) {
+      debouncedEventProcessor(event);
+    }
+  }, [event, debouncedEventProcessor]);
 
   // Memoize animation variants to prevent recreation
   const containerVariants = useMemo(
@@ -156,26 +174,6 @@ const Hero = memo(({ event }) => {
                   </GoogleSignInButton>
                 </div>
               )}
-            </motion.div>
-
-            {/* Limited Tickets Warning - Fixed height */}
-            <motion.div
-              variants={itemVariants}
-              className="h-8 flex items-center justify-center lg:justify-start"
-            >
-              <motion.p
-                className="cursor-default text-navratri-yellow font-bold text-base sm:text-lg text-center lg:text-left"
-                animate={{
-                  opacity: [0.7, 1, 0.7],
-                  scale: [1, 1.01, 1], // Reduced from 1.02
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                ⚡{" "}
-                {event
-                  ? `Only ${event.availableTickets} Tickets Left!`
-                  : "Only 300 Tickets left!"}
-              </motion.p>
             </motion.div>
           </motion.div>
 

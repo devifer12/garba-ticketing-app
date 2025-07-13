@@ -83,7 +83,7 @@ const InputField = React.memo(
         </p>
       )}
     </div>
-  ),
+  )
 );
 
 const EventManager = () => {
@@ -106,7 +106,7 @@ const EventManager = () => {
     startTime: "",
     endTime: "",
     ticketPrice: "",
-    groupPrice6: "",
+    groupPrice4: "",
     totalTickets: "",
     eventImage: "",
     features: [],
@@ -168,7 +168,7 @@ const EventManager = () => {
       ];
       if (!validTypes.includes(file.type)) {
         toast.error(
-          "Please select a valid image file (JPEG, PNG, GIF, or WebP)",
+          "Please select a valid image file (JPEG, PNG, GIF, or WebP)"
         );
         return;
       }
@@ -218,7 +218,7 @@ const EventManager = () => {
 
       reader.readAsDataURL(file);
     },
-    [errors],
+    [errors]
   );
 
   // Memoized form handlers to prevent recreation on every render
@@ -239,7 +239,7 @@ const EventManager = () => {
         }));
       }
     },
-    [errors],
+    [errors]
   );
 
   // Handle features array separately
@@ -271,16 +271,16 @@ const EventManager = () => {
 
     // Numeric validations
     const ticketPrice = parseFloat(formData.ticketPrice);
-    const groupPrice6 = parseFloat(formData.groupPrice6);
+    const groupPrice4 = parseFloat(formData.groupPrice4);
     const totalTickets = parseInt(formData.totalTickets);
 
     if (!formData.ticketPrice || isNaN(ticketPrice) || ticketPrice <= 0) {
       newErrors.ticketPrice =
         "Valid ticket price is required (must be greater than 0)";
     }
-    if (!formData.groupPrice6 || isNaN(groupPrice6) || groupPrice6 <= 0) {
-      newErrors.groupPrice6=
-        "Valid group price for 6+ tickets is required (must be greater than 0)";
+    if (!formData.groupPrice4 || isNaN(groupPrice4) || groupPrice4 <= 0) {
+      newErrors.groupPrice4 =
+        "Valid group price for 4+ tickets is required (must be greater than 0)";
     }
     if (!formData.totalTickets || isNaN(totalTickets) || totalTickets <= 0) {
       newErrors.totalTickets =
@@ -368,7 +368,7 @@ const EventManager = () => {
         startTime: formData.startTime.trim(),
         endTime: formData.endTime.trim(),
         ticketPrice: parseFloat(formData.ticketPrice),
-        groupPrice6: parseFloat(formData.groupPrice6),
+        groupPrice4: parseFloat(formData.groupPrice4),
         totalTickets: parseInt(formData.totalTickets),
         eventImage: formData.eventImage?.trim() || "", // This will be base64 data or empty
         features: Array.isArray(formData.features) ? formData.features : [],
@@ -429,7 +429,9 @@ const EventManager = () => {
         toast.error("Please fix the validation errors");
       } else {
         toast.error(
-          `Failed to ${view === "create" ? "create" : "update"} event: ${errorMessage}`,
+          `Failed to ${
+            view === "create" ? "create" : "update"
+          } event: ${errorMessage}`
         );
       }
     } finally {
@@ -448,7 +450,7 @@ const EventManager = () => {
       startTime: event.startTime || "",
       endTime: event.endTime || "",
       ticketPrice: event.ticketPrice?.toString() || "",
-      groupPrice6: event.groupPrice6?.toString() || "",
+      groupPrice4: event.groupPrice4?.toString() || "",
       totalTickets: event.totalTickets?.toString() || "",
       eventImage: event.eventImage || "",
       features: event.features || [],
@@ -495,8 +497,7 @@ const EventManager = () => {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 p-8 rounded-2xl shadow-lg text-center max-w-sm w-full"
-      >
+        className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 p-8 rounded-2xl shadow-lg text-center max-w-sm w-full">
         <h3 className="text-xl font-semibold text-white mb-6">
           Are you sure you want to {view === "create" ? "create" : "update"}{" "}
           this event?
@@ -505,15 +506,13 @@ const EventManager = () => {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-400 text-white font-semibold rounded-lg shadow-lg hover:shadow-green-500/20 transition-all text-sm disabled:opacity-50"
-          >
+            className="px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-400 text-white font-semibold rounded-lg shadow-lg hover:shadow-green-500/20 transition-all text-sm disabled:opacity-50">
             {isSubmitting ? "Processing..." : "Yes"}
           </button>
           <button
             onClick={() => setShowConfirmModal(false)}
             disabled={isSubmitting}
-            className="px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-red-500/20 transition-all text-sm disabled:opacity-50"
-          >
+            className="px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-red-500/20 transition-all text-sm disabled:opacity-50">
             No
           </button>
         </div>
@@ -625,22 +624,14 @@ const EventManager = () => {
                 <p className="text-white text-xl font-bold">
                   ₹{event.ticketPrice}
                 </p>
-                <p className="text-green-200 text-xs mt-1">1-5 tickets</p>
+                <p className="text-green-200 text-xs mt-1">1-3 tickets</p>
               </div>
 
               <div className="bg-orange-900/30 backdrop-blur-xl rounded-xl p-4 border border-orange-700/30 text-center">
                 <span className="text-2xl block mb-2">👥</span>
-                <p className="text-orange-300 font-medium">Group Price (6+)</p>
+                <p className="text-orange-300 font-medium">Group Price (4+)</p>
                 <p className="text-white text-xl font-bold">
-                  ₹{event.groupPrice6}
-                </p>
-              </div>
-
-              <div className="bg-blue-900/30 backdrop-blur-xl rounded-xl p-4 border border-blue-700/30 text-center">
-                <span className="text-2xl block mb-2">🎟️</span>
-                <p className="text-blue-300 font-medium">Available Tickets</p>
-                <p className="text-white text-xl font-bold">
-                  {event.availableTickets} / {event.totalTickets}
+                  ₹{event.groupPrice4}
                 </p>
               </div>
             </div>
@@ -656,8 +647,7 @@ const EventManager = () => {
                   {event.features.map((feature, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 bg-purple-900/30 text-purple-300 rounded-full text-sm border border-purple-700/30"
-                    >
+                      className="px-3 py-1 bg-purple-900/30 text-purple-300 rounded-full text-sm border border-purple-700/30">
                       {feature}
                     </span>
                   ))}
@@ -682,16 +672,14 @@ const EventManager = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 border-t border-slate-600/30">
               <button
                 onClick={handleEdit}
-                className="px-8 py-4 bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-yellow-500/25 transition-all duration-300 flex items-center justify-center gap-3 text-lg"
-              >
+                className="px-8 py-4 bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-yellow-500/25 transition-all duration-300 flex items-center justify-center gap-3 text-lg">
                 <span className="text-xl">✏️</span>
                 Edit Event Details
               </button>
 
               <button
                 onClick={() => window.history.back()}
-                className="px-8 py-4 bg-slate-600/50 backdrop-blur-xl text-slate-300 font-medium rounded-xl border border-slate-500/30 hover:bg-slate-600/70 transition-all duration-300 flex items-center justify-center gap-3 text-lg"
-              >
+                className="px-8 py-4 bg-slate-600/50 backdrop-blur-xl text-slate-300 font-medium rounded-xl border border-slate-500/30 hover:bg-slate-600/70 transition-all duration-300 flex items-center justify-center gap-3 text-lg">
                 <span className="text-xl">🏠</span>
                 Back to Dashboard
               </button>
@@ -838,15 +826,15 @@ const EventManager = () => {
 
                 <InputField
                   type="number"
-                  name="groupPrice6"
+                  name="groupPrice4"
                   placeholder="Group Price (6+) (₹)"
                   icon="👥"
                   min="0"
                   step="1"
                   required
-                  value={formData.groupPrice6}
+                  value={formData.groupPrice4}
                   onChange={handleInputChange}
-                  error={errors.groupPrice6}
+                  error={errors.groupPrice4}
                 />
 
                 <InputField
@@ -871,18 +859,16 @@ const EventManager = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                   <div className="bg-slate-700/40 rounded-lg p-3">
                     <p className="text-slate-300 font-medium">
-                      Individual (1-5 tickets)
+                      Individual (1-3 tickets)
                     </p>
                     <p className="text-slate-400 text-xs">
                       Standard price per ticket
                     </p>
                   </div>
                   <div className="bg-slate-700/40 rounded-lg p-3">
-                    <p className="text-slate-300 font-medium">
-                      Group 6+ 
-                    </p>
+                    <p className="text-slate-300 font-medium">Group 4+</p>
                     <p className="text-slate-400 text-xs">
-                      Discounted price for small groups
+                      Discounted price for groups
                     </p>
                   </div>
                 </div>
@@ -967,8 +953,7 @@ const EventManager = () => {
             <button
               onClick={() => setShowConfirmModal(true)}
               disabled={isSubmitting}
-              className="px-8 py-4 bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-purple-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg"
-            >
+              className="px-8 py-4 bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-purple-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg">
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
@@ -989,8 +974,7 @@ const EventManager = () => {
                 view === "edit" ? setView("preview") : window.history.back()
               }
               disabled={isSubmitting}
-              className="px-8 py-4 bg-slate-600/50 backdrop-blur-xl text-slate-300 font-medium rounded-xl border border-slate-500/30 hover:bg-slate-600/70 transition-all duration-300 flex items-center justify-center gap-3 text-lg"
-            >
+              className="px-8 py-4 bg-slate-600/50 backdrop-blur-xl text-slate-300 font-medium rounded-xl border border-slate-500/30 hover:bg-slate-600/70 transition-all duration-300 flex items-center justify-center gap-3 text-lg">
               <span className="text-xl">↩️</span>
               {view === "edit" ? "Cancel" : "Back"}
             </button>

@@ -160,7 +160,7 @@ router.post("/", verifyToken, async (req, res) => {
         pricePerTicket: pricePerTicket,
         totalAmount: totalAmount,
         appliedTier:
-          quantity >= 6 ? "group6" : "individual",
+          quantity >= 4 ? "group4" : "individual",
       },
       event: {
         name: updatedEvent.name,

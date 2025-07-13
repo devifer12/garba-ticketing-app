@@ -226,7 +226,7 @@ const EventDetails = ({ event }) => {
                   <div className="bg-slate-700/30 rounded-lg p-2">
                     <div className="flex justify-between items-center">
                       <span className="text-slate-300 text-sm">
-                        Individual (1-5):
+                        Individual (1-3):
                       </span>
                       <span className="text-white font-bold">
                         ₹{event.ticketPrice}
@@ -236,18 +236,12 @@ const EventDetails = ({ event }) => {
                   <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-2">
                     <div className="flex justify-between items-center">
                       <span className="text-green-300 text-sm">
-                        Group 6+
+                        Group 4+
                       </span>
                       <span className="text-green-300 font-bold">
-                        ₹{event.groupPrice6}
+                        ₹{event.groupPrice4}
                       </span>
                     </div>
-                    {event.ticketPrice - event.groupPrice6 > 0 && (
-                      <p className="text-green-400 text-xs mt-1">
-                        💰 Save ₹{event.ticketPrice - event.groupPrice6} per
-                        ticket!
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>
