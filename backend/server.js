@@ -5,10 +5,9 @@ const path = require("path");
 const { connectDB } = require("./config/db.js");
 require("dotenv").config();
 
-
 const app = express();
 // Trust the first proxy (required for Vercel and express-rate-limit)
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 app.use(compression());
 
 // Enhanced CORS configuration
@@ -247,14 +246,13 @@ if (process.env.NODE_ENV === "production") {
     });
   });
 } else {
-  // For development, just serve a simple response
-  // Root route for Vercel
+  // For development, serve a simple API status response
   app.get("/", (req, res) => {
     res.json({
-      message: "Garba Ticketing App Backend is running on Vercel!",
+      message: "Garba Ticketing App Backend is running!",
       timestamp: new Date().toISOString(),
       version: "1.0.0",
-      environment: process.env.NODE_ENV || "production",
+      environment: process.env.NODE_ENV || "development",
       authentication: "Google Authentication Only",
       endpoints: {
         health: "/api/health",
@@ -303,23 +301,33 @@ process.on("unhandledRejection", (err) => {
   process.exit(1);
 });
 
-/// Start server only in development
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 5000;
-  const server = app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-    console.log(`🔐 Authentication: Google Sign-In Only`);
+// Start server for all environments (including production)
+const PORT = process.env.PORT || 5000;
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`🔐 Authentication: Google Sign-In Only`);
+  if (process.env.NODE_ENV !== "production") {
     console.log(`💡 API status: http://localhost:${PORT}/api/status`);
-  });
+  }
+});
 
-  // Graceful shutdown
-  process.on("SIGTERM", () => {
-    console.log("SIGTERM received, shutting down gracefully");
-    server.close(() => {
-      console.log("Process terminated");
-    });
+// Graceful shutdown handlers
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, shutting down gracefully");
+  server.close(() => {
+    console.log("Process terminated");
+    process.exit(0);
   });
-}
+});
 
+process.on("SIGINT", () => {
+  console.log("SIGINT received, shutting down gracefully");
+  server.close(() => {
+    console.log("Process terminated");
+    process.exit(0);
+  });
+});
+
+// Keep the module export for testing purposes
 module.exports = app;

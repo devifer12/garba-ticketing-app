@@ -1,16 +1,20 @@
 const nodemailer = require("nodemailer");
-let puppeteer;
-let chromium;
-if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_VERSION) {
-  chromium = require("chrome-aws-lambda");
-  puppeteer = require("puppeteer-core");
-} else {
-  puppeteer = require("puppeteer-core");
-}
+const puppeteer = require("puppeteer");
 const QRCode = require("qrcode");
 
 class EmailService {
   constructor() {
+    // Initialize browser options
+    this.browserOptions = {
+      headless: "new",
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+      ],
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+    };
     this.transporter = null;
     this.initializeTransporter();
   }
@@ -118,82 +122,71 @@ class EmailService {
           "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
       }
 
+      // Configure Puppeteer for Render environment
+      const fs = require("fs");
 
+      // Common Chrome/Chromium paths for Linux environments like Render
+      const chromePaths = [
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/google-chrome",
+        "/usr/bin/chromium-browser",
+        "/usr/bin/chromium",
+        "/opt/google/chrome/chrome",
+        "/snap/bin/chromium",
+      ];
 
-      let puppeteerConfig;
-      if (chromium) {
-        // Always use chrome-aws-lambda's executablePath and args in serverless
-        const execPath = await chromium.executablePath;
-        if (process.env.NODE_ENV === "development" || process.env.VERCEL) {
-          console.log(`[PDF] Using chrome-aws-lambda executablePath: ${execPath}`);
-        }
-        puppeteerConfig = {
-          args: chromium.args,
-          executablePath: execPath,
-          headless: chromium.headless,
-          defaultViewport: chromium.defaultViewport,
-          timeout: 60000,
-        };
-        // If execPath is null or empty, throw an error (prevents fallback to system Chrome)
-        if (!execPath) {
-          throw new Error("chrome-aws-lambda executablePath not found. Ensure chrome-aws-lambda is installed and compatible.");
-        }
-      } else {
-        // Local/dev/other environments
-        const fs = require("fs");
-        const path = require("path");
-        const chromePaths = [
-          "/usr/bin/google-chrome-stable",
-          "/usr/bin/google-chrome",
-          "/usr/bin/chromium-browser",
-          "/usr/bin/chromium",
-          "/opt/google/chrome/chrome",
-          "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-          "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-          "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-        ];
-        let chromeExecutablePath = null;
-        for (const chromePath of chromePaths) {
-          try {
-            if (fs.existsSync(chromePath)) {
-              chromeExecutablePath = chromePath;
-              if (process.env.NODE_ENV === "development") {
-                console.log(`✅ Found Chrome at: ${chromePath}`);
-              }
-              break;
+      let chromeExecutablePath = null;
+      for (const chromePath of chromePaths) {
+        try {
+          if (fs.existsSync(chromePath)) {
+            chromeExecutablePath = chromePath;
+            if (process.env.NODE_ENV === "development") {
+              console.log(`✅ Found Chrome at: ${chromePath}`);
             }
-          } catch (err) {}
-        }
-        puppeteerConfig = {
-          headless: "new",
-          args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-accelerated-2d-canvas",
-            "--no-first-run",
-            "--no-zygote",
-            "--disable-gpu",
-            "--disable-web-security",
-            "--disable-features=VizDisplayCompositor",
-            "--disable-background-timer-throttling",
-            "--disable-backgrounding-occluded-windows",
-            "--disable-renderer-backgrounding",
-            "--disable-ipc-flooding-protection",
-            "--disable-hang-monitor",
-            "--disable-prompt-on-repost",
-            "--disable-domain-reliability",
-            "--disable-component-extensions-with-background-pages",
-          ],
-          timeout: 60000,
-          protocolTimeout: 60000,
-        };
-        if (chromeExecutablePath) {
-          puppeteerConfig.executablePath = chromeExecutablePath;
+            break;
+          }
+        } catch (err) {
+          // Continue searching
         }
       }
 
-      browser = await puppeteer.launch(puppeteerConfig);
+      const puppeteerConfig = {
+        headless: "new",
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--disable-gpu",
+          "--disable-web-security",
+          "--disable-features=VizDisplayCompositor",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--disable-ipc-flooding-protection",
+          "--disable-hang-monitor",
+          "--disable-prompt-on-repost",
+          "--disable-domain-reliability",
+          "--disable-component-extensions-with-background-pages",
+          "--single-process",
+          "--disable-extensions",
+          "--disable-plugins",
+        ],
+        timeout: 60000,
+        protocolTimeout: 60000,
+      };
+
+      if (chromeExecutablePath) {
+        puppeteerConfig.executablePath = chromeExecutablePath;
+      } else {
+        console.warn(
+          "⚠️ No Chrome executable found, Puppeteer will try to use bundled Chromium",
+        );
+      }
+
+      browser = await puppeteer.launch(this.browserOptions);
 
       // Add browser disconnect handler
       browser.on("disconnected", () => {

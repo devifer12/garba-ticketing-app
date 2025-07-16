@@ -52,20 +52,20 @@ function App() {
   useEffect(() => {
     const preloadResources = async () => {
       // Preload critical images
-      const imagePromises = [
+      const criticalImages = [
+        '/src/assets/hero1.webp',
+        '/src/assets/dandiya.webp',
+        // Add more critical images here
+      ];
+      
+      const imagePromises = criticalImages.map(src => 
         new Promise((resolve) => {
           const img = new Image();
           img.onload = resolve;
           img.onerror = resolve; // Continue even if image fails
-          img.src = "/src/assets/hero1.webp";
-        }),
-        new Promise((resolve) => {
-          const img = new Image();
-          img.onload = resolve;
-          img.onerror = resolve;
-          img.src = "/src/assets/dandiya.webp";
-        }),
-      ];
+          img.src = src;
+        })
+      );
 
       // Wait for images to load or timeout after 3 seconds
       await Promise.race([

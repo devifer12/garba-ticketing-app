@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { logError } from "../../utils/errorTracking";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -17,71 +18,42 @@ class ErrorBoundary extends React.Component {
       errorInfo: errorInfo,
     });
 
-    // Log error to monitoring service
-    if (process.env.NODE_ENV === "production") {
-      console.error("Error caught by boundary:", error, errorInfo);
-      // You can integrate with error reporting services here
-    }
+    // Log error to error tracking service
+    logError(error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center max-w-md mx-auto p-6 sm:p-8"
-          >
-            <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-slate-700/30">
-              <motion.div
-                className="text-4xl sm:text-6xl mb-4"
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-              >
-                ⚠️
-              </motion.div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">
-                Something went wrong
-              </h2>
-              <p className="text-slate-400 mb-6 text-sm sm:text-base">
-                We're sorry, but something unexpected happened. Please try
-                refreshing the page.
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="min-h-screen flex items-center justify-center bg-slate-900 p-4"
+        >
+          <div className="max-w-md w-full bg-slate-800/50 backdrop-blur-xl rounded-2xl p-8 border border-slate-700/30">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-4">⚠️</div>
+              <h1 className="text-2xl font-bold text-white mb-2">
+                Oops! Something went wrong
+              </h1>
+              <p className="text-slate-400">
+                We're working on fixing this issue.
               </p>
-
-              {process.env.NODE_ENV === "development" && this.state.error && (
-                <details className="mb-4 text-left">
-                  <summary className="text-red-400 cursor-pointer mb-2">
-                    Error Details
-                  </summary>
-                  <pre className="text-xs text-red-300 bg-red-900/20 p-2 rounded overflow-auto max-h-32">
-                    {this.state.error.toString()}
-                    {this.state.errorInfo.componentStack}
-                  </pre>
-                </details>
+              {process.env.NODE_ENV === "development" && (
+                <pre className="mt-4 p-4 bg-slate-900/50 rounded-lg text-left text-xs text-red-400 overflow-auto">
+                  {this.state.error?.toString()}
+                </pre>
               )}
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                <motion.button
-                  onClick={() => window.location.reload()}
-                  className="px-4 sm:px-6 py-2 sm:py-3 bg-navratri-orange text-white rounded-lg font-semibold hover:bg-navratri-orange/80 transition-colors text-sm sm:text-base"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Refresh Page
-                </motion.button>
-                <motion.button
-                  onClick={() => window.history.back()}
-                  className="px-4 sm:px-6 py-2 sm:py-3 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all text-sm sm:text-base"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Go Back
-                </motion.button>
-              </div>
             </div>
-          </motion.div>
-        </div>
+
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full bg-navratri-orange/20 hover:bg-navratri-orange/30 text-navratri-orange font-semibold py-3 px-6 rounded-xl transition-all duration-300"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </motion.div>
       );
     }
 
