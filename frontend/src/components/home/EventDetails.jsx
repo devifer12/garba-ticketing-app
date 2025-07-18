@@ -41,7 +41,7 @@ const EventDetails = ({ event }) => {
         time: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
         venue: event.venue,
         price: `₹${event.ticketPrice}`,
-        available: event.availableTickets,
+        // available: event.availableTickets,
       }
     : defaultEventDetails;
 
@@ -272,24 +272,6 @@ const EventDetails = ({ event }) => {
               📱 Sign In with Google
             </GoogleSignInButton>
           )}
-        </motion.div>
-
-        {/* Limited Tickets Warning - Fixed height */}
-        <motion.div
-          variants={itemVariants}
-          className="text-center px-4 min-h-[40px] flex items-center justify-center">
-          <motion.p
-            className="text-navratri-yellow font-bold text-base sm:text-lg"
-            animate={{
-              opacity: [0.7, 1, 0.7],
-              scale: [1, 1.02, 1],
-            }}
-            transition={{ duration: 1.5, repeat: Infinity }}>
-            ⚡{" "}
-            {event
-              ? `Only ${event.availableTickets} Tickets Left!`
-              : "Only 250 Tickets Left!"}
-          </motion.p>
         </motion.div>
       </motion.div>
     </section>

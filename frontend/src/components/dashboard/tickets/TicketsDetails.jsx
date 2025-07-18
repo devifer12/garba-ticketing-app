@@ -76,6 +76,7 @@ const TicketsDetails = () => {
 
       if (showRefreshIndicator) {
         toast.success("Data refreshed successfully!");
+        
       }
     } catch (err) {
       if (err.name !== "AbortError") {
@@ -315,51 +316,6 @@ const TicketsDetails = () => {
                   <p className="text-slate-300 text-sm sm:text-base">
                     {event.venue}
                   </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Purchase Section */}
-            <div className="text-center">
-              <div className="bg-gradient-to-r from-navratri-orange/20 to-navratri-yellow/20 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
-                <h4 className="text-white font-bold text-lg sm:text-xl mb-2">
-                  Ticket Price: ₹{event.ticketPrice}
-                </h4>
-                <p className="text-slate-300 mb-3 sm:mb-4 text-sm sm:text-base">
-                  {event.availableTickets > 0
-                    ? `${event.availableTickets} tickets remaining`
-                    : "Sold Out!"}
-                </p>
-
-                <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-                  {event.availableTickets > 0 ? (
-                    <motion.button
-                      onClick={() => setShowPurchaseModal(true)}
-                      className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-xl shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 flex items-center gap-2 sm:gap-3 justify-center text-sm sm:text-base md:text-lg"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      disabled={purchasing}
-                    >
-                      <span className="text-lg sm:text-xl">🎟️</span>
-                      {purchasing ? "Processing..." : "Buy More Tickets"}
-                    </motion.button>
-                  ) : (
-                    <div className="px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-red-600/50 text-red-200 font-bold rounded-xl border border-red-500/30 text-sm sm:text-base">
-                      <span className="text-lg sm:text-xl mr-2">😔</span>
-                      Event Sold Out
-                    </div>
-                  )}
-
-                  <motion.button
-                    onClick={() => fetchData(true)}
-                    disabled={refreshing}
-                    className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-xl transition-all flex items-center gap-2 justify-center text-sm sm:text-base"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <span className={refreshing ? "animate-spin" : ""}>🔄</span>
-                    {refreshing ? "Refreshing..." : "Refresh"}
-                  </motion.button>
                 </div>
               </div>
             </div>
