@@ -1,20 +1,11 @@
 const nodemailer = require("nodemailer");
 const puppeteer = require("puppeteer");
 const QRCode = require("qrcode");
+const fs = require("fs");
+const path = require("path");
 
 class EmailService {
   constructor() {
-    // Initialize browser options
-    this.browserOptions = {
-      headless: "new",
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-      ],
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-    };
     this.transporter = null;
     this.initializeTransporter();
   }
@@ -122,34 +113,7 @@ class EmailService {
           "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
       }
 
-      // Configure Puppeteer for Render environment
-      const fs = require("fs");
-
-      // Common Chrome/Chromium paths for Linux environments like Render
-      const chromePaths = [
-        "/usr/bin/google-chrome-stable",
-        "/usr/bin/google-chrome",
-        "/usr/bin/chromium-browser",
-        "/usr/bin/chromium",
-        "/opt/google/chrome/chrome",
-        "/snap/bin/chromium",
-      ];
-
-      let chromeExecutablePath = null;
-      for (const chromePath of chromePaths) {
-        try {
-          if (fs.existsSync(chromePath)) {
-            chromeExecutablePath = chromePath;
-            if (process.env.NODE_ENV === "development") {
-              console.log(`✅ Found Chrome at: ${chromePath}`);
-            }
-            break;
-          }
-        } catch (err) {
-          // Continue searching
-        }
-      }
-
+      // Enhanced Puppeteer configuration with Chrome path detection
       const puppeteerConfig = {
         headless: "new",
         args: [
@@ -170,45 +134,82 @@ class EmailService {
           "--disable-prompt-on-repost",
           "--disable-domain-reliability",
           "--disable-component-extensions-with-background-pages",
-          "--single-process",
-          "--disable-extensions",
-          "--disable-plugins",
         ],
-        timeout: 60000,
+        timeout: 60000, // Increased timeout to 60 seconds
         protocolTimeout: 60000,
       };
 
+      // Try to detect Chrome executable path for deployment environments
+      const fs = require("fs");
+      const path = require("path");
+
+      // Common Chrome paths in different environments
+      const chromePaths = [
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/google-chrome",
+        "/usr/bin/chromium-browser",
+        "/usr/bin/chromium",
+        "/opt/google/chrome/chrome",
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", // macOS
+        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", // Windows
+        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe", // Windows 32-bit
+      ];
+
+      // Check if any Chrome executable exists
+      let chromeExecutablePath = null;
+      for (const chromePath of chromePaths) {
+        try {
+          if (fs.existsSync(chromePath)) {
+            chromeExecutablePath = chromePath;
+            if (process.env.NODE_ENV === "development") {
+              console.log(`✅ Found Chrome at: ${chromePath}`);
+            }
+            break;
+          }
+        } catch (err) {
+          // Continue checking other paths
+        }
+      }
+
+      // If Chrome executable found, use it
       if (chromeExecutablePath) {
         puppeteerConfig.executablePath = chromeExecutablePath;
       } else {
-        console.warn(
-          "⚠️ No Chrome executable found, Puppeteer will try to use bundled Chromium",
-        );
+        // In production environments, try to use bundled Chromium
+        if (process.env.NODE_ENV === "production") {
+          if (process.env.NODE_ENV === "development") {
+            console.log(
+              "⚠️ No Chrome executable found, using bundled Chromium",
+            );
+          }
+        }
       }
 
-      browser = await puppeteer.launch(this.browserOptions);
+      browser = await puppeteer.launch(puppeteerConfig);
 
       // Add browser disconnect handler
       browser.on("disconnected", () => {
         if (process.env.NODE_ENV === "development") {
-          console.log("⚠️ Browser disconnected during PDF generation");
+          console.log("⚠️ Browser disconnected during PDF generation process.");
         }
       });
 
       page = await browser.newPage();
 
-      // Set longer timeouts and viewport
-      await page.setDefaultTimeout(60000);
-      await page.setDefaultNavigationTimeout(60000);
-      await page.setViewport({ width: 800, height: 1200 });
+      await page.setDefaultTimeout(60000); // 60 seconds for all page operations
+      await page.setDefaultNavigationTimeout(60000); // 60 seconds for navigation
+      await page.setViewport({ width: 800, height: 1200, deviceScaleFactor: 1 }); // Ensure consistent rendering
 
-      // Add page error handlers
       page.on("error", (err) => {
         console.error("Page error during PDF generation:", err.message);
       });
-
       page.on("pageerror", (err) => {
         console.error("Page script error during PDF generation:", err.message);
+      });
+      page.on('console', (msg) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`PAGE LOG: ${msg.text()}`);
+        }
       });
 
       const htmlContent = `
@@ -218,114 +219,23 @@ class EmailService {
             <meta charset="utf-8">
             <title>Ticket - ${ticketData.ticketId}</title>
             <style>
-              * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-              }
-              body {
-                font-family: 'Arial', sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                padding: 20px;
-                color: #333;
-              }
-              .ticket {
-                background: white;
-                border-radius: 20px;
-                padding: 30px;
-                max-width: 600px;
-                margin: 0 auto;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                border: 3px solid #ff6500;
-                min-height: 900px;
-                display: flex;
-                flex-direction: column;
-                justify-content: flex-start;
-              }
-              .header {
-                text-align: center;
-                margin-bottom: 24px;
-                border-bottom: 2px dashed #ff6500;
-                padding-bottom: 16px;
-              }
-              .event-title {
-                font-size: 32px;
-                font-weight: bold;
-                color: #ff6500;
-                margin-bottom: 8px;
-              }
-              .event-subtitle {
-                font-size: 18px;
-                color: #666;
-                margin-bottom: 4px;
-              }
-              .qr-section {
-                text-align: center;
-                margin: 24px 0 16px 0;
-                background: #f8f9fa;
-                padding: 20px;
-                border-radius: 15px;
-              }
-              .qr-code {
-                margin: 20px 0;
-              }
-              .qr-code img {
-                width: 180px;
-                height: 180px;
-                border: 3px solid #ff6500;
-                border-radius: 10px;
-              }
-              .details-row {
-                display: flex;
-                gap: 20px;
-                margin: 0 0 16px 0;
-              }
-              .detail-item {
-                flex: 1;
-                background: #f8f9fa;
-                padding: 15px;
-                border-radius: 10px;
-                border-left: 4px solid #ff6500;
-                min-width: 0;
-              }
-              .detail-label {
-                font-weight: bold;
-                color: #333;
-                font-size: 14px;
-                margin-bottom: 5px;
-              }
-              .detail-value {
-                color: #666;
-                font-size: 16px;
-                word-break: break-word;
-              }
-              .instructions {
-                background: #fff3cd;
-                border: 1px solid #ffeaa7;
-                border-radius: 10px;
-                padding: 20px;
-                margin: 24px 0 0 0;
-                width: 100%;
-              }
-              .instructions h3 {
-                color: #856404;
-                margin-bottom: 10px;
-              }
-              .instructions ul {
-                color: #856404;
-                padding-left: 20px;
-              }
-              .instructions li {
-                margin-bottom: 5px;
-              }
-              .footer {
-                text-align: center;
-                margin-top: 24px;
-                padding-top: 16px;
-                border-top: 2px dashed #ff6500;
-                color: #666;
-                font-size: 12px;
-              }
+              body { font-family: 'Arial', sans-serif; margin: 0; padding: 20px; color: #333; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+              .ticket { background: white; border-radius: 20px; padding: 25px; max-width: 600px; margin: 0 auto; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 3px solid #ff6500; min-height: 800px; display: flex; flex-direction: column; }
+              .header { text-align: center; margin-bottom: 24px; border-bottom: 2px dashed #ff6500; padding-bottom: 16px; }
+              .event-title { font-size: 32px; font-weight: bold; color: #ff6500; margin-bottom: 8px; }
+              .event-subtitle { font-size: 18px; color: #666; margin-bottom: 4px; }
+              .qr-section { text-align: center; margin: 24px 0 16px 0; background: #f8f9fa; padding: 20px; border-radius: 15px; }
+              .qr-code { margin: 20px 0; }
+              .qr-code img { width: 180px; height: 180px; border: 3px solid #ff6500; border-radius: 10px; }
+              .details-row { display: flex; gap: 20px; margin: 0 0 16px 0; }
+              .detail-item { flex: 1; background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #ff6500; min-width: 0; }
+              .detail-label { font-weight: bold; color: #333; font-size: 14px; margin-bottom: 5px; }
+              .detail-value { color: #666; font-size: 16px; word-break: break-word; }
+              .instructions { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 20px; margin: 24px 0 0 0; width: 100%; }
+              .instructions h3 { color: #856404; margin-bottom: 10px; }
+              .instructions ul { color: #856404; padding-left: 20px; }
+              .instructions li { margin-bottom: 5px; }
+              .footer { text-align: center; margin-top: 24px; padding-top: 16px; border-top: 2px dashed #ff6500; color: #666; font-size: 12px; }
             </style>
           </head>
           <body>
@@ -374,29 +284,21 @@ class EmailService {
         </html>
       `;
 
-      // Set content with better error handling and longer timeout
       await page.setContent(htmlContent, {
         waitUntil: "networkidle0",
         timeout: 60000,
       });
 
-      if (process.env.NODE_ENV === "development") {
-        console.log("✅ HTML content loaded successfully");
-      }
+      // Add a longer wait time to ensure all elements (especially images) are rendered
+      await new Promise((resolve) => setTimeout(resolve, 3000)); // Increased from 2000ms
 
-      // Wait a bit more to ensure everything is fully rendered
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Check if page is still connected before generating PDF
       if (page.isClosed()) {
         throw new Error("Page was closed before PDF generation");
       }
-
       if (browser.isConnected && browser.isConnected() === false) {
         throw new Error("Browser disconnected before PDF generation");
       }
 
-      // Generate PDF with enhanced options and error handling
       let pdfBuffer;
       try {
         pdfBuffer = await Promise.race([
@@ -406,16 +308,17 @@ class EmailService {
             preferCSSPageSize: false,
             displayHeaderFooter: false,
             margin: {
-              top: "20px",
-              right: "20px",
-              bottom: "20px",
-              left: "20px",
+              top: "10px",
+              right: "15px",
+              bottom: "10px",
+              left: "15px",
             },
+            scale: 0.95, // Slightly scale down the content
+            timeout: 45000, // Specific timeout for PDF generation itself
           }),
           new Promise((_, reject) =>
             setTimeout(
-              () =>
-                reject(new Error("PDF generation timeout after 45 seconds")),
+              () => reject(new Error("PDF generation timed out after 45 seconds")),
               45000,
             ),
           ),
@@ -423,10 +326,11 @@ class EmailService {
       } catch (pdfError) {
         if (
           pdfError.message.includes("Target closed") ||
-          pdfError.message.includes("Session closed")
+          pdfError.message.includes("Session closed") ||
+          pdfError.message.includes("Browser disconnected")
         ) {
           throw new Error(
-            "Browser session closed during PDF generation - this may be due to system resource constraints",
+            "Browser session closed or disconnected during PDF generation. This may be due to system resource constraints or unhandled errors. " + pdfError.message,
           );
         }
         throw pdfError;
@@ -451,7 +355,6 @@ class EmailService {
       );
       throw error;
     } finally {
-      // Clean up resources in the correct order
       if (page && !page.isClosed()) {
         try {
           await page.close();
@@ -925,9 +828,8 @@ class EmailService {
         );
       }
 
-      // Generate PDF attachments for each ticket with better error handling
       const attachments = [];
-      const maxRetries = 2;
+      const maxRetries = 3; // Increased retries
 
       for (let i = 0; i < ticketData.length; i++) {
         const ticket = ticketData[i];
@@ -944,7 +846,6 @@ class EmailService {
           try {
             const pdfBuffer = await this.generateTicketPDF(ticket, eventData);
 
-            // Validate PDF buffer
             if (!pdfBuffer || pdfBuffer.length === 0) {
               throw new Error("Generated PDF buffer is empty");
             }
@@ -975,8 +876,8 @@ class EmailService {
                 pdfError.message.includes("Target closed") ||
                 pdfError.message.includes("Session closed") ||
                 pdfError.message.includes("resource constraints")
-                  ? 5000
-                  : 2000;
+                  ? 8000 * retryCount // Longer exponential backoff for severe errors
+                  : 3000; // Shorter wait for other errors
 
               if (process.env.NODE_ENV === "development") {
                 console.log(`⏳ Waiting ${waitTime}ms before retry...`);
@@ -989,19 +890,20 @@ class EmailService {
 
         if (!pdfGenerated) {
           console.error(
-            `❌ Failed to generate PDF for ticket ${ticket.ticketId} after ${maxRetries} attempts`,
+            `❌ Failed to generate PDF for ticket ${ticket.ticketId} after ${maxRetries} attempts. Email will be sent without this PDF.`,
           );
+          // You might want to log this failure to a dedicated monitoring system
         }
       }
 
       // Check PDF generation results
       if (attachments.length === 0) {
         console.error(
-          "⚠️ No PDF attachments generated, sending email without attachments",
+          "⚠️ No PDF attachments generated for any ticket. Sending email without attachments.",
         );
       } else if (attachments.length < ticketData.length) {
         console.warn(
-          `⚠️ Only ${attachments.length}/${ticketData.length} PDF attachments generated successfully`,
+          `⚠️ Only ${attachments.length}/${ticketData.length} PDF attachments generated successfully. Check logs for details.`,
         );
       } else {
         if (process.env.NODE_ENV === "development") {
