@@ -109,108 +109,42 @@ class EmailService {
       } catch (qrError) {
         console.error("QR Code generation failed:", qrError.message);
         // Use a fallback QR code or text
-        qrCodeDataURL =
-          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+        // Create a simple fallback QR code with text
+        qrCodeDataURL = await QRCode.toDataURL(ticketData.qrCode || "FALLBACK", {
+          errorCorrectionLevel: "L",
+          width: 200,
+        });
       }
 
-      // Enhanced Puppeteer configuration with Chrome path detection
+      // Simplified Puppeteer configuration for better reliability
       const puppeteerConfig = {
-        headless: "new",
+        headless: true,
         args: [
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
           "--disable-gpu",
-          "--disable-web-security",
-          "--disable-features=VizDisplayCompositor",
-          "--disable-background-timer-throttling",
-          "--disable-backgrounding-occluded-windows",
-          "--disable-renderer-backgrounding",
-          "--disable-ipc-flooding-protection",
-          "--disable-hang-monitor",
-          "--disable-prompt-on-repost",
-          "--disable-domain-reliability",
-          "--disable-component-extensions-with-background-pages",
+          "--disable-extensions",
+          "--no-first-run",
+          "--disable-default-apps",
+          "--disable-background-networking",
         ],
-        timeout: 60000, // Increased timeout to 60 seconds
-        protocolTimeout: 60000,
+        timeout: 30000,
+        protocolTimeout: 30000,
       };
 
-      // Try to detect Chrome executable path for deployment environments
-      const fs = require("fs");
-      const path = require("path");
-
-      // Common Chrome paths in different environments
-      const chromePaths = [
-        "/usr/bin/google-chrome-stable",
-        "/usr/bin/google-chrome",
-        "/usr/bin/chromium-browser",
-        "/usr/bin/chromium",
-        "/opt/google/chrome/chrome",
-        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", // macOS
-        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", // Windows
-        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe", // Windows 32-bit
-      ];
-
-      // Check if any Chrome executable exists
-      let chromeExecutablePath = null;
-      for (const chromePath of chromePaths) {
-        try {
-          if (fs.existsSync(chromePath)) {
-            chromeExecutablePath = chromePath;
-            if (process.env.NODE_ENV === "development") {
-              console.log(`✅ Found Chrome at: ${chromePath}`);
-            }
-            break;
-          }
-        } catch (err) {
-          // Continue checking other paths
-        }
-      }
-
-      // If Chrome executable found, use it
-      if (chromeExecutablePath) {
-        puppeteerConfig.executablePath = chromeExecutablePath;
-      } else {
-        // In production environments, try to use bundled Chromium
-        if (process.env.NODE_ENV === "production") {
-          if (process.env.NODE_ENV === "development") {
-            console.log(
-              "⚠️ No Chrome executable found, using bundled Chromium",
-            );
-          }
-        }
+      // Use environment variable for Chrome path if available
+      if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
       }
 
       browser = await puppeteer.launch(puppeteerConfig);
 
-      // Add browser disconnect handler
-      browser.on("disconnected", () => {
-        if (process.env.NODE_ENV === "development") {
-          console.log("⚠️ Browser disconnected during PDF generation process.");
-        }
-      });
-
       page = await browser.newPage();
 
-      await page.setDefaultTimeout(60000); // 60 seconds for all page operations
-      await page.setDefaultNavigationTimeout(60000); // 60 seconds for navigation
-      await page.setViewport({ width: 800, height: 1200, deviceScaleFactor: 1 }); // Ensure consistent rendering
-
-      page.on("error", (err) => {
-        console.error("Page error during PDF generation:", err.message);
-      });
-      page.on("pageerror", (err) => {
-        console.error("Page script error during PDF generation:", err.message);
-      });
-      page.on('console', (msg) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`PAGE LOG: ${msg.text()}`);
-        }
-      });
+      await page.setDefaultTimeout(30000);
+      await page.setDefaultNavigationTimeout(30000);
+      await page.setViewport({ width: 800, height: 1200 });
 
       const htmlContent = `
         <!DOCTYPE html>
@@ -219,41 +153,129 @@ class EmailService {
             <meta charset="utf-8">
             <title>Ticket - ${ticketData.ticketId}</title>
             <style>
-              body { font-family: 'Arial', sans-serif; margin: 0; padding: 20px; color: #333; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-              .ticket { background: white; border-radius: 20px; padding: 25px; max-width: 600px; margin: 0 auto; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 3px solid #ff6500; min-height: 800px; display: flex; flex-direction: column; }
-              .header { text-align: center; margin-bottom: 24px; border-bottom: 2px dashed #ff6500; padding-bottom: 16px; }
-              .event-title { font-size: 32px; font-weight: bold; color: #ff6500; margin-bottom: 8px; }
-              .event-subtitle { font-size: 18px; color: #666; margin-bottom: 4px; }
-              .qr-section { text-align: center; margin: 24px 0 16px 0; background: #f8f9fa; padding: 20px; border-radius: 15px; }
-              .qr-code { margin: 20px 0; }
-              .qr-code img { width: 180px; height: 180px; border: 3px solid #ff6500; border-radius: 10px; }
-              .details-row { display: flex; gap: 20px; margin: 0 0 16px 0; }
-              .detail-item { flex: 1; background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 4px solid #ff6500; min-width: 0; }
-              .detail-label { font-weight: bold; color: #333; font-size: 14px; margin-bottom: 5px; }
-              .detail-value { color: #666; font-size: 16px; word-break: break-word; }
-              .instructions { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 20px; margin: 24px 0 0 0; width: 100%; }
-              .instructions h3 { color: #856404; margin-bottom: 10px; }
-              .instructions ul { color: #856404; padding-left: 20px; }
-              .instructions li { margin-bottom: 5px; }
-              .footer { text-align: center; margin-top: 24px; padding-top: 16px; border-top: 2px dashed #ff6500; color: #666; font-size: 12px; }
+              * { box-sizing: border-box; }
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 0; 
+                padding: 20px; 
+                color: #333; 
+                background: #f0f0f0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+              .ticket { 
+                background: white; 
+                border-radius: 15px; 
+                padding: 30px; 
+                max-width: 600px; 
+                margin: 0 auto; 
+                border: 2px solid #ff6500; 
+                page-break-inside: avoid;
+              }
+              .header { 
+                text-align: center; 
+                margin-bottom: 20px; 
+                border-bottom: 2px dashed #ff6500; 
+                padding-bottom: 15px; 
+              }
+              .event-title { 
+                font-size: 28px; 
+                font-weight: bold; 
+                color: #ff6500; 
+                margin: 0 0 8px 0; 
+              }
+              .event-subtitle { 
+                font-size: 16px; 
+                color: #666; 
+                margin: 4px 0; 
+              }
+              .qr-section { 
+                text-align: center; 
+                margin: 20px 0; 
+                background: #f8f9fa; 
+                padding: 20px; 
+                border-radius: 10px; 
+              }
+              .qr-code { 
+                margin: 15px 0; 
+              }
+              .qr-code img { 
+                width: 150px; 
+                height: 150px; 
+                border: 2px solid #ff6500; 
+                border-radius: 8px; 
+                display: block;
+                margin: 0 auto;
+              }
+              .details-section {
+                margin: 20px 0;
+              }
+              .detail-item { 
+                background: #f8f9fa; 
+                padding: 12px; 
+                border-radius: 8px; 
+                border-left: 4px solid #ff6500; 
+                margin-bottom: 10px;
+              }
+              .detail-label { 
+                font-weight: bold; 
+                color: #333; 
+                font-size: 14px; 
+                margin-bottom: 4px; 
+              }
+              .detail-value { 
+                color: #666; 
+                font-size: 16px; 
+              }
+              .instructions { 
+                background: #fff3cd; 
+                border: 1px solid #ffeaa7; 
+                border-radius: 8px; 
+                padding: 15px; 
+                margin: 20px 0; 
+              }
+              .instructions h3 { 
+                color: #856404; 
+                margin: 0 0 10px 0; 
+                font-size: 16px;
+              }
+              .instructions ul { 
+                color: #856404; 
+                padding-left: 20px; 
+                margin: 0;
+              }
+              .instructions li { 
+                margin-bottom: 4px; 
+                font-size: 14px;
+              }
+              .footer { 
+                text-align: center; 
+                margin-top: 20px; 
+                padding-top: 15px; 
+                border-top: 2px dashed #ff6500; 
+                color: #666; 
+                font-size: 12px; 
+              }
             </style>
           </head>
           <body>
             <div class="ticket">
               <div class="header">
-                <div class="event-title">Garba Rass</div>
+                <div class="event-title">${eventData.name || 'Garba Rass 2025'}</div>
                 <div class="event-subtitle">${new Date(eventData.date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
                 <div class="event-subtitle">${eventData.startTime} - ${eventData.endTime}</div>
               </div>
+              
               <div class="qr-section">
-                <h3 style="color: #ffb300; margin-bottom: 10px;">🎫 Your Entry Pass</h3>
-                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Present this QR code at the venue entrance</p>
+                <h3 style="color: #ff6500; margin: 0 0 10px 0; font-size: 18px;">🎫 Your Entry Pass</h3>
+                <p style="color: #666; font-size: 14px; margin: 0 0 15px 0;">Present this QR code at the venue entrance</p>
                 <div class="qr-code">
                   <img src="${qrCodeDataURL}" alt="QR Code" />
                 </div>
                 <p style="color: #666; font-size: 12px;">Scan this code for quick entry</p>
               </div>
-              <div class="details-row">
+              
+              <div class="details-section">
                 <div class="detail-item">
                   <div class="detail-label">📍 Venue</div>
                   <div class="detail-value">${eventData.venue}</div>
@@ -263,6 +285,7 @@ class EmailService {
                   <div class="detail-value">₹${ticketData.price}</div>
                 </div>
               </div>
+              
               <div class="instructions">
                 <h3>📋 Important Instructions:</h3>
                 <ul>
@@ -274,10 +297,11 @@ class EmailService {
                   <li>Follow the dress code: Traditional Indian attire preferred</li>
                 </ul>
               </div>
+              
               <div class="footer">
-                <p>Thank you for choosing Garba Rass 2025! 🎉</p>
-                <p>For support, contact us at hyyevents@gmail.com</p>
-                <p>This is a computer-generated ticket. No signature required.</p>
+                <p style="margin: 0 0 5px 0;">Thank you for choosing ${eventData.name || 'Garba Rass 2025'}! 🎉</p>
+                <p style="margin: 0 0 5px 0;">For support, contact us at hyyevents@gmail.com</p>
+                <p style="margin: 0;">This is a computer-generated ticket. No signature required.</p>
               </div>
             </div>
           </body>
@@ -285,56 +309,26 @@ class EmailService {
       `;
 
       await page.setContent(htmlContent, {
-        waitUntil: "networkidle0",
-        timeout: 60000,
+        waitUntil: "domcontentloaded",
+        timeout: 30000,
       });
 
-      // Add a longer wait time to ensure all elements (especially images) are rendered
-      await new Promise((resolve) => setTimeout(resolve, 3000)); // Increased from 2000ms
+      // Wait for images to load
+      // await page.waitForTimeout(2000);
 
-      if (page.isClosed()) {
-        throw new Error("Page was closed before PDF generation");
-      }
-      if (browser.isConnected && browser.isConnected() === false) {
-        throw new Error("Browser disconnected before PDF generation");
-      }
-
-      let pdfBuffer;
-      try {
-        pdfBuffer = await Promise.race([
-          page.pdf({
-            format: "A4",
-            printBackground: true,
-            preferCSSPageSize: false,
-            displayHeaderFooter: false,
-            margin: {
-              top: "10px",
-              right: "15px",
-              bottom: "10px",
-              left: "15px",
-            },
-            scale: 0.95, // Slightly scale down the content
-            timeout: 45000, // Specific timeout for PDF generation itself
-          }),
-          new Promise((_, reject) =>
-            setTimeout(
-              () => reject(new Error("PDF generation timed out after 45 seconds")),
-              45000,
-            ),
-          ),
-        ]);
-      } catch (pdfError) {
-        if (
-          pdfError.message.includes("Target closed") ||
-          pdfError.message.includes("Session closed") ||
-          pdfError.message.includes("Browser disconnected")
-        ) {
-          throw new Error(
-            "Browser session closed or disconnected during PDF generation. This may be due to system resource constraints or unhandled errors. " + pdfError.message,
-          );
-        }
-        throw pdfError;
-      }
+      const pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        preferCSSPageSize: false,
+        displayHeaderFooter: false,
+        margin: {
+          top: "15mm",
+          right: "15mm",
+          bottom: "15mm",
+          left: "15mm",
+        },
+        timeout: 30000,
+      });
 
       if (!pdfBuffer || pdfBuffer.length === 0) {
         throw new Error("Generated PDF buffer is empty or invalid");
@@ -358,20 +352,14 @@ class EmailService {
       if (page && !page.isClosed()) {
         try {
           await page.close();
-          if (process.env.NODE_ENV === "development") {
-            console.log("✅ Page closed successfully");
-          }
         } catch (closeError) {
           console.error("Error closing page:", closeError.message);
         }
       }
 
-      if (browser && browser.isConnected && browser.isConnected()) {
+      if (browser) {
         try {
           await browser.close();
-          if (process.env.NODE_ENV === "development") {
-            console.log("✅ Browser closed successfully");
-          }
         } catch (closeError) {
           console.error("Error closing browser:", closeError.message);
         }
