@@ -10,7 +10,9 @@ services:
         value: production
       - key: PORT
         value: 10000
-      - key: PUPPETEER_CACHE_DIR # Specify a cache directory for Puppeteer
-        value: '/usr/src/app/.cache/puppeteer
+      - key: PUPPETEER_CACHE_DIR
+        value: '/usr/src/app/.cache/puppeteer'
       - key: PUPPETEER_EXECUTABLE_PATH
         value: '/usr/bin/google-chrome'
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: 'true'

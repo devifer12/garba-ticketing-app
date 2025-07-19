@@ -1,8 +1,6 @@
 const nodemailer = require("nodemailer");
 const puppeteer = require("puppeteer");
 const QRCode = require("qrcode");
-const fs = require("fs");
-const path = require("path");
 
 class EmailService {
   constructor() {
@@ -128,14 +126,41 @@ class EmailService {
           "--no-first-run",
           "--disable-default-apps",
           "--disable-background-networking",
+          "--disable-web-security",
+          "--disable-features=VizDisplayCompositor",
         ],
         timeout: 30000,
         protocolTimeout: 30000,
       };
 
-      // Use environment variable for Chrome path if available
-      if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-        puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+      // Configure Chrome executable path based on environment
+      try {
+        if (process.env.NODE_ENV === "production") {
+          // For production environments (Render, Vercel, etc.)
+          if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+            puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+          } else {
+            // Try using @sparticuz/chromium for serverless environments
+            const chromium = require("@sparticuz/chromium");
+            puppeteerConfig.executablePath = await chromium.executablePath;
+            puppeteerConfig.args = [...puppeteerConfig.args, ...chromium.args];
+          }
+        } else {
+          // For development, let Puppeteer use its bundled Chromium
+          // Remove executablePath to use default bundled Chromium
+          delete puppeteerConfig.executablePath;
+        }
+      } catch (chromiumError) {
+        console.warn("Failed to configure Chromium path, using default:", chromiumError.message);
+        // Fallback to default Puppeteer configuration
+        delete puppeteerConfig.executablePath;
+      }
+
+      if (process.env.NODE_ENV === "development") {
+        console.log("🚀 Launching browser with config:", {
+          executablePath: puppeteerConfig.executablePath || "default",
+          argsCount: puppeteerConfig.args.length,
+        });
       }
 
       browser = await puppeteer.launch(puppeteerConfig);
