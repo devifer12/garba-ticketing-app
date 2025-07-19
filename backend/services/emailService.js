@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
 const QRCode = require("qrcode");
 
 class EmailService {
