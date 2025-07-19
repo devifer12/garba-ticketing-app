@@ -1,6 +1,8 @@
 const nodemailer = require("nodemailer");
-const puppeteer = require("puppeteer-core");
+const puppeteer = require("puppeteer");
 const QRCode = require("qrcode");
+const fs = require("fs");
+const path = require("path");
 
 class EmailService {
   constructor() {
@@ -134,27 +136,59 @@ class EmailService {
       };
 
       // Configure Chrome executable path based on environment
-      try {
-        if (process.env.NODE_ENV === "production") {
-          // For production environments (Render, Vercel, etc.)
-          if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-            puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-          } else {
-            // Try using @sparticuz/chromium for serverless environments
+      if (process.env.NODE_ENV === "production") {
+        // For production environments, try multiple Chrome paths
+        const possibleChromePaths = [
+          process.env.PUPPETEER_EXECUTABLE_PATH,
+          '/usr/bin/google-chrome-stable',
+          '/usr/bin/google-chrome',
+          '/usr/bin/chromium-browser',
+          '/usr/bin/chromium',
+          '/opt/google/chrome/chrome',
+          '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+        ].filter(Boolean);
+
+        let chromeFound = false;
+        
+        // Try each possible Chrome path
+        for (const chromePath of possibleChromePaths) {
+          try {
+            if (fs.existsSync(chromePath)) {
+              puppeteerConfig.executablePath = chromePath;
+              chromeFound = true;
+              if (process.env.NODE_ENV === "development") {
+                console.log("✅ Found Chrome at:", chromePath);
+              }
+              break;
+            }
+          } catch (err) {
+            // Continue to next path
+          }
+        }
+
+        // If no Chrome found, try @sparticuz/chromium for serverless
+        if (!chromeFound) {
+          try {
             const chromium = require("@sparticuz/chromium");
             puppeteerConfig.executablePath = await chromium.executablePath;
             puppeteerConfig.args = [...puppeteerConfig.args, ...chromium.args];
+            chromeFound = true;
+            if (process.env.NODE_ENV === "development") {
+              console.log("✅ Using @sparticuz/chromium");
+            }
+          } catch (chromiumError) {
+            console.warn("Failed to load @sparticuz/chromium:", chromiumError.message);
           }
-        } else {
-          // For development, let Puppeteer use its bundled Chromium
-          // Remove executablePath to use default bundled Chromium
-          delete puppeteerConfig.executablePath;
         }
-      } catch (chromiumError) {
-        console.warn("Failed to configure Chromium path, using default:", chromiumError.message);
-        // Fallback to default Puppeteer configuration
-        delete puppeteerConfig.executablePath;
+
+        // If still no Chrome found in production, this will cause an error
+        // which is better than silently failing
+        if (!chromeFound) {
+          console.error("❌ No Chrome installation found in production environment");
+          throw new Error("Chrome executable not found. Please install Chrome or configure PUPPETEER_EXECUTABLE_PATH");
+        }
       }
+      // For development, puppeteer will use bundled Chromium automatically
 
       if (process.env.NODE_ENV === "development") {
         console.log("🚀 Launching browser with config:", {
