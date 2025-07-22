@@ -182,7 +182,7 @@ const PrivacyPolicy = () => {
                     <strong>Effective Date:</strong> January 1, 2025
                   </p>
                   <p className='text-m text-slate-400'> 
-                    <strong>Ownership :</strong> HEET JAIN, YASH LIMBAD, YASH JAIN
+                    <strong>Ownership :</strong> HEET JAIN, YASH JAGDISH LIMBAD, YASH JAIN
                   </p>
                 </section>
               </div>
