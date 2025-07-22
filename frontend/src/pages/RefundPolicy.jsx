@@ -159,37 +159,11 @@ const RefundPolicy = () => {
                   <div className="space-y-4">
                     <div className="bg-slate-700/50 rounded-xl p-6">
                       <h3 className="text-xl font-semibold text-navratri-yellow mb-4">Processing Times by Payment Method</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
                         <div>
-                          <h4 className="font-semibold text-white mb-2">Credit/Debit Cards</h4>
+                          <h4 className="font-semibold text-white mb-2">ANY PAYMET METHOD</h4>
                           <ul className="text-sm space-y-1">
-                            <li>• Processing: 1-2 business days</li>
-                            <li>• Bank processing: 3-5 business days</li>
-                            <li>• Total time: 5-7 business days</li>
-                          </ul>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-white mb-2">Net Banking</h4>
-                          <ul className="text-sm space-y-1">
-                            <li>• Processing: 1 business day</li>
-                            <li>• Bank processing: 2-4 business days</li>
-                            <li>• Total time: 3-5 business days</li>
-                          </ul>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-white mb-2">UPI/Digital Wallets</h4>
-                          <ul className="text-sm space-y-1">
-                            <li>• Processing: 1 business day</li>
-                            <li>• Wallet processing: 1-2 business days</li>
-                            <li>• Total time: 2-3 business days</li>
-                          </ul>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-white mb-2">Bank Transfer</h4>
-                          <ul className="text-sm space-y-1">
-                            <li>• Processing: 2-3 business days</li>
-                            <li>• Bank processing: 5-7 business days</li>
-                            <li>• Total time: 7-10 business days</li>
+                            <li>• If approved, you’ll be automatically refunded and credited on your original payment method within 1-10  business days</li>
                           </ul>
                         </div>
                       </div>
@@ -298,8 +272,8 @@ const RefundPolicy = () => {
                   <h2 className="text-2xl font-bold text-white mb-4">Contact for Refunds</h2>
                   <div className="bg-slate-700/50 rounded-xl p-6 space-y-2">
                     <p><strong>Refund Email:</strong> hyyevents@gmail.com</p>
-                    <p><strong>Support Phone:</strong> +91 9082807701</p>
-                    <p><strong>WhatsApp:</strong> +91 9082807701</p>
+                    <p><strong>Support Phone:</strong> +91 90828 07701</p>
+                    <p><strong>WhatsApp:</strong> +91 90828 07701</p>
                     <p><strong>Support Hours:</strong> 10:00 AM - 8:00 PM (Monday to Saturday)</p>
                     <p><strong>Response Time:</strong> Within 24 hours for refund queries</p>
                   </div>

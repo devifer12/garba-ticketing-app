@@ -139,7 +139,6 @@ const VenueSection = ({ event }) => {
                     { icon: "🎵", text: "Professional Sound System" },
                     { icon: "💡", text: "LED Lighting Setup" },
                     { icon: "🚗", text: "Ample Parking Space" },
-                    { icon: "🍽️", text: "Food & Beverage Area" },
                     { icon: "🚻", text: "Clean Restroom Facilities" },
                     { icon: "🔒", text: "Secure Environment" },
                   ].map((item, index) => (

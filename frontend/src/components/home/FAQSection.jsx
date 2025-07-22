@@ -29,10 +29,6 @@ const FAQSection = () => {
       answer: "Traditional Gujarati attire is encouraged! Women can wear chaniya choli, lehenga, or sarees, while men can wear kurta-pajama or dhoti. However, comfortable clothing that allows easy movement is most important for dancing."
     },
     {
-      question: "What food and drinks will be available?",
-      answer: "We'll have authentic snacks. Refreshing drinks like soft drinks will be available. All food is vegetarian."
-    },
-    {
       question: "Is parking available at the venue?",
       answer: "Yes! The venue has ample parking space for all attendees. Parking is free and the area is well-lit and secure."
     },

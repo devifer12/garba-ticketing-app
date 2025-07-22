@@ -170,7 +170,7 @@ const PrivacyPolicy = () => {
                   <p className="mb-4">If you have any questions about this Privacy Policy or our data practices, please contact us:</p>
                   <div className="bg-slate-700/50 rounded-xl p-6 space-y-2">
                     <p><strong>Email:</strong> hyyevents@gmail.com</p>
-                    <p><strong>Phone:</strong> +91 98765 43210</p>
+                    <p><strong>Phone:</strong> +91 90828 07701</p>
                     <p><strong>Address:</strong> Mumbai, Maharashtra, India</p>
                     <p><strong>Response Time:</strong> We aim to respond within 48 hours</p>
                   </div>

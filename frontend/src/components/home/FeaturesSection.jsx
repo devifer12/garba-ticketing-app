@@ -124,9 +124,7 @@ const getFeatureIcon = (feature, index) => {
   
   if (featureText.includes('music') || featureText.includes('dj') || featureText.includes('sound')) {
     return '🎵';
-  } else if (featureText.includes('food') || featureText.includes('snack') || featureText.includes('meal')) {
-    return '🍽️';
-  } else if (featureText.includes('dance') || featureText.includes('garba') || featureText.includes('raas')) {
+  }else if (featureText.includes('dance') || featureText.includes('garba') || featureText.includes('raas')) {
     return '💃';
   } else if (featureText.includes('photo') || featureText.includes('camera') || featureText.includes('picture')) {
     return '📸';
@@ -155,8 +153,6 @@ const getFeatureDescription = (feature) => {
   
   if (featureText.includes('music') || featureText.includes('dj')) {
     return 'Professional DJ with traditional and modern Garba music';
-  } else if (featureText.includes('food') || featureText.includes('snack')) {
-    return 'Authentic Gujarati delicacies and refreshments';
   } else if (featureText.includes('dance') || featureText.includes('garba')) {
     return 'Traditional dance performances and competitions';
   } else if (featureText.includes('photo')) {

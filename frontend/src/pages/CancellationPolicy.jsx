@@ -204,9 +204,9 @@ const CancellationPolicy = () => {
                   <p className="mb-4">For cancellation support and queries:</p>
                   <div className="bg-slate-700/50 rounded-xl p-6 space-y-2">
                     <p><strong>Cancellation Email:</strong> hyyevents@gmail.com</p>
-                    <p><strong>Support Phone:</strong> +91 98765 43210</p>
+                    <p><strong>Support Phone:</strong> +91 90828 07701</p>
                     <p><strong>Support Hours:</strong> 10:00 AM - 8:00 PM (Monday to Saturday)</p>
-                    <p><strong>Emergency Contact:</strong> +91 98765 43211 (Event day only)</p>
+                    <p><strong>Emergency Contact:</strong> +91 90828 07701 (Event day only)</p>
                   </div>
                 </section>
 
