@@ -157,14 +157,14 @@ const Hero = memo(({ event }) => {
               className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 items-center lg:items-start"
             >
               {/* Primary Buy Tickets Button */}
-              {/* <div className="h-14 sm:h-16 flex items-center">
+              <div className="h-14 sm:h-16 flex items-center">
                 <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-8 sm:px-8 py-3 sm:py-4">
                   🎟️ Book Your Tickets Now
                 </PrimaryButton>
-              </div> */}
+              </div>
 
               {/* Secondary Sign In Button - Only show if not authenticated */}
-              {/* {!user && (
+              {!user && (
                 <div className="h-14 sm:h-16 flex items-center">
                   <GoogleSignInButton
                     className="w-auto sm:w-auto text-base sm:text-xl px-10 sm:px-12 py-3 sm:py-4"
@@ -173,7 +173,7 @@ const Hero = memo(({ event }) => {
                     📱 Sign In with Google
                   </GoogleSignInButton>
                 </div>
-              )} */}
+              )}
             </motion.div>
           </motion.div>
 

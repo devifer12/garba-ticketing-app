@@ -256,23 +256,23 @@ const EventDetails = ({ event }) => {
         </div>
 
         {/* CTA Buttons - Fixed height container */}
-        {/* <motion.div
+        <motion.div
           variants={itemVariants}
-          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-6 sm:mb-10 px-4 min-h-[80px]"> */}
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-6 sm:mb-10 px-4 min-h-[80px]">
           {/* Primary Buy Tickets Button */}
-          {/* <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-7 sm:px-8 py-3 sm:py-4">
+          <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-7 sm:px-8 py-3 sm:py-4">
             🎟️ Book Your Tickets Now
-          </PrimaryButton> */}
+          </PrimaryButton>
 
           {/* Secondary Sign In Button - Only show if not authenticated */}
-          {/* {!user && (
+          {!user && (
             <GoogleSignInButton
               className="w-auto sm:w-auto text-base sm:text-xl px-10 sm:px-8 py-3 sm:py-4"
               showTextOnMobile={true}>
               📱 Sign In with Google
             </GoogleSignInButton>
-          )} */}
-        {/* </motion.div> */}
+          )}
+        </motion.div>
       </motion.div>
     </section>
   );
