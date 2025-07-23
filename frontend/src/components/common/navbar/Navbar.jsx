@@ -55,7 +55,7 @@ const Navbar = () => {
         <div className="absolute top-0 left-0 right-0 z-50 p-4 pointer-events-none">
           <div className="flex justify-end items-start">
             {/* Authentication Section - Right Side */}
-            <div className="flex items-center mt-8 pointer-events-auto">
+            {/* <div className="flex items-center mt-8 pointer-events-auto">
               {loading ? (
                 <div className="flex items-center gap-2 text-slate-400">
                   <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
@@ -70,7 +70,7 @@ const Navbar = () => {
                   showTextOnMobile={false}
                 />
               )}
-            </div>
+            </div> */}
           </div>
         </div>
 

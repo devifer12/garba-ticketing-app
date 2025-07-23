@@ -47,9 +47,9 @@ const Footer = () => {
           faqSection.scrollIntoView({ behavior: 'smooth' });
         }
       }},
-      { name: 'Contact Support', action: () => {
-        window.location.href = 'mailto:hyyevents@gmail.com';
-      }}
+      // { name: 'Contact Support', action: () => {
+      //   window.location.href = 'mailto:hyyevents@gmail.com';
+      // }}
     ]
   };
 
