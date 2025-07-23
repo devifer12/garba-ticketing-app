@@ -236,19 +236,6 @@ const RefundPolicy = () => {
                 </section>
 
                 <section>
-                  <h2 className="text-2xl font-bold text-white mb-4">Refund Alternatives</h2>
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-semibold text-navratri-violet mb-3">Instead of Refund, Consider:</h3>
-                    <ul className="list-disc list-inside space-y-2 ml-4">
-                      <li><strong>Ticket Transfer:</strong> Transfer to a friend or family member (₹50 fee)</li>
-                      <li><strong>Event Credit:</strong> Credit for future events (no processing fees)</li>
-                      <li><strong>Donation:</strong> Donate ticket value to charity (tax benefits available)</li>
-                      <li><strong>Resale Platform:</strong> Sell through our authorized resale platform</li>
-                    </ul>
-                  </div>
-                </section>
-
-                <section>
                   <h2 className="text-2xl font-bold text-white mb-4">Dispute Resolution</h2>
                   <div className="space-y-4">
                     <p>If you disagree with our refund decision:</p>
