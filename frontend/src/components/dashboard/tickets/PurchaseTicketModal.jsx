@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { paymentAPI } from "../../../services/api";
 
 const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
   const [quantity, setQuantity] = useState(1);
@@ -31,8 +32,32 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
     setQuantity(newQuantity);
   };
 
-  const handlePurchase = () => {
-    onPurchase(quantity);
+  const handlePurchase = async () => {
+    try {
+      // Prepare payment data
+      const paymentData = {
+        quantity: quantity,
+        amount: totalAmount,
+        eventId: event._id || event.id,
+        eventName: event.name,
+        pricePerTicket: pricePerTicket,
+        pricingTier: currentTier.name,
+      };
+
+      // Call the payment initiation API
+      const response = await paymentAPI.initiatePayment(paymentData);
+
+      if (response.data.success && response.data.redirectUrl) {
+        // Redirect to PhonePe payment page
+        window.location.href = response.data.redirectUrl;
+      } else {
+        throw new Error(response.data.message || "Failed to initiate payment");
+      }
+    } catch (error) {
+      console.error("Payment initiation failed:", error);
+      // Fall back to the original purchase method if payment fails
+      onPurchase(quantity);
+    }
     setShowConfirm(false);
   };
 
@@ -44,7 +69,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+      >
         {!showConfirm ? (
           // Purchase Form
           <div className="p-4 sm:p-6 md:p-8">
@@ -92,7 +118,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                     quantity >= 1 && quantity <= 3
                       ? "text-blue-200 font-medium"
                       : "text-blue-300/70"
-                  }`}>
+                  }`}
+                >
                   <span>Individual (1-3 tickets):</span>
                   <span>₹{event.ticketPrice} each</span>
                 </div>
@@ -101,7 +128,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                     quantity >= 4
                       ? "text-green-200 font-medium"
                       : "text-blue-300/70"
-                  }`}>
+                  }`}
+                >
                   <span>Group 4+</span>
                   <span>₹{event.groupPrice4 || event.ticketPrice} each</span>
                 </div>
@@ -120,7 +148,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                   disabled={quantity <= 1}
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg flex items-center justify-center font-bold text-base sm:text-lg"
                   whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}>
+                  whileTap={{ scale: 0.95 }}
+                >
                   -
                 </motion.button>
 
@@ -134,7 +163,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                   onClick={() => handleQuantityChange(quantity + 1)}
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg flex items-center justify-center font-bold text-base sm:text-lg"
                   whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}>
+                  whileTap={{ scale: 0.95 }}
+                >
                   +
                 </motion.button>
               </div>
@@ -236,7 +266,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                 disabled={purchasing || quantity === 0 || !agreedToTerms}
                 className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-lg shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}>
+                whileTap={{ scale: 0.98 }}
+              >
                 Continue to Purchase
               </motion.button>
 
@@ -245,7 +276,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                 disabled={purchasing}
                 className="px-4 sm:px-6 py-2 sm:py-3 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all disabled:opacity-50 text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}>
+                whileTap={{ scale: 0.98 }}
+              >
                 Close
               </motion.button>
             </div>
@@ -330,7 +362,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                 disabled={purchasing}
                 className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-600 to-green-500 text-white font-bold rounded-lg shadow-lg hover:shadow-green-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}>
+                whileTap={{ scale: 0.98 }}
+              >
                 {purchasing ? (
                   <>
                     <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-t-2 border-b-2 border-white"></div>
@@ -346,7 +379,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                 disabled={purchasing}
                 className="px-4 sm:px-6 py-2 sm:py-3 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all disabled:opacity-50 text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}>
+                whileTap={{ scale: 0.98 }}
+              >
                 Back
               </motion.button>
             </div>

@@ -13,7 +13,6 @@
   "type": "commonjs",
   "description": "",
   "dependencies": {
-    "@sparticuz/chromium": "^138.0.1",
     "axios": "^1.9.0",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
@@ -27,7 +26,8 @@
     "mongodb": "^6.17.0",
     "mongoose": "^8.15.1",
     "nodemailer": "^6.9.15",
-    "puppeteer": "^23.9.0",
+    "pdfkit": "^0.17.1",
+    "pg-sdk-node": "https://phonepe.mycloudrepo.io/public/repositories/phonepe-pg-sdk-node/releases/v2/phonepe-pg-sdk-node.tgz",
     "qrcode": "^1.5.4",
     "uuid": "^10.0.0"
   },

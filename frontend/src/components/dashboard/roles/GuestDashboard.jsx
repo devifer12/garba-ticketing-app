@@ -51,6 +51,8 @@ const GuestDashboard = () => {
   const handlePurchaseTickets = async (quantity) => {
     setPurchasing(true);
     try {
+      // This is now a fallback method for direct ticket creation
+      // The primary payment flow goes through PhonePe via PurchaseTicketModal
       await execute(
         async (signal) => {
           const response = await ticketAPI.createBooking({ quantity }, signal);
@@ -158,7 +160,7 @@ const GuestDashboard = () => {
 
           {/* Quick Actions */}
           <QuickActions tickets={tickets} onRefresh={fetchDashboardData} />
-        </div>  
+        </div>
       </motion.div>
 
       <div id="tickets-section">

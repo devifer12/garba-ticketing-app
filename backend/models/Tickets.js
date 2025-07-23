@@ -85,6 +85,33 @@ const ticketSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Payment information
+    paymentId: {
+      type: String,
+      default: null,
+    },
+
+    merchantOrderId: {
+      type: String,
+      default: null,
+    },
+
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "completed", "failed", "cancelled"],
+      default: "pending",
+    },
+
+    paymentMethod: {
+      type: String,
+      default: "phonepe",
+    },
+
+    transactionId: {
+      type: String,
+      default: null,
+    },
+
     // Additional metadata
     metadata: {
       purchaseMethod: {

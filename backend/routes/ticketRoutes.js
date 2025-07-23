@@ -6,6 +6,26 @@ const User = require("../models/User");
 const Event = require("../models/Event");
 const verifyToken = require("../middlewares/authMiddleware");
 const emailService = require("../services/emailService");
+const {
+  StandardCheckoutClient,
+  Env,
+  StandardCheckoutPayRequest,
+} = require("pg-sdk-node");
+const { randomUUID } = require("crypto");
+
+// PhonePe Configuration
+const clientId = "TEST-M23JDJU727K3F_25072";
+const clientSecret = "NGE4NThkZTctMWM1Zi00YWNkLThkMzUtMmYzY2EwN2UwZGQx";
+const clientVersion = 1;
+const env = Env.SANDBOX; // Change to Env.PRODUCTION for production
+
+// Initialize PhonePe client
+const client = StandardCheckoutClient.getInstance(
+  clientId,
+  clientSecret,
+  clientVersion,
+  env,
+);
 
 // Helper function to generate QR code image
 const generateQRCodeImage = async (qrData) => {
@@ -28,7 +48,285 @@ const generateQRCodeImage = async (qrData) => {
   }
 };
 
-// Create a ticket (protected route)
+// Initiate payment for tickets (protected route)
+router.post("/initiate-payment", verifyToken, async (req, res) => {
+  try {
+    const { quantity = 1, eventId } = req.body;
+
+    // Find user by Firebase UID
+    const user = await User.findOne({ firebaseUID: req.user.uid });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    // Get event details
+    const event = await Event.findOne();
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: "Event not found",
+      });
+    }
+
+    // Check if enough tickets are available
+    const availableTickets = await event.getAvailableTicketsCount();
+    if (availableTickets < quantity) {
+      return res.status(400).json({
+        success: false,
+        error: `Only ${availableTickets} tickets available`,
+      });
+    }
+
+    // Calculate total amount
+    const totalAmount = event.calculateTotalAmount(quantity);
+    const amountInPaise = Math.round(totalAmount * 100); // Convert to paise
+
+    // Generate unique merchant order ID
+    const merchantOrderId = `GARBA-${Date.now()}-${randomUUID().substr(0, 8)}`;
+
+    // Create payment request
+    const request = StandardCheckoutPayRequest.builder()
+      .merchantOrderId(merchantOrderId)
+      .amount(amountInPaise)
+      .redirectUrl(
+        `${process.env.FRONTEND_URL || "http://localhost:3000"}/payment-success`,
+      )
+      .build();
+
+    try {
+      // Initiate payment with PhonePe
+      const response = await client.pay(request);
+      const checkoutPageUrl = response.redirectUrl;
+
+      // Create pending tickets in database
+      const ticketCreationPromises = [];
+      for (let i = 0; i < quantity; i++) {
+        const ticketPromise = (async () => {
+          const qrCode = Ticket.generateQRCode();
+          const qrCodeImage = await generateQRCodeImage(qrCode);
+          const pricePerTicket = event.calculatePrice(quantity);
+
+          const ticket = new Ticket({
+            user: user._id,
+            eventName: event.name,
+            price: pricePerTicket,
+            qrCode: qrCode,
+            qrCodeImage: qrCodeImage,
+            status: "active", // Will be updated after payment confirmation
+            merchantOrderId: merchantOrderId,
+            paymentStatus: "pending",
+            paymentMethod: "phonepe",
+            metadata: {
+              purchaseMethod: "online",
+              deviceInfo: req.headers["user-agent"] || "",
+              ipAddress: req.ip || req.connection.remoteAddress || "",
+              quantity: quantity,
+              totalAmount: totalAmount,
+            },
+          });
+
+          return await ticket.save();
+        })();
+        ticketCreationPromises.push(ticketPromise);
+      }
+
+      await Promise.all(ticketCreationPromises);
+
+      res.status(200).json({
+        success: true,
+        message: "Payment initiated successfully",
+        checkoutPageUrl: checkoutPageUrl,
+        merchantOrderId: merchantOrderId,
+        amount: totalAmount,
+        quantity: quantity,
+      });
+    } catch (paymentError) {
+      console.error("PhonePe payment initiation error:", paymentError);
+      res.status(500).json({
+        success: false,
+        error: "Failed to initiate payment",
+        details:
+          process.env.NODE_ENV === "development"
+            ? paymentError.message
+            : undefined,
+      });
+    }
+  } catch (error) {
+    console.error("Payment initiation error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to initiate payment",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+// Payment callback handler
+router.post("/payment-callback", async (req, res) => {
+  try {
+    const { username, password, authorization, responseBody } = req.body;
+
+    // Validate callback using PhonePe SDK
+    const callbackResponse = client.validateCallback(
+      username || "MERCHANT_USERNAME",
+      password || "MERCHANT_PASSWORD",
+      authorization,
+      responseBody,
+    );
+
+    const orderId = callbackResponse.payload.orderId;
+    const state = callbackResponse.payload.state;
+
+    // Find tickets by merchant order ID
+    const tickets = await Ticket.find({ merchantOrderId: orderId }).populate(
+      "user",
+      "name email",
+    );
+
+    if (!tickets || tickets.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Tickets not found for this order",
+      });
+    }
+
+    // Update ticket status based on payment state
+    if (state === "checkout.order.completed") {
+      // Payment successful
+      for (const ticket of tickets) {
+        ticket.paymentStatus = "completed";
+        ticket.status = "active";
+        ticket.transactionId = callbackResponse.payload.transactionId || null;
+        await ticket.save();
+      }
+
+      // Send confirmation email
+      try {
+        const event = await Event.findOne();
+        const user = tickets[0].user;
+        const totalAmount = tickets.reduce(
+          (sum, ticket) => sum + ticket.price,
+          0,
+        );
+
+        await emailService.sendTicketPurchaseEmail(
+          user,
+          tickets,
+          event,
+          totalAmount,
+          tickets.length,
+        );
+      } catch (emailError) {
+        console.error(
+          "Failed to send purchase confirmation email:",
+          emailError,
+        );
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Payment completed successfully",
+        orderId: orderId,
+        tickets: tickets.map((ticket) => ({
+          id: ticket._id,
+          ticketId: ticket.ticketId,
+          status: ticket.status,
+          paymentStatus: ticket.paymentStatus,
+        })),
+      });
+    } else if (state === "checkout.order.failed") {
+      // Payment failed
+      for (const ticket of tickets) {
+        ticket.paymentStatus = "failed";
+        ticket.status = "cancelled";
+        await ticket.save();
+      }
+
+      res.status(400).json({
+        success: false,
+        message: "Payment failed",
+        orderId: orderId,
+      });
+    } else {
+      // Other states (transaction attempt failed, etc.)
+      for (const ticket of tickets) {
+        ticket.paymentStatus = "failed";
+        ticket.status = "cancelled";
+        await ticket.save();
+      }
+
+      res.status(400).json({
+        success: false,
+        message: "Payment transaction failed",
+        orderId: orderId,
+        state: state,
+      });
+    }
+  } catch (error) {
+    console.error("Payment callback error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to process payment callback",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+// Check payment status
+router.get(
+  "/payment-status/:merchantOrderId",
+  verifyToken,
+  async (req, res) => {
+    try {
+      const { merchantOrderId } = req.params;
+
+      // Check status with PhonePe
+      const response = await client.getOrderStatus(merchantOrderId);
+      const state = response.state;
+
+      // Find tickets
+      const tickets = await Ticket.find({ merchantOrderId }).populate(
+        "user",
+        "name email",
+      );
+
+      if (!tickets || tickets.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Order not found",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        merchantOrderId: merchantOrderId,
+        paymentState: state,
+        tickets: tickets.map((ticket) => ({
+          id: ticket._id,
+          ticketId: ticket.ticketId,
+          status: ticket.status,
+          paymentStatus: ticket.paymentStatus,
+          transactionId: ticket.transactionId,
+        })),
+      });
+    } catch (error) {
+      console.error("Payment status check error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to check payment status",
+        details:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
+  },
+);
+
+// Create a ticket (protected route) - Keep original for backward compatibility
 router.post("/", verifyToken, async (req, res) => {
   try {
     const { quantity = 1, eventId } = req.body;
@@ -159,8 +457,7 @@ router.post("/", verifyToken, async (req, res) => {
         quantity: quantity,
         pricePerTicket: pricePerTicket,
         totalAmount: totalAmount,
-        appliedTier:
-          quantity >= 4 ? "group4" : "individual",
+        appliedTier: quantity >= 4 ? "group4" : "individual",
       },
       event: {
         name: updatedEvent.name,

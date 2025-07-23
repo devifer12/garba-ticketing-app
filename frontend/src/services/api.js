@@ -142,7 +142,7 @@ export const eventAPI = {
   updateEvent: (eventData) => api.put("/event", eventData),
 };
 
-// Ticket API with  support
+// Ticket API with payment support
 export const ticketAPI = {
   createBooking: (bookingData) =>
     api.post(API_ENDPOINTS.TICKETS.BASE, bookingData),
@@ -154,6 +154,16 @@ export const ticketAPI = {
     api.post(API_ENDPOINTS.TICKETS.MARK_USED, { qrCode }),
   cancelTicket: (ticketId, reason) =>
     api.patch(`${API_ENDPOINTS.TICKETS.BASE}/cancel/${ticketId}`, { reason }),
+};
+
+// Payment API for PhonePe integration
+export const paymentAPI = {
+  initiatePayment: (paymentData) =>
+    api.post("/payment/initiate-payment", paymentData),
+  checkPaymentStatus: (merchantOrderId) =>
+    api.get(`/payment/payment-status/${merchantOrderId}`),
+  handlePaymentCallback: (callbackData) =>
+    api.post("/payment/payment-callback", callbackData),
 };
 
 // Admin API with  support and error handling

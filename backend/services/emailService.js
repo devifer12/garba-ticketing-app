@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-const puppeteer = require("puppeteer");
+const PDFDocument = require("pdfkit");
 const QRCode = require("qrcode");
 const fs = require("fs");
 const path = require("path");
@@ -15,7 +15,7 @@ class EmailService {
       // Check if required environment variables are set
       if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
         console.error(
-          "Email credentials not configured. EMAIL_USER and EMAIL_PASS environment variables are required.",
+          "Email credentials not configured. EMAIL_USER and EMAIL_PASS environment variables are required."
         );
         return;
       }
@@ -37,7 +37,7 @@ class EmailService {
       if (process.env.NODE_ENV === "development") {
         console.log(
           "✅ Email service initialized successfully with user:",
-          process.env.EMAIL_USER,
+          process.env.EMAIL_USER
         );
       }
 
@@ -56,14 +56,14 @@ class EmailService {
           if (process.env.NODE_ENV === "development") {
             console.error(
               "❌ Email service connection verification error:",
-              err.message,
+              err.message
             );
           }
         });
     } catch (error) {
       console.error(
         "Failed to initialize email service:",
-        process.env.NODE_ENV === "development" ? error : error.message,
+        process.env.NODE_ENV === "development" ? error : error.message
       );
     }
   }
@@ -78,22 +78,20 @@ class EmailService {
     } catch (error) {
       console.error(
         "Email service connection failed:",
-        process.env.NODE_ENV === "development" ? error : error.message,
+        process.env.NODE_ENV === "development" ? error : error.message
       );
       return false;
     }
   }
 
   async generateTicketPDF(ticketData, eventData) {
-    let browser;
-    let page;
     try {
-      // Generate QR code first to avoid browser resource waste if this fails
-      let qrCodeDataURL;
+      // Generate QR code as buffer
+      let qrCodeBuffer;
       try {
-        qrCodeDataURL = await QRCode.toDataURL(ticketData.qrCode, {
+        qrCodeBuffer = await QRCode.toBuffer(ticketData.qrCode, {
           errorCorrectionLevel: "M",
-          type: "image/png",
+          type: "png",
           quality: 0.92,
           margin: 1,
           color: {
@@ -108,286 +106,225 @@ class EmailService {
         }
       } catch (qrError) {
         console.error("QR Code generation failed:", qrError.message);
-        // Use a fallback QR code or text
-        // Create a simple fallback QR code with text
-        qrCodeDataURL = await QRCode.toDataURL(ticketData.qrCode || "FALLBACK", {
+        // Use a fallback QR code
+        qrCodeBuffer = await QRCode.toBuffer(ticketData.qrCode || "FALLBACK", {
           errorCorrectionLevel: "L",
           width: 200,
         });
       }
 
-      // Simplified Puppeteer configuration for better reliability
-      const puppeteerConfig = {
-        headless: true,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-gpu",
-          "--disable-extensions",
-          "--no-first-run",
-          "--disable-default-apps",
-          "--disable-background-networking",
-          "--disable-web-security",
-          "--disable-features=VizDisplayCompositor",
-        ],
-        timeout: 30000,
-        protocolTimeout: 30000,
-      };
-
-      // Configure Chrome executable path based on environment
-      if (process.env.NODE_ENV === "production") {
-        // For production environments, try multiple Chrome paths
-        const possibleChromePaths = [
-          process.env.PUPPETEER_EXECUTABLE_PATH,
-          '/usr/bin/google-chrome-stable',
-          '/usr/bin/google-chrome',
-          '/usr/bin/chromium-browser',
-          '/usr/bin/chromium',
-          '/opt/google/chrome/chrome',
-          '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-        ].filter(Boolean);
-
-        let chromeFound = false;
-        
-        // Try each possible Chrome path
-        for (const chromePath of possibleChromePaths) {
-          try {
-            if (fs.existsSync(chromePath)) {
-              puppeteerConfig.executablePath = chromePath;
-              chromeFound = true;
-              if (process.env.NODE_ENV === "development") {
-                console.log("✅ Found Chrome at:", chromePath);
-              }
-              break;
-            }
-          } catch (err) {
-            // Continue to next path
-          }
-        }
-
-        // If no Chrome found, try @sparticuz/chromium for serverless
-        if (!chromeFound) {
-          try {
-            const chromium = require("@sparticuz/chromium");
-            puppeteerConfig.executablePath = await chromium.executablePath;
-            puppeteerConfig.args = [...puppeteerConfig.args, ...chromium.args];
-            chromeFound = true;
-            if (process.env.NODE_ENV === "development") {
-              console.log("✅ Using @sparticuz/chromium");
-            }
-          } catch (chromiumError) {
-            console.warn("Failed to load @sparticuz/chromium:", chromiumError.message);
-          }
-        }
-
-        // If still no Chrome found in production, this will cause an error
-        // which is better than silently failing
-        if (!chromeFound) {
-          console.error("❌ No Chrome installation found in production environment");
-          throw new Error("Chrome executable not found. Please install Chrome or configure PUPPETEER_EXECUTABLE_PATH");
-        }
-      }
-      // For development, puppeteer will use bundled Chromium automatically
-
-      if (process.env.NODE_ENV === "development") {
-        console.log("🚀 Launching browser with config:", {
-          executablePath: puppeteerConfig.executablePath || "default",
-          argsCount: puppeteerConfig.args.length,
-        });
-      }
-
-      browser = await puppeteer.launch(puppeteerConfig);
-
-      page = await browser.newPage();
-
-      await page.setDefaultTimeout(30000);
-      await page.setDefaultNavigationTimeout(30000);
-      await page.setViewport({ width: 800, height: 1200 });
-
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <title>Ticket - ${ticketData.ticketId}</title>
-            <style>
-              * { box-sizing: border-box; }
-              body { 
-                font-family: Arial, sans-serif; 
-                margin: 0; 
-                padding: 20px; 
-                color: #333; 
-                background: #f0f0f0;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-              }
-              .ticket { 
-                background: white; 
-                border-radius: 15px; 
-                padding: 30px; 
-                max-width: 600px; 
-                margin: 0 auto; 
-                border: 2px solid #ff6500; 
-                page-break-inside: avoid;
-              }
-              .header { 
-                text-align: center; 
-                margin-bottom: 20px; 
-                border-bottom: 2px dashed #ff6500; 
-                padding-bottom: 15px; 
-              }
-              .event-title { 
-                font-size: 28px; 
-                font-weight: bold; 
-                color: #ff6500; 
-                margin: 0 0 8px 0; 
-              }
-              .event-subtitle { 
-                font-size: 16px; 
-                color: #666; 
-                margin: 4px 0; 
-              }
-              .qr-section { 
-                text-align: center; 
-                margin: 20px 0; 
-                background: #f8f9fa; 
-                padding: 20px; 
-                border-radius: 10px; 
-              }
-              .qr-code { 
-                margin: 15px 0; 
-              }
-              .qr-code img { 
-                width: 150px; 
-                height: 150px; 
-                border: 2px solid #ff6500; 
-                border-radius: 8px; 
-                display: block;
-                margin: 0 auto;
-              }
-              .details-section {
-                margin: 20px 0;
-              }
-              .detail-item { 
-                background: #f8f9fa; 
-                padding: 12px; 
-                border-radius: 8px; 
-                border-left: 4px solid #ff6500; 
-                margin-bottom: 10px;
-              }
-              .detail-label { 
-                font-weight: bold; 
-                color: #333; 
-                font-size: 14px; 
-                margin-bottom: 4px; 
-              }
-              .detail-value { 
-                color: #666; 
-                font-size: 16px; 
-              }
-              .instructions { 
-                background: #fff3cd; 
-                border: 1px solid #ffeaa7; 
-                border-radius: 8px; 
-                padding: 15px; 
-                margin: 20px 0; 
-              }
-              .instructions h3 { 
-                color: #856404; 
-                margin: 0 0 10px 0; 
-                font-size: 16px;
-              }
-              .instructions ul { 
-                color: #856404; 
-                padding-left: 20px; 
-                margin: 0;
-              }
-              .instructions li { 
-                margin-bottom: 4px; 
-                font-size: 14px;
-              }
-              .footer { 
-                text-align: center; 
-                margin-top: 20px; 
-                padding-top: 15px; 
-                border-top: 2px dashed #ff6500; 
-                color: #666; 
-                font-size: 12px; 
-              }
-            </style>
-          </head>
-          <body>
-            <div class="ticket">
-              <div class="header">
-                <div class="event-title">${eventData.name || 'Garba Rass 2025'}</div>
-                <div class="event-subtitle">${new Date(eventData.date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
-                <div class="event-subtitle">${eventData.startTime} - ${eventData.endTime}</div>
-              </div>
-              
-              <div class="qr-section">
-                <h3 style="color: #ff6500; margin: 0 0 10px 0; font-size: 18px;">🎫 Your Entry Pass</h3>
-                <p style="color: #666; font-size: 14px; margin: 0 0 15px 0;">Present this QR code at the venue entrance</p>
-                <div class="qr-code">
-                  <img src="${qrCodeDataURL}" alt="QR Code" />
-                </div>
-                <p style="color: #666; font-size: 12px;">Scan this code for quick entry</p>
-              </div>
-              
-              <div class="details-section">
-                <div class="detail-item">
-                  <div class="detail-label">📍 Venue</div>
-                  <div class="detail-value">${eventData.venue}</div>
-                </div>
-                <div class="detail-item">
-                  <div class="detail-label">💰 Price Paid</div>
-                  <div class="detail-value">₹${ticketData.price}</div>
-                </div>
-              </div>
-              
-              <div class="instructions">
-                <h3>📋 Important Instructions:</h3>
-                <ul>
-                  <li>Arrive at the venue 30 minutes before the event starts</li>
-                  <li>Present this QR code at the entrance for scanning</li>
-                  <li>Keep this ticket safe and do not share with others</li>
-                  <li>Entry is subject to venue capacity and safety guidelines</li>
-                  <li>No outside food or beverages allowed</li>
-                  <li>Follow the dress code: Traditional Indian attire preferred</li>
-                </ul>
-              </div>
-              
-              <div class="footer">
-                <p style="margin: 0 0 5px 0;">Thank you for choosing ${eventData.name || 'Garba Rass 2025'}! 🎉</p>
-                <p style="margin: 0 0 5px 0;">For support, contact us at hyyevents@gmail.com</p>
-                <p style="margin: 0;">This is a computer-generated ticket. No signature required.</p>
-              </div>
-            </div>
-          </body>
-        </html>
-      `;
-
-      await page.setContent(htmlContent, {
-        waitUntil: "domcontentloaded",
-        timeout: 30000,
-      });
-
-      // Wait for images to load
-      // await page.waitForTimeout(2000);
-
-      const pdfBuffer = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        preferCSSPageSize: false,
-        displayHeaderFooter: false,
-        margin: {
-          top: "15mm",
-          right: "15mm",
-          bottom: "15mm",
-          left: "15mm",
+      // Create PDF document
+      const doc = new PDFDocument({
+        size: "A4",
+        margins: {
+          top: 50,
+          bottom: 50,
+          left: 50,
+          right: 50,
         },
-        timeout: 30000,
       });
+
+      // Create buffer to store PDF
+      const buffers = [];
+      doc.on("data", buffers.push.bind(buffers));
+
+      const pdfPromise = new Promise((resolve, reject) => {
+        doc.on("end", () => {
+          const pdfBuffer = Buffer.concat(buffers);
+          resolve(pdfBuffer);
+        });
+        doc.on("error", reject);
+      });
+
+      // Set up colors
+      const primaryColor = "#ff6500";
+      const textColor = "#333333";
+      const lightGray = "#666666";
+      const backgroundColor = "#f8f9fa";
+
+      // Add border
+      doc
+        .rect(30, 30, doc.page.width - 60, doc.page.height - 60)
+        .stroke(primaryColor)
+        .lineWidth(2);
+
+      // Header section
+      doc
+        .fontSize(24)
+        .fillColor(primaryColor)
+        .font("Helvetica-Bold")
+        .text(eventData.name || "Garba Rass 2025", 50, 80, { align: "center" });
+
+      // Event date and time
+      const eventDate = new Date(eventData.date).toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      doc
+        .fontSize(14)
+        .fillColor(lightGray)
+        .font("Helvetica")
+        .text(eventDate, 50, 120, { align: "center" })
+        .text(`${eventData.startTime} - ${eventData.endTime}`, 50, 140, {
+          align: "center",
+        });
+
+      // Dashed line
+      doc
+        .moveTo(80, 170)
+        .lineTo(doc.page.width - 80, 170)
+        .dash(5, { space: 5 })
+        .stroke(primaryColor)
+        .undash();
+
+      // QR Section background
+      doc
+        .rect(80, 190, doc.page.width - 160, 200)
+        .fill("#f8f9fa")
+        .stroke("#e9ecef");
+
+      // QR Section title
+      doc
+        .fontSize(16)
+        .fillColor(primaryColor)
+        .font("Helvetica-Bold")
+        .text("Your Entry Pass", 50, 210, { align: "center" });
+
+      doc
+        .fontSize(12)
+        .fillColor(lightGray)
+        .font("Helvetica")
+        .text("Present this QR code at the venue entrance", 50, 235, {
+          align: "center",
+        });
+
+      // Add QR code image
+      const qrX = (doc.page.width - 150) / 2;
+      doc.image(qrCodeBuffer, qrX, 260, { width: 150, height: 150 });
+
+      // QR code border
+      doc
+        .rect(qrX - 2, 258, 154, 154)
+        .stroke(primaryColor)
+        .lineWidth(2);
+
+      doc
+        .fontSize(10)
+        .fillColor(lightGray)
+        .text("Scan this code for quick entry", 50, 430, { align: "center" });
+
+      // Details section
+      let yPosition = 480;
+
+      // Venue detail
+      doc
+        .rect(80, yPosition, doc.page.width - 160, 40)
+        .fill("#f8f9fa")
+        .stroke("#e9ecef");
+
+      doc.rect(80, yPosition, 4, 40).fill(primaryColor);
+
+      doc
+        .fontSize(12)
+        .fillColor(textColor)
+        .font("Helvetica-Bold")
+        .text("Venue", 95, yPosition + 8);
+
+      doc
+        .fontSize(14)
+        .fillColor(lightGray)
+        .font("Helvetica")
+        .text(eventData.venue, 95, yPosition + 22);
+
+      yPosition += 50;
+
+      // Price detail
+      doc
+        .rect(80, yPosition, doc.page.width - 160, 40)
+        .fill("#f8f9fa")
+        .stroke("#e9ecef");
+
+      doc.rect(80, yPosition, 4, 40).fill(primaryColor);
+
+      doc
+        .fontSize(12)
+        .fillColor(textColor)
+        .font("Helvetica-Bold")
+        .text("Price Paid", 95, yPosition + 8);
+
+      doc
+        .fontSize(14)
+        .fillColor(lightGray)
+        .font("Helvetica")
+        .text(`₹${ticketData.price}`, 95, yPosition + 22);
+
+      yPosition += 70;
+
+      // Instructions section
+      doc
+        .rect(80, yPosition, doc.page.width - 160, 120)
+        .fill("#fff3cd")
+        .stroke("#ffeaa7");
+
+      doc
+        .fontSize(14)
+        .fillColor("#856404")
+        .font("Helvetica-Bold")
+        .text("Important Instructions:", 95, yPosition + 15);
+
+      const instructions = [
+        "Arrive at the venue 30 minutes before the event starts",
+        "Present this QR code at the entrance for scanning",
+        "Keep this ticket safe and do not share with others",
+        "Entry is subject to venue capacity and safety guidelines",
+        "No outside food or beverages allowed",
+        "Follow the dress code: Traditional Indian attire preferred",
+      ];
+
+      doc.fontSize(10).fillColor("#856404").font("Helvetica");
+
+      let instructionY = yPosition + 35;
+      instructions.forEach((instruction, index) => {
+        doc.text(`• ${instruction}`, 100, instructionY + index * 12, {
+          width: doc.page.width - 180,
+        });
+      });
+
+      yPosition += 140;
+
+      // Dashed line
+      doc
+        .moveTo(80, yPosition)
+        .lineTo(doc.page.width - 80, yPosition)
+        .dash(5, { space: 5 })
+        .stroke(primaryColor)
+        .undash();
+
+      // Footer
+      doc
+        .fontSize(10)
+        .fillColor(lightGray)
+        .font("Helvetica")
+        .text(
+          `Thank you for choosing ${eventData.name || "Garba Rass 2025"}!`,
+          50,
+          yPosition + 20,
+          { align: "center" }
+        )
+        .text(
+          "For support, contact us at hyyevents@gmail.com",
+          50,
+          yPosition + 35,
+          { align: "center" }
+        );
+        
+      // Finalize the PDF
+      doc.end();
+
+      const pdfBuffer = await pdfPromise;
 
       if (!pdfBuffer || pdfBuffer.length === 0) {
         throw new Error("Generated PDF buffer is empty or invalid");
@@ -395,34 +332,19 @@ class EmailService {
 
       if (process.env.NODE_ENV === "development") {
         console.log(
-          "✅ PDF generated successfully, size:",
+          "✅ PDF generated successfully with PDFKit, size:",
           pdfBuffer.length,
-          "bytes",
+          "bytes"
         );
       }
+
       return pdfBuffer;
     } catch (error) {
       console.error(
-        "Error generating PDF:",
-        process.env.NODE_ENV === "development" ? error : error.message,
+        "Error generating PDF with PDFKit:",
+        process.env.NODE_ENV === "development" ? error : error.message
       );
       throw error;
-    } finally {
-      if (page && !page.isClosed()) {
-        try {
-          await page.close();
-        } catch (closeError) {
-          console.error("Error closing page:", closeError.message);
-        }
-      }
-
-      if (browser) {
-        try {
-          await browser.close();
-        } catch (closeError) {
-          console.error("Error closing browser:", closeError.message);
-        }
-      }
     }
   }
 
@@ -431,7 +353,7 @@ class EmailService {
     ticketData,
     eventData,
     totalAmount,
-    quantity,
+    quantity
   ) {
     const savings = this.calculateSavings(quantity, eventData);
 
@@ -590,7 +512,7 @@ class EmailService {
                 <div class="detail-row">
                   <span class="detail-label">📅 Date:</span>
                   <span class="detail-value">${new Date(
-                    eventData.date,
+                    eventData.date
                   ).toLocaleDateString("en-US", {
                     weekday: "long",
                     year: "numeric",
@@ -600,7 +522,9 @@ class EmailService {
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">🕐 Time:</span>
-                  <span class="detail-value">${eventData.startTime} - ${eventData.endTime}</span>
+                  <span class="detail-value">${eventData.startTime} - ${
+      eventData.endTime
+    }</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">📍 Venue:</span>
@@ -773,7 +697,9 @@ class EmailService {
             <div class="content">
               <div class="cancellation-message">
                 <h2>🚫 Ticket Cancelled</h2>
-                <p>Hello ${userData.name}, your ticket for ${eventData.name} has been cancelled.</p>
+                <p>Hello ${userData.name}, your ticket for ${
+      eventData.name
+    } has been cancelled.</p>
               </div>
               
               <div class="event-details">
@@ -789,7 +715,7 @@ class EmailService {
                 <div class="detail-row">
                   <span class="detail-label">📅 Event Date:</span>
                   <span class="detail-value">${new Date(
-                    eventData.date,
+                    eventData.date
                   ).toLocaleDateString("en-US", {
                     weekday: "long",
                     year: "numeric",
@@ -803,7 +729,9 @@ class EmailService {
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">📅 Cancellation Date:</span>
-                  <span class="detail-value">${new Date().toLocaleDateString("en-US")}</span>
+                  <span class="detail-value">${new Date().toLocaleDateString(
+                    "en-US"
+                  )}</span>
                 </div>
               </div>
               
@@ -856,7 +784,7 @@ class EmailService {
     ticketData,
     eventData,
     totalAmount,
-    quantity,
+    quantity
   ) {
     try {
       if (process.env.NODE_ENV === "development") {
@@ -865,13 +793,13 @@ class EmailService {
 
       if (!this.transporter) {
         throw new Error(
-          "Email service not initialized - check EMAIL_USER and EMAIL_PASS environment variables",
+          "Email service not initialized - check EMAIL_USER and EMAIL_PASS environment variables"
         );
       }
 
       if (process.env.NODE_ENV === "development") {
         console.log(
-          `📧 Sending purchase confirmation email to ${userData.email}`,
+          `📧 Sending purchase confirmation email to ${userData.email}`
         );
       }
 
@@ -882,7 +810,9 @@ class EmailService {
         const ticket = ticketData[i];
         if (process.env.NODE_ENV === "development") {
           console.log(
-            `📄 Generating PDF for ticket ${i + 1}/${ticketData.length}: ${ticket.ticketId}`,
+            `📄 Generating PDF for ticket ${i + 1}/${ticketData.length}: ${
+              ticket.ticketId
+            }`
           );
         }
 
@@ -905,7 +835,7 @@ class EmailService {
 
             if (process.env.NODE_ENV === "development") {
               console.log(
-                `✅ PDF generated for ticket ${ticket.ticketId} (${pdfBuffer.length} bytes)`,
+                `✅ PDF generated for ticket ${ticket.ticketId} (${pdfBuffer.length} bytes)`
               );
             }
 
@@ -914,7 +844,7 @@ class EmailService {
             retryCount++;
             console.error(
               `Failed to generate PDF for ticket ${ticket.ticketId} (attempt ${retryCount}/${maxRetries}):`,
-              pdfError.message,
+              pdfError.message
             );
 
             if (retryCount < maxRetries) {
@@ -937,7 +867,7 @@ class EmailService {
 
         if (!pdfGenerated) {
           console.error(
-            `❌ Failed to generate PDF for ticket ${ticket.ticketId} after ${maxRetries} attempts. Email will be sent without this PDF.`,
+            `❌ Failed to generate PDF for ticket ${ticket.ticketId} after ${maxRetries} attempts. Email will be sent without this PDF.`
           );
           // You might want to log this failure to a dedicated monitoring system
         }
@@ -946,16 +876,16 @@ class EmailService {
       // Check PDF generation results
       if (attachments.length === 0) {
         console.error(
-          "⚠️ No PDF attachments generated for any ticket. Sending email without attachments.",
+          "⚠️ No PDF attachments generated for any ticket. Sending email without attachments."
         );
       } else if (attachments.length < ticketData.length) {
         console.warn(
-          `⚠️ Only ${attachments.length}/${ticketData.length} PDF attachments generated successfully. Check logs for details.`,
+          `⚠️ Only ${attachments.length}/${ticketData.length} PDF attachments generated successfully. Check logs for details.`
         );
       } else {
         if (process.env.NODE_ENV === "development") {
           console.log(
-            `✅ All ${attachments.length} PDF attachments generated successfully`,
+            `✅ All ${attachments.length} PDF attachments generated successfully`
           );
         }
       }
@@ -972,7 +902,7 @@ class EmailService {
           ticketData,
           eventData,
           totalAmount,
-          quantity,
+          quantity
         ),
         attachments: attachments,
       };
@@ -991,14 +921,14 @@ class EmailService {
         console.log(
           "✅ Purchase confirmation email sent successfully:",
           result.messageId,
-          `with ${attachments.length} PDF attachments`,
+          `with ${attachments.length} PDF attachments`
         );
       }
       return { ...result, attachmentCount: attachments.length };
     } catch (error) {
       console.error(
         "Failed to send purchase confirmation email:",
-        process.env.NODE_ENV === "development" ? error : error.message,
+        process.env.NODE_ENV === "development" ? error : error.message
       );
       throw error;
     }
@@ -1012,7 +942,7 @@ class EmailService {
 
       if (!this.transporter) {
         throw new Error(
-          "Email service not initialized - check EMAIL_USER and EMAIL_PASS environment variables",
+          "Email service not initialized - check EMAIL_USER and EMAIL_PASS environment variables"
         );
       }
 
@@ -1030,7 +960,7 @@ class EmailService {
         html: this.generateCancellationEmailHTML(
           userData,
           ticketData,
-          eventData,
+          eventData
         ),
       };
 
@@ -1046,14 +976,14 @@ class EmailService {
       if (process.env.NODE_ENV === "development") {
         console.log(
           "✅ Cancellation email sent successfully:",
-          result.messageId,
+          result.messageId
         );
       }
       return result;
     } catch (error) {
       console.error(
         "Failed to send cancellation email:",
-        process.env.NODE_ENV === "development" ? error : error.message,
+        process.env.NODE_ENV === "development" ? error : error.message
       );
       throw error;
     }
@@ -1085,7 +1015,7 @@ class EmailService {
     } catch (error) {
       console.error(
         "Failed to send custom email:",
-        process.env.NODE_ENV === "development" ? error : error.message,
+        process.env.NODE_ENV === "development" ? error : error.message
       );
       throw error;
     }

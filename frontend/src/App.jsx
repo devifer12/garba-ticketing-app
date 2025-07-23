@@ -4,6 +4,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CancellationPolicy from "./pages/CancellationPolicy";
 import RefundPolicy from "./pages/RefundPolicy";
@@ -53,18 +54,19 @@ function App() {
     const preloadResources = async () => {
       // Preload critical images
       const criticalImages = [
-        '/src/assets/hero1.webp',
-        '/src/assets/dandiya.webp',
+        "/src/assets/hero1.webp",
+        "/src/assets/dandiya.webp",
         // Add more critical images here
       ];
-      
-      const imagePromises = criticalImages.map(src => 
-        new Promise((resolve) => {
-          const img = new Image();
-          img.onload = resolve;
-          img.onerror = resolve; // Continue even if image fails
-          img.src = src;
-        })
+
+      const imagePromises = criticalImages.map(
+        (src) =>
+          new Promise((resolve) => {
+            const img = new Image();
+            img.onload = resolve;
+            img.onerror = resolve; // Continue even if image fails
+            img.src = src;
+          }),
       );
 
       // Wait for images to load or timeout after 3 seconds
@@ -100,6 +102,7 @@ function App() {
               />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/:role" element={<Dashboard />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route
                 path="/cancellation-policy"
