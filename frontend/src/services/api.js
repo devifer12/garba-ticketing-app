@@ -153,17 +153,17 @@ export const ticketAPI = {
   markTicketAsUsed: (qrCode) =>
     api.post(API_ENDPOINTS.TICKETS.MARK_USED, { qrCode }),
   cancelTicket: (ticketId, reason) =>
-    api.patch(`${API_ENDPOINTS.TICKETS.BASE}/cancel/${ticketId}`, { reason }),
+    api.patch(`${API_ENDPOINTS.TICKETS.CANCEL}/${ticketId}`, { reason }),
 };
 
 // Payment API for PhonePe integration
 export const paymentAPI = {
   initiatePayment: (paymentData) =>
-    api.post("/payment/initiate-payment", paymentData),
+    api.post(`${API_ENDPOINTS.TICKETS.INITIATE_PAYMENT}`, paymentData),
   checkPaymentStatus: (merchantOrderId) =>
-    api.get(`/payment/payment-status/${merchantOrderId}`),
+    api.get(`${API_ENDPOINTS.TICKETS.PAYMENT_STATUS}/${merchantOrderId}`),
   handlePaymentCallback: (callbackData) =>
-    api.post("/payment/payment-callback", callbackData),
+    api.post(`${API_ENDPOINTS.TICKETS.PAYMENT_CALLBACK}`, callbackData),
 };
 
 // Admin API with  support and error handling

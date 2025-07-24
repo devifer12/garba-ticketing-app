@@ -47,9 +47,9 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
       // Call the payment initiation API
       const response = await paymentAPI.initiatePayment(paymentData);
 
-      if (response.data.success && response.data.redirectUrl) {
+      if (response.data.success && response.data.checkoutPageUrl) {
         // Redirect to PhonePe payment page
-        window.location.href = response.data.redirectUrl;
+        window.location.href = response.data.checkoutPageUrl;
       } else {
         throw new Error(response.data.message || "Failed to initiate payment");
       }

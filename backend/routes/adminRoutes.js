@@ -170,8 +170,7 @@ router.delete("/tickets/:ticketId", verifyToken, isAdmin, async (req, res) => {
 });
 
 // Get ticket statistics for dashboard - Available to both admin and manager
-router.get(
-  "/tickets/stats",
+router.get("/tickets/stats",
   verifyToken,
   isAdminOrManager,
   async (req, res) => {
@@ -218,8 +217,7 @@ router.get(
 );
 
 // Get comprehensive dashboard analytics - Available to both admin and manager
-router.get(
-  "/analytics/dashboard",
+router.get("/analytics/dashboard",
   verifyToken,
   isAdminOrManager,
   async (req, res) => {
@@ -372,8 +370,7 @@ function calculateSalesVelocity(salesData) {
 }
 
 // Get detailed ticket management data - Available to both admin and manager (optimized)
-router.get(
-  "/tickets/management",
+router.get("/tickets/management",
   verifyToken,
   isAdminOrManager,
   async (req, res) => {
@@ -472,8 +469,7 @@ router.patch("/tickets/bulk-update", verifyToken, isAdmin, async (req, res) => {
 });
 
 // Export ticket data (CSV format) - Available to both admin and manager
-router.get(
-  "/tickets/export",
+router.get("/tickets/export",
   verifyToken,
   isAdminOrManager,
   async (req, res) => {

@@ -12,11 +12,12 @@ const {
   StandardCheckoutPayRequest,
 } = require("pg-sdk-node");
 const { randomUUID } = require("crypto");
+require('dotenv').config({ path: '../.env'});
 
 // PhonePe Configuration
-const clientId = "TEST-M23JDJU727K3F_25072";
-const clientSecret = "NGE4NThkZTctMWM1Zi00YWNkLThkMzUtMmYzY2EwN2UwZGQx";
-const clientVersion = 1;
+const clientId = process.env.CLIENTID;
+const clientSecret = process.env.CLIENTSECRET;
+const clientVersion = process.env.CLIENTVERSION;
 const env = Env.SANDBOX; // Change to Env.PRODUCTION for production
 
 // Initialize PhonePe client
@@ -92,7 +93,7 @@ router.post("/initiate-payment", verifyToken, async (req, res) => {
       .merchantOrderId(merchantOrderId)
       .amount(amountInPaise)
       .redirectUrl(
-        `${process.env.FRONTEND_URL || "http://localhost:3000"}/payment-success`,
+        `${process.env.FRONTEND_URL || "http://localhost:5173"}/payment-success`,
       )
       .build();
 
@@ -278,8 +279,7 @@ router.post("/payment-callback", async (req, res) => {
 });
 
 // Check payment status
-router.get(
-  "/payment-status/:merchantOrderId",
+router.get("/payment-status/:merchantOrderId",
   verifyToken,
   async (req, res) => {
     try {
@@ -975,8 +975,7 @@ router.get("/admin/all", verifyToken, isManager, async (req, res) => {
 });
 
 // Update ticket status (Admin only)
-router.patch(
-  "/admin/:ticketId/status",
+router.patch("/admin/:ticketId/status",
   verifyToken,
   isAdmin,
   async (req, res) => {

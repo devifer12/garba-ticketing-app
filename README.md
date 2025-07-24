@@ -18,7 +18,7 @@ JWT for authentication
 
 Firebase Authentication for Google Sign-In
 
-Razorpay for payments 
+Phonepe gateway for payments 
 
 # Other Integrations
 QR Code Generator
@@ -48,4 +48,4 @@ Checker	Scan guest QR tickets, mark attendance at entry gate
 
 👥 Checker Portal to scan and verify QR tickets
 
-💳 Payment Gateway Integration (optional or under development)
+💳 Payment Gateway Integration

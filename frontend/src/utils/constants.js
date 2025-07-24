@@ -43,6 +43,10 @@ export const API_ENDPOINTS = {
     MARK_USED: "/tickets/mark-used",
     ADMIN_ALL: "/tickets/admin/all",
     ADMIN_STATS: "/tickets/admin/stats",
+    CANCEL: "/tickets/cancel",
+    INITIATE_PAYMENT: "/tickets/initiate-payment",
+    PAYMENT_STATUS: "/tickets/payment-status",
+    PAYMENT_CALLBACK: "/tickets/payment-callback",
   },
   ADMIN: {
     USERS: "/admin/users",

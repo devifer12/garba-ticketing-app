@@ -200,7 +200,10 @@ app.get("/api/status", (req, res) => {
         create: "POST /api/tickets",
         myTickets: "GET /api/tickets/my-tickets",
         getTicket: "GET /api/tickets/:ticketId",
-        cancelTicket: "PATCH /api/tickets/:ticketId/cancel",
+        cancelTicket: "PATCH /api/tickets/cancel/:ticketId",
+        checkPaymentStatus: "GET /api/tickets/payment-status/:merchantOrderId",
+        paymentCallback: "POST /api/tickets/payment-callback",
+        initiatePayment: "/api/tickets/initiate-payment",
       },
       admin: {
         allTickets: "GET /api/tickets/admin/all",
