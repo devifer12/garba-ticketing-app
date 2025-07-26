@@ -12,7 +12,7 @@ const {
   StandardCheckoutPayRequest,
 } = require("pg-sdk-node");
 const { randomUUID } = require("crypto");
-require('dotenv').config({ path: '../.env'});
+require("dotenv").config({ path: "../.env" });
 
 // PhonePe Configuration
 const clientId = process.env.CLIENTID;
@@ -278,49 +278,93 @@ router.post("/payment-callback", async (req, res) => {
 });
 
 // Check payment status
-router.get("/payment-status/:merchantOrderId",
+router.get(
+  "/payment-status/:merchantOrderId",
   verifyToken,
   async (req, res) => {
     try {
       const { merchantOrderId } = req.params;
+      console.log(
+        "🔍 Backend: Checking payment status for order:",
+        merchantOrderId,
+      );
 
-      // Check status with PhonePe
-      const response = await client.getOrderStatus(merchantOrderId);
-      const state = response.state;
-
-      // Find tickets
+      // Find tickets first
       const tickets = await Ticket.find({ merchantOrderId }).populate(
         "user",
         "name email",
       );
 
       if (!tickets || tickets.length === 0) {
+        console.log("❌ Backend: No tickets found for order:", merchantOrderId);
         return res.status(404).json({
           success: false,
           error: "Order not found",
         });
       }
 
-      res.status(200).json({
+      console.log("✅ Backend: Found tickets:", tickets.length);
+      let paymentState = "unknown";
+
+      try {
+        // Check status with PhonePe
+        console.log(
+          "📞 Backend: Calling PhonePe API for order:",
+          merchantOrderId,
+        );
+        const response = await client.getOrderStatus(merchantOrderId);
+        paymentState = response.state;
+        console.log("✅ Backend: PhonePe API response state:", paymentState);
+      } catch (phonepeError) {
+        console.error("❌ Backend: PhonePe status check error:", phonepeError);
+        // Fallback to ticket payment status
+        const firstTicket = tickets[0];
+        console.log(
+          "🔄 Backend: Using fallback from ticket status:",
+          firstTicket.paymentStatus,
+        );
+        if (firstTicket.paymentStatus === "completed") {
+          paymentState = "checkout.order.completed";
+        } else if (firstTicket.paymentStatus === "failed") {
+          paymentState = "checkout.order.failed";
+        } else if (firstTicket.paymentStatus === "pending") {
+          paymentState = "checkout.order.pending";
+        }
+        console.log("🔄 Backend: Mapped fallback state:", paymentState);
+      }
+
+      const responseData = {
         success: true,
         merchantOrderId: merchantOrderId,
-        paymentState: state,
+        paymentState: paymentState,
         tickets: tickets.map((ticket) => ({
           id: ticket._id,
           ticketId: ticket.ticketId,
           status: ticket.status,
           paymentStatus: ticket.paymentStatus,
           transactionId: ticket.transactionId,
+          price: ticket.price,
         })),
-      });
+      };
+
+      console.log(
+        "📤 Backend: Sending response:",
+        JSON.stringify(responseData, null, 2),
+      );
+      res.status(200).json(responseData);
     } catch (error) {
-      console.error("Payment status check error:", error);
-      res.status(500).json({
+      console.error("❌ Backend: Payment status check error:", error);
+      const errorResponse = {
         success: false,
         error: "Failed to check payment status",
         details:
           process.env.NODE_ENV === "development" ? error.message : undefined,
-      });
+      };
+      console.log(
+        "📤 Backend: Sending error response:",
+        JSON.stringify(errorResponse, null, 2),
+      );
+      res.status(500).json(errorResponse);
     }
   },
 );
@@ -974,7 +1018,8 @@ router.get("/admin/all", verifyToken, isManager, async (req, res) => {
 });
 
 // Update ticket status (Admin only)
-router.patch("/admin/:ticketId/status",
+router.patch(
+  "/admin/:ticketId/status",
   verifyToken,
   isAdmin,
   async (req, res) => {

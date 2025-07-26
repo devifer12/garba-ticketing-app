@@ -17,29 +17,112 @@ const PaymentSuccess = () => {
   // Get payment parameters from URL
   const merchantOrderId = searchParams.get("merchantOrderId");
   const transactionId = searchParams.get("transactionId");
-  const status = searchParams.get("status");
+  const urlStatus = searchParams.get("status");
 
   useEffect(() => {
     const checkPaymentStatus = async () => {
+      console.log("🔍 Frontend: Starting payment status check");
+      console.log("🔍 Frontend: merchantOrderId:", merchantOrderId);
+      console.log("🔍 Frontend: urlStatus:", urlStatus);
+
       if (!merchantOrderId) {
+        console.log("⚠️ Frontend: No merchantOrderId found");
+        // If no merchantOrderId but we have URL status, use that
+        if (urlStatus) {
+          console.log("🔄 Frontend: Using URL status:", urlStatus);
+          setPaymentStatus(urlStatus.toLowerCase());
+          return;
+        }
+        console.log("❌ Frontend: No payment reference found");
         setError("Invalid payment reference");
         setPaymentStatus("error");
         return;
       }
 
       try {
+        console.log(
+          "📞 Frontend: Calling API for merchantOrderId:",
+          merchantOrderId,
+        );
         const response = await paymentAPI.checkPaymentStatus(merchantOrderId);
 
+        console.log("📥 Frontend: Raw API response:", response);
+        console.log(
+          "📥 Frontend: Response data:",
+          JSON.stringify(response.data, null, 2),
+        );
+        console.log("📥 Frontend: Response success:", response.data.success);
+        console.log(
+          "📥 Frontend: Response paymentState:",
+          response.data.paymentState,
+        );
+        console.log("📥 Frontend: Response tickets:", response.data.tickets);
+
         if (response.data.success) {
-          setPaymentDetails(response.data.payment);
-          setPaymentStatus(response.data.payment.status);
+          // Backend returns paymentState and tickets, not payment object
+          const paymentState = response.data.paymentState;
+          const tickets = response.data.tickets || [];
+
+          console.log("✅ Frontend: Processing successful response");
+          console.log("🔍 Frontend: paymentState from backend:", paymentState);
+          console.log("🔍 Frontend: tickets from backend:", tickets);
+
+          // Map PhonePe payment states to our status
+          let mappedStatus = "error";
+          if (
+            paymentState === "COMPLETED" ||
+            paymentState === "checkout.order.completed"
+          ) {
+            mappedStatus = "completed";
+          } else if (
+            paymentState === "FAILED" ||
+            paymentState === "checkout.order.failed"
+          ) {
+            mappedStatus = "failed";
+          } else if (
+            paymentState === "CANCELLED" ||
+            paymentState === "checkout.order.cancelled"
+          ) {
+            mappedStatus = "cancelled";
+          }
+
+          console.log("🔄 Frontend: Mapped status:", mappedStatus);
+
+          const paymentDetailsObj = {
+            merchantOrderId: response.data.merchantOrderId,
+            paymentState: paymentState,
+            tickets: tickets,
+            quantity: tickets.length,
+            amount: tickets.reduce(
+              (sum, ticket) => sum + (ticket.price || 0),
+              0,
+            ),
+          };
+
+          console.log(
+            "📋 Frontend: Setting payment details:",
+            paymentDetailsObj,
+          );
+          setPaymentDetails(paymentDetailsObj);
+          setPaymentStatus(mappedStatus);
+          console.log("✅ Frontend: Payment status set to:", mappedStatus);
         } else {
-          setError(response.data.message || "Payment verification failed");
+          console.log("❌ Frontend: API returned success: false");
+          console.log("❌ Frontend: Error from API:", response.data.error);
+          setError(response.data.error || "Payment verification failed");
           setPaymentStatus("error");
         }
       } catch (err) {
-        console.error("Payment status check failed:", err);
-        setError("Failed to verify payment status");
+        console.error("❌ Frontend: Payment status check failed:", err);
+        console.error("❌ Frontend: Error details:", {
+          message: err.message,
+          response: err.response,
+          responseData: err.response?.data,
+          status: err.response?.status,
+        });
+        setError(
+          err.response?.data?.error || "Failed to verify payment status",
+        );
         setPaymentStatus("error");
       }
     };
@@ -116,8 +199,8 @@ const PaymentSuccess = () => {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Order ID:</span>
-                        <span className="text-white font-mono">
-                          {merchantOrderId}
+                        <span className="text-white font-mono text-xs">
+                          {paymentDetails.merchantOrderId || merchantOrderId}
                         </span>
                       </div>
                       {transactionId && (
@@ -125,27 +208,34 @@ const PaymentSuccess = () => {
                           <span className="text-slate-400">
                             Transaction ID:
                           </span>
-                          <span className="text-white font-mono">
+                          <span className="text-white font-mono text-xs">
                             {transactionId}
                           </span>
                         </div>
                       )}
-                      {paymentDetails.quantity && (
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">Tickets:</span>
-                          <span className="text-white">
-                            {paymentDetails.quantity}
-                          </span>
-                        </div>
-                      )}
+                      {paymentDetails.tickets &&
+                        paymentDetails.tickets.length > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Tickets:</span>
+                            <span className="text-white">
+                              {paymentDetails.tickets.length}
+                            </span>
+                          </div>
+                        )}
                       {paymentDetails.amount && (
                         <div className="flex justify-between">
                           <span className="text-slate-400">Amount:</span>
                           <span className="text-white">
-                            ₹{paymentDetails.amount}
+                            ₹{paymentDetails.amount.toFixed(2)}
                           </span>
                         </div>
                       )}
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Status:</span>
+                        <span className="text-white capitalize">
+                          {paymentDetails.paymentState || "Unknown"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
