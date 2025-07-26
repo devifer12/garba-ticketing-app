@@ -2,14 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { paymentAPI } from "../services/api";
-import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import Navbar from "../components/common/navbar/Navbar";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [paymentStatus, setPaymentStatus] = useState("checking");
   const [paymentDetails, setPaymentDetails] = useState(null);
   const [error, setError] = useState(null);
@@ -84,6 +82,12 @@ const PaymentSuccess = () => {
             paymentState === "checkout.order.cancelled"
           ) {
             mappedStatus = "cancelled";
+          } else if (
+            paymentState === "PENDING" ||
+            paymentState === "checkout.order.pending" ||
+            paymentState === "initiated"
+          ) {
+            mappedStatus = "checking";
           }
 
           console.log("🔄 Frontend: Mapped status:", mappedStatus);
