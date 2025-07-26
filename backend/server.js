@@ -18,6 +18,8 @@ const corsOptions = {
           process.env.FRONTEND_URL,
           "https://hyyevents.com",
           "https://www.hyyevents.com",
+          "https://api-preprod.phonepe.com/apis/pg-sandbox",
+          "https://mercury-uat.phonepe.com."
         ]
       : [
           process.env.FRONTEND_URL,
@@ -27,6 +29,8 @@ const corsOptions = {
           "https://garba-ticketing-app.vercel.app",
           "https://hyyevents.vercel.app",
           "https://www.hyyevents.com",
+          "https://api-preprod.phonepe.com/apis/pg-sandbox",
+          "https://mercury-uat.phonepe.com."
         ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],

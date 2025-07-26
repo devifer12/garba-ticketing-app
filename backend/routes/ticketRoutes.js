@@ -87,14 +87,13 @@ router.post("/initiate-payment", verifyToken, async (req, res) => {
 
     // Generate unique merchant order ID
     const merchantOrderId = `GARBA-${Date.now()}-${randomUUID().substr(0, 8)}`;
+    const redirectUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/payment-success?merchantOrderId=${merchantOrderId}`;
 
     // Create payment request
     const request = StandardCheckoutPayRequest.builder()
       .merchantOrderId(merchantOrderId)
       .amount(amountInPaise)
-      .redirectUrl(
-        `${process.env.FRONTEND_URL || "http://localhost:5173"}/payment-success`,
-      )
+      .redirectUrl(redirectUrl)
       .build();
 
     try {
