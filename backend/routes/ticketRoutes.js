@@ -358,7 +358,9 @@ router.get(
 
       // Also check payment order if no tickets found
       if (!tickets || tickets.length === 0) {
-        const paymentOrder = await PaymentOrder.findOne({ merchantOrderId });
+        const paymentOrder = await PaymentOrder.findOne({ merchantOrderId })
+          .populate("user", "name email")
+          .populate("eventId");
         if (!paymentOrder) {
           console.log(
             "❌ Backend: No tickets or payment order found for:",
@@ -382,14 +384,99 @@ router.get(
 
           // Update payment order status based on PhonePe response
           if (
-            phonepeState === "checkout.order.completed" &&
-            paymentOrder.status !== "completed"
+            phonepeState === "checkout.order.completed"
+            // paymentOrder.status !== "completed"
           ) {
+            // Payment successful - Create tickets now
+            console.log(
+              "✅ Payment completed, creating tickets for order:",
+              merchantOrderId,
+            );
+
+            // Update payment order status
             paymentOrder.status = "completed";
+            paymentOrder.transactionId = phonepeResponse.transactionId || null;
             await paymentOrder.save();
             console.log(
               "✅ Backend: Updated payment order status to completed",
             );
+
+            // Create tickets for completed payment
+            console.log("🎫 Creating new tickets for completed payment");
+
+            const ticketCreationPromises = [];
+            for (let i = 0; i < paymentOrder.quantity; i++) {
+              const ticketPromise = (async () => {
+                const qrCode = Ticket.generateQRCode();
+                const qrCodeImage = await generateQRCodeImage(qrCode);
+
+                const ticket = new Ticket({
+                  user: paymentOrder.user._id,
+                  eventName: paymentOrder.eventId.name,
+                  price: paymentOrder.pricePerTicket,
+                  qrCode: qrCode,
+                  qrCodeImage: qrCodeImage,
+                  status: "active",
+                  merchantOrderId: merchantOrderId,
+                  paymentStatus: "completed",
+                  paymentMethod: "phonepe",
+                  transactionId: phonepeResponse.transactionId || null,
+                  metadata: {
+                    purchaseMethod: "online",
+                    deviceInfo: paymentOrder.metadata.deviceInfo,
+                    ipAddress: paymentOrder.metadata.ipAddress,
+                    quantity: paymentOrder.quantity,
+                    totalAmount: paymentOrder.totalAmount,
+                  },
+                });
+
+                return await ticket.save();
+              })();
+              ticketCreationPromises.push(ticketPromise);
+            }
+
+            const createdTickets = await Promise.all(ticketCreationPromises);
+            // Populate user data for created tickets
+            for (let ticket of createdTickets) {
+              await ticket.populate("user", "name email");
+            }
+
+            console.log(
+              `✅ Successfully created ${createdTickets.length} tickets for order: ${merchantOrderId}`,
+            );
+
+            // Send confirmation email
+            try {
+              console.log("📧 Sending purchase confirmation email...");
+
+              await emailService.sendTicketPurchaseEmail(
+                paymentOrder.user,
+                createdTickets,
+                paymentOrder.eventId,
+                paymentOrder.totalAmount,
+                paymentOrder.quantity,
+              );
+              console.log("✅ Purchase confirmation email sent successfully");
+            } catch (emailError) {
+              console.error(
+                "❌ Failed to send purchase confirmation email:",
+                emailError,
+              );
+            }
+
+            return res.status(200).json({
+              success: true,
+              merchantOrderId: merchantOrderId,
+              paymentState: phonepeState,
+              tickets: createdTickets.map((ticket) => ({
+                id: ticket._id,
+                ticketId: ticket.ticketId,
+                status: ticket.status,
+                paymentStatus: ticket.paymentStatus,
+                transactionId: ticket.transactionId,
+                price: ticket.price,
+              })),
+            });
           } else if (
             phonepeState === "checkout.order.failed" &&
             paymentOrder.status !== "failed"
