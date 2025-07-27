@@ -733,14 +733,31 @@ class EmailService {
                     "en-US"
                   )}</span>
                 </div>
+                ${ticketData.refundAmount ? `
+                <div class="detail-row">
+                  <span class="detail-label">💸 Refund Amount:</span>
+                  <span class="detail-value">₹${ticketData.refundAmount}</span>
+                </div>
+                ` : ""}
+                ${ticketData.refundId ? `
+                <div class="detail-row">
+                  <span class="detail-label">🔢 Refund ID:</span>
+                  <span class="detail-value">${ticketData.refundId}</span>
+                </div>
+                ` : ""}
               </div>
               
               <div class="refund-info">
                 <h3>💳 Refund Information</h3>
-                <p><strong>Refund Amount:</strong> ₹${ticketData.price}</p>
-                <p><strong>Processing Time:</strong> 5-7 business days</p>
+                <p><strong>Refund Amount:</strong> ₹${ticketData.refundAmount || (ticketData.price - 40)}</p>
+                <p><strong>Processing Fees Deducted:</strong> ₹40</p>
+                <p><strong>Processing Time:</strong> 7-10 business days</p>
                 <p><strong>Refund Method:</strong> Original payment method</p>
-                <p>You will receive a separate email confirmation once the refund is processed.</p>
+                ${ticketData.refundId ? 
+                  `<p><strong>Refund Status:</strong> ${ticketData.refundStatus || 'Initiated'}</p>
+                   <p>Your refund has been automatically initiated with PhonePe. You will receive a separate email confirmation once the refund is completed.</p>` :
+                  `<p>Refund will be processed manually within 5-7 business days.</p>`
+                }
               </div>
               
               <div style="text-align: center; margin: 30px 0;">

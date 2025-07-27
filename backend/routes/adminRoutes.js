@@ -155,10 +155,16 @@ router.delete("/tickets/:ticketId", verifyToken, isAdmin, async (req, res) => {
       });
     }
 
+    // If ticket has refund information, try to cancel the refund first
+    if (ticket.refundId && ticket.refundStatus === "PENDING") {
+      console.log("⚠️ Warning: Deleting ticket with pending refund:", ticket.refundId);
+      // Note: PhonePe doesn't provide a cancel refund API, so we just log this
+    }
+
     res.status(200).json({
       success: true,
       message: "Ticket deleted successfully",
-      ticket,
+      ticket: ticket, // It's good practice to explicitly include the deleted ticket if needed on the client side
     });
   } catch (error) {
     console.error("Delete ticket error:", error);

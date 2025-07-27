@@ -85,6 +85,33 @@ const ticketSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Refund tracking fields
+    refundId: {
+      type: String,
+      default: null,
+    },
+
+    refundStatus: {
+      type: String,
+      enum: ["PENDING", "COMPLETED", "FAILED"],
+      default: null,
+    },
+
+    refundAmount: {
+      type: Number,
+      default: null,
+    },
+
+    refundInitiatedAt: {
+      type: Date,
+      default: null,
+    },
+
+    refundCompletedAt: {
+      type: Date,
+      default: null,
+    },
+
     // Payment information
     paymentId: {
       type: String,
@@ -211,11 +238,31 @@ ticketSchema.methods.markAsUsed = async function (scannedByUserId = null) {
 };
 
 // Instance method to cancel ticket
-ticketSchema.methods.cancelTicket = async function (reason = null) {
+ticketSchema.methods.cancelTicket = async function (reason = null, refundData = null) {
   this.status = "cancelled";
   this.cancelledAt = new Date();
   this.cancellationReason = reason;
-  this.isRefundDone = null; // Set to null initially
+  
+  // Set refund information if provided
+  if (refundData) {
+    this.refundId = refundData.merchantRefundId;
+    this.refundStatus = refundData.state;
+    this.refundAmount = refundData.amount ? refundData.amount / 100 : null; // Convert paisa to rupees
+    this.refundInitiatedAt = new Date();
+    
+    // Set isRefundDone based on refund state
+    if (refundData.state === "COMPLETED") {
+      this.isRefundDone = true;
+      this.refundCompletedAt = new Date();
+    } else if (refundData.state === "FAILED") {
+      this.isRefundDone = false;
+    } else {
+      this.isRefundDone = null; // Pending
+    }
+  } else {
+    this.isRefundDone = null; // Set to null initially if no refund data
+  }
+  
   return await this.save();
 };
 
@@ -239,6 +286,11 @@ ticketSchema.methods.getSafeTicketData = function () {
     cancelledAt: this.cancelledAt,
     cancellationReason: this.cancellationReason,
     isRefundDone: this.isRefundDone,
+    refundId: this.refundId,
+    refundStatus: this.refundStatus,
+    refundAmount: this.refundAmount,
+    refundInitiatedAt: this.refundInitiatedAt,
+    refundCompletedAt: this.refundCompletedAt,
     isCancelled: this.isCancelled,
     user: {
       name: this.user?.name,

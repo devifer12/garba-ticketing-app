@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 const TicketCard = ({ ticket }) => {
   const [showQR, setShowQR] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -328,6 +329,19 @@ const TicketCard = ({ ticket }) => {
                   </div>
                 </div>
               )}
+              
+              {ticket.refundId && (
+                <div className="mt-2">
+                  <motion.button
+                    onClick={() => setShowRefundModal(true)}
+                    className="px-3 py-1 bg-blue-600/50 text-blue-300 rounded-lg text-xs hover:bg-blue-600/70 transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    View Refund Details
+                  </motion.button>
+                </div>
+              )}
             </motion.div>
           </div>
         )}
@@ -413,6 +427,14 @@ const TicketCard = ({ ticket }) => {
           )}
         </div>
       </div>
+      
+      {/* Refund Status Modal */}
+      {showRefundModal && (
+        <RefundStatusModal
+          ticket={ticket}
+          onClose={() => setShowRefundModal(false)}
+        />
+      )}
     </motion.div>
   );
 };

@@ -10,6 +10,7 @@ const {
   StandardCheckoutClient,
   Env,
   StandardCheckoutPayRequest,
+  RefundRequest,
 } = require("pg-sdk-node");
 const { randomUUID } = require("crypto");
 require("dotenv").config({ path: "../.env" });
@@ -1081,8 +1082,21 @@ router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
       });
     }
 
+    // Initialize refund process if ticket has payment information
+    let refundResult = null;
+    if (ticket.merchantOrderId && ticket.paymentStatus === "completed") {
+      try {
+        console.log("💰 Initiating refund for ticket:", ticket.ticketId);
+        refundResult = await initiateRefund(ticket);
+        console.log("✅ Refund initiated successfully:", refundResult);
+      } catch (refundError) {
+        console.error("❌ Refund initiation failed:", refundError);
+        // Don't fail the cancellation if refund fails - we can process it manually
+        console.log("⚠️ Continuing with cancellation despite refund failure");
+      }
+    }
     // Cancel the ticket
-    await ticket.cancelTicket(reason.trim());
+    await ticket.cancelTicket(reason.trim(), refundResult);
     console.log("✅ Ticket cancelled successfully:", ticket.ticketId);
 
     // Send cancellation email
@@ -1114,6 +1128,8 @@ router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
         cancelledAt: ticket.cancelledAt,
         cancellationReason: ticket.cancellationReason,
         isRefundDone: ticket.isRefundDone,
+        refundId: ticket.refundId,
+        refundStatus: ticket.refundStatus,
         user: {
           name: ticket.user.name,
           email: ticket.user.email,
@@ -1125,6 +1141,174 @@ router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to cancel ticket",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+// Helper function to initiate refund with PhonePe
+const initiateRefund = async (ticket) => {
+  try {
+    if (!ticket.merchantOrderId) {
+      throw new Error("No merchant order ID found for this ticket");
+    }
+
+    // Generate unique refund ID
+    const refundId = `REFUND-${Date.now()}-${randomUUID().substr(0, 8)}`;
+    
+    // Calculate refund amount in paisa (subtract processing fees)
+    const processingFees = 40; // ₹40 processing fees as per policy
+    const refundAmount = Math.max(100, (ticket.price - processingFees) * 100); // Minimum 100 paisa (₹1)
+    
+    console.log("💰 Refund calculation:", {
+      originalPrice: ticket.price,
+      processingFees,
+      refundAmountRupees: refundAmount / 100,
+      refundAmountPaisa: refundAmount,
+    });
+
+    // Create refund request
+    const refundRequest = RefundRequest.builder()
+      .merchantRefundId(refundId)
+      .originalMerchantOrderId(ticket.merchantOrderId)
+      .amount(refundAmount)
+      .build();
+
+    console.log("📤 Sending refund request to PhonePe:", {
+      refundId,
+      originalOrderId: ticket.merchantOrderId,
+      amount: refundAmount,
+    });
+
+    // Initiate refund with PhonePe
+    const response = await client.refund(refundRequest);
+    
+    console.log("📥 PhonePe refund response:", {
+      refundId: response.refundId,
+      state: response.state,
+      amount: response.amount,
+    });
+
+    // Update ticket with refund information
+    ticket.refundId = refundId;
+    ticket.refundStatus = response.state || "PENDING";
+    ticket.refundAmount = refundAmount / 100; // Store in rupees
+    ticket.refundInitiatedAt = new Date();
+    
+    // Set isRefundDone based on state
+    if (response.state === "COMPLETED") {
+      ticket.isRefundDone = true;
+    } else if (response.state === "FAILED") {
+      ticket.isRefundDone = false;
+    } else {
+      ticket.isRefundDone = null; // Pending
+    }
+
+    await ticket.save();
+
+    return {
+      refundId: response.refundId,
+      state: response.state,
+      amount: response.amount,
+      merchantRefundId: refundId,
+    };
+  } catch (error) {
+    console.error("❌ Refund initiation error:", error);
+    throw error;
+  }
+};
+
+// Check refund status endpoint
+router.get("/refund-status/:refundId", verifyToken, async (req, res) => {
+  try {
+    const { refundId } = req.params;
+    
+    console.log("🔍 Checking refund status for:", refundId);
+
+    // Find user by Firebase UID
+    const user = await User.findOne({ firebaseUID: req.user.uid });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    // Find ticket with this refund ID
+    const ticket = await Ticket.findOne({
+      refundId: refundId,
+      user: user._id,
+    }).populate("user", "name email");
+
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        error: "Refund not found or you don't have permission to view it",
+      });
+    }
+
+    try {
+      // Check refund status with PhonePe
+      const response = await client.getRefundStatus(refundId);
+      
+      console.log("📥 PhonePe refund status response:", response);
+
+      // Update ticket with latest refund status
+      ticket.refundStatus = response.state;
+      
+      if (response.state === "COMPLETED") {
+        ticket.isRefundDone = true;
+        ticket.refundCompletedAt = new Date();
+      } else if (response.state === "FAILED") {
+        ticket.isRefundDone = false;
+      } else {
+        ticket.isRefundDone = null; // Still pending
+      }
+
+      await ticket.save();
+
+      res.status(200).json({
+        success: true,
+        refund: {
+          refundId: response.merchantRefundId,
+          status: response.state,
+          amount: response.amount,
+          originalOrderId: response.originalMerchantOrderId,
+          ticket: {
+            id: ticket._id,
+            ticketId: ticket.ticketId,
+            status: ticket.status,
+            isRefundDone: ticket.isRefundDone,
+          },
+        },
+      });
+    } catch (phonepeError) {
+      console.error("❌ PhonePe refund status check failed:", phonepeError);
+      
+      // Return current ticket refund status even if PhonePe API fails
+      res.status(200).json({
+        success: true,
+        refund: {
+          refundId: ticket.refundId,
+          status: ticket.refundStatus || "UNKNOWN",
+          amount: ticket.refundAmount ? ticket.refundAmount * 100 : 0,
+          originalOrderId: ticket.merchantOrderId,
+          ticket: {
+            id: ticket._id,
+            ticketId: ticket.ticketId,
+            status: ticket.status,
+            isRefundDone: ticket.isRefundDone,
+          },
+          note: "Status retrieved from local database due to API error",
+        },
+      });
+    }
+  } catch (error) {
+    console.error("❌ Refund status check error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to check refund status",
       details:
         process.env.NODE_ENV === "development" ? error.message : undefined,
     });

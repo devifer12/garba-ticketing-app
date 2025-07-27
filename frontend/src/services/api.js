@@ -166,6 +166,8 @@ export const paymentAPI = {
     api.get(`${API_ENDPOINTS.TICKETS.PAYMENT_STATUS}/${merchantOrderId}`),
   handlePaymentCallback: (callbackData) =>
     api.post(`${API_ENDPOINTS.TICKETS.PAYMENT_CALLBACK}`, callbackData),
+  checkRefundStatus: (refundId) =>
+    api.get(`${API_ENDPOINTS.TICKETS.REFUND_STATUS}/${refundId}`),
 };
 
 // Admin API with  support and error handling
