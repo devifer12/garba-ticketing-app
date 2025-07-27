@@ -15,7 +15,6 @@ import ErrorBoundary from "./components/ui/ErrorBoundary";
 import { AuthProvider } from "./context/AuthContext";
 import { eventAPI } from "./services/api";
 import { logBundleSize, monitorMemoryUsage } from "./utils/performance";
-import { SpeedInsights } from "@vercel/speed-insights/react";
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -136,7 +135,6 @@ function App() {
           </BrowserRouter>
         </AuthProvider>
       )}
-      <SpeedInsights />
     </ErrorBoundary>
   );
 }
