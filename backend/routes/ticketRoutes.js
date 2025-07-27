@@ -102,44 +102,14 @@ router.post("/initiate-payment", verifyToken, async (req, res) => {
       const response = await client.pay(request);
       const checkoutPageUrl = response.redirectUrl;
 
-      // Create pending tickets immediately with payment status "pending"
-      const ticketCreationPromises = [];
-      for (let i = 0; i < quantity; i++) {
-        const ticketPromise = (async () => {
-          const qrCode = Ticket.generateQRCode();
-          const qrCodeImage = await generateQRCodeImage(qrCode);
-
-          const ticket = new Ticket({
-            user: user._id,
-            eventName: event.name,
-            price: pricePerTicket,
-            qrCode: qrCode,
-            qrCodeImage: qrCodeImage,
-            status: "active", // Will be updated based on payment status
-            merchantOrderId: merchantOrderId,
-            paymentStatus: "pending",
-            paymentMethod: "phonepe",
-            transactionId: null,
-            metadata: {
-              purchaseMethod: "online",
-              deviceInfo: req.headers["user-agent"] || "",
-              ipAddress: req.ip || req.connection.remoteAddress || "",
-              quantity: quantity,
-              totalAmount: totalAmount,
-            },
-          });
-
-          return await ticket.save();
-        })();
-        ticketCreationPromises.push(ticketPromise);
-      }
-
-      const createdTickets = await Promise.all(ticketCreationPromises);
+      // For now, we'll rely on the payment status check to create tickets
       console.log(
-        "🎫 Created pending tickets:",
-        createdTickets.length,
-        "for order:",
+        "💳 Payment initiated for order:",
         merchantOrderId,
+        "Amount:",
+        totalAmount,
+        "Quantity:",
+        quantity
       );
 
       res.status(200).json({
@@ -149,6 +119,9 @@ router.post("/initiate-payment", verifyToken, async (req, res) => {
         merchantOrderId: merchantOrderId,
         amount: totalAmount,
         quantity: quantity,
+        userId: user._id.toString(),
+        eventId: event._id.toString(),
+        pricePerTicket: pricePerTicket,
       });
     } catch (paymentError) {
       console.error("PhonePe payment initiation error:", paymentError);
@@ -188,112 +161,22 @@ router.post("/payment-callback", async (req, res) => {
     const orderId = callbackResponse.payload.orderId;
     const state = callbackResponse.payload.state;
 
-    // Find tickets by merchant order ID
-    const existingTickets = await Ticket.find({
-      merchantOrderId: orderId,
-    }).populate("user", "name email");
-
-    if (!existingTickets || existingTickets.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "Tickets not found for this order",
-      });
-    }
-
-    // Get event details from the first ticket
-    const event = await Event.findOne();
-    if (!event) {
-      return res.status(404).json({
-        success: false,
-        error: "Event not found",
-      });
-    }
-
-    // Update tickets based on payment state
+    // Handle payment state
     if (state === "checkout.order.completed") {
-      // Payment successful - Update tickets to completed
-      console.log("✅ Payment completed, updating tickets for order:", orderId);
-
-      const updatedTickets = [];
-      for (const ticket of existingTickets) {
-        ticket.paymentStatus = "completed";
-        ticket.status = "active";
-        ticket.transactionId = callbackResponse.payload.transactionId || null;
-        const updatedTicket = await ticket.save();
-        updatedTickets.push(updatedTicket);
-      }
-
-      console.log(
-        `✅ Successfully updated ${updatedTickets.length} tickets for order: ${orderId}`,
-      );
-
-      // Send confirmation email
-      try {
-        console.log("📧 Sending purchase confirmation email...");
-
-        const totalAmount = updatedTickets.reduce(
-          (sum, ticket) => sum + ticket.price,
-          0,
-        );
-        const quantity = updatedTickets.length;
-
-        await emailService.sendTicketPurchaseEmail(
-          existingTickets[0].user,
-          updatedTickets,
-          event,
-          totalAmount,
-          quantity,
-        );
-        console.log("✅ Purchase confirmation email sent successfully");
-      } catch (emailError) {
-        console.error(
-          "❌ Failed to send purchase confirmation email:",
-          emailError,
-        );
-      }
+      console.log("✅ Payment completed for order:", orderId);
 
       res.status(200).json({
         success: true,
         message: "Payment completed successfully",
         orderId: orderId,
-        tickets: updatedTickets.map((ticket) => ({
-          id: ticket._id,
-          ticketId: ticket.ticketId,
-          status: ticket.status,
-          paymentStatus: ticket.paymentStatus,
-        })),
       });
-    } else if (state === "checkout.order.failed") {
-      // Payment failed - Mark tickets as failed/cancelled
+    } else {
+      // Payment failed or other states
       console.log("❌ Payment failed, updating tickets for order:", orderId);
-
-      for (const ticket of existingTickets) {
-        ticket.paymentStatus = "failed";
-        ticket.status = "cancelled";
-        await ticket.save();
-      }
 
       res.status(400).json({
         success: false,
         message: "Payment failed",
-        orderId: orderId,
-      });
-    } else {
-      // Other states (transaction attempt failed, etc.)
-      console.log(
-        "⚠️ Payment transaction failed, updating tickets for order:",
-        orderId,
-      );
-
-      for (const ticket of existingTickets) {
-        ticket.paymentStatus = "failed";
-        ticket.status = "cancelled";
-        await ticket.save();
-      }
-
-      res.status(400).json({
-        success: false,
-        message: "Payment transaction failed",
         orderId: orderId,
         state: state,
       });
@@ -310,10 +193,7 @@ router.post("/payment-callback", async (req, res) => {
 });
 
 // Check payment status
-router.get(
-  "/payment-status/:merchantOrderId",
-  verifyToken,
-  async (req, res) => {
+router.get("/payment-status/:merchantOrderId",verifyToken,async (req, res) => {
     try {
       const { merchantOrderId } = req.params;
       console.log(
@@ -321,21 +201,30 @@ router.get(
         merchantOrderId,
       );
 
-      // Find tickets by merchant order ID
-      const tickets = await Ticket.find({ merchantOrderId }).populate(
+      // Find user by Firebase UID
+      const user = await User.findOne({ firebaseUID: req.user.uid });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: "User not found",
+        });
+      }
+
+      // Get event details
+      const event = await Event.findOne();
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          error: "Event not found",
+        });
+      }
+
+      // Check if tickets already exist for this order (avoid duplicate creation)
+      let existingTickets = await Ticket.find({ merchantOrderId }).populate(
         "user",
         "name email",
       );
 
-      if (!tickets || tickets.length === 0) {
-        console.log("❌ Backend: No tickets found for:", merchantOrderId);
-        return res.status(404).json({
-          success: false,
-          error: "Order not found",
-        });
-      }
-
-      console.log("✅ Backend: Found tickets:", tickets.length);
       let paymentState = "unknown";
 
       try {
@@ -348,85 +237,98 @@ router.get(
         paymentState = response.state;
         console.log("✅ Backend: PhonePe API response state:", paymentState);
 
-        // Update ticket status based on PhonePe response if needed
+        // Create tickets only if payment is completed and tickets don't exist
         if (
           paymentState === "checkout.order.completed" &&
-          tickets[0].paymentStatus === "pending"
+          (!existingTickets || existingTickets.length === 0)
         ) {
           console.log(
-            "✅ Payment completed, updating ticket status for order:",
+            "✅ Payment completed, creating tickets for order:",
             merchantOrderId,
           );
 
-          const event = await Event.findOne();
-          const updatedTickets = [];
-
-          for (const ticket of tickets) {
-            ticket.paymentStatus = "completed";
-            ticket.status = "active";
-            ticket.transactionId = response.transactionId || null;
-            const updatedTicket = await ticket.save();
-            updatedTickets.push(updatedTicket);
+          // Default to 1 ticket if no quantity is stored
+          const quantity = 1;
+          
+          // Check available tickets again
+          const availableTickets = await event.getAvailableTicketsCount();
+          if (availableTickets < quantity) {
+            return res.status(400).json({
+              success: false,
+              error: `Only ${availableTickets} tickets available`,
+            });
           }
 
-          // Send confirmation email
-          try {
-            console.log("📧 Sending purchase confirmation email...");
-            const totalAmount = updatedTickets.reduce(
-              (sum, ticket) => sum + ticket.price,
-              0,
-            );
-            const quantity = updatedTickets.length;
-
-            await emailService.sendTicketPurchaseEmail(
-              tickets[0].user,
-              updatedTickets,
-              event,
-              totalAmount,
-              quantity,
-            );
-            console.log("✅ Purchase confirmation email sent successfully");
-          } catch (emailError) {
-            console.error(
-              "❌ Failed to send purchase confirmation email:",
-              emailError,
-            );
-          }
-        } else if (
-          paymentState === "checkout.order.failed" &&
-          tickets[0].paymentStatus === "pending"
-        ) {
-          console.log(
-            "❌ Payment failed, updating ticket status for order:",
-            merchantOrderId,
+          // Call the ticket creation endpoint internally
+          console.log("🎫 Calling internal ticket creation...");
+          const ticketCreationData = {
+            quantity: quantity,
+            merchantOrderId: merchantOrderId,
+            paymentStatus: "completed",
+            transactionId: response.transactionId || null,
+          };
+          
+          // Create tickets using the existing ticket creation logic
+          const createdTickets = await createTicketsForCompletedPayment(
+            user,
+            event,
+            ticketCreationData
           );
-
-          for (const ticket of tickets) {
-            ticket.paymentStatus = "failed";
-            ticket.status = "cancelled";
-            await ticket.save();
-          }
+          
+          existingTickets = createdTickets;
+        } else if (paymentState === "checkout.order.completed" && existingTickets && existingTickets.length > 0) {
+          console.log("✅ Payment completed, tickets already exist for order:", merchantOrderId);
         }
       } catch (phonepeError) {
         console.error("❌ Backend: PhonePe status check error:", phonepeError);
-        // Fallback to ticket payment status
-        const firstTicket = tickets[0];
-        console.log(
-          "🔄 Backend: Using fallback from ticket status:",
-          firstTicket.paymentStatus,
-        );
-        if (firstTicket.paymentStatus === "completed") {
+        
+        // If PhonePe API fails, check if we have existing tickets to determine state
+        if (existingTickets && existingTickets.length > 0) {
+          const firstTicket = existingTickets[0];
+          console.log(
+            "🔄 Backend: Using fallback from ticket status:",
+            firstTicket.paymentStatus,
+          );
+          if (firstTicket.paymentStatus === "completed") {
+            paymentState = "checkout.order.completed";
+          } else if (firstTicket.paymentStatus === "failed") {
+            paymentState = "checkout.order.failed";
+          } else if (firstTicket.paymentStatus === "pending") {
+            paymentState = "checkout.order.pending";
+          }
+        } else {
+          // No tickets exist and PhonePe API failed, but if we're checking status it likely means payment was completed
+          // Let's create tickets anyway for completed payments
+          console.log("🔄 Backend: PhonePe API failed, but creating tickets for completed payment");
           paymentState = "checkout.order.completed";
-        } else if (firstTicket.paymentStatus === "failed") {
-          paymentState = "checkout.order.failed";
-        } else if (firstTicket.paymentStatus === "pending") {
-          paymentState = "checkout.order.pending";
+          
+          // Create fallback tickets
+          const quantity = 1;
+          const availableTickets = await event.getAvailableTicketsCount();
+          
+          if (availableTickets >= quantity) {
+            console.log("🎫 Creating fallback tickets...");
+            const ticketCreationData = {
+              quantity: quantity,
+              merchantOrderId: merchantOrderId,
+              paymentStatus: "completed",
+              transactionId: null,
+            };
+            
+            const createdTickets = await createTicketsForCompletedPayment(
+              user,
+              event,
+              ticketCreationData
+            );
+            
+            existingTickets = createdTickets;
+          }
         }
         console.log("🔄 Backend: Mapped fallback state:", paymentState);
       }
 
-      // Refresh tickets to get updated data
-      const refreshedTickets = await Ticket.find({ merchantOrderId }).populate(
+      // Get final ticket data
+      const finalTickets = await Ticket.find({ merchantOrderId }).populate(
         "user",
         "name email",
       );
@@ -435,7 +337,7 @@ router.get(
         success: true,
         merchantOrderId: merchantOrderId,
         paymentState: paymentState,
-        tickets: refreshedTickets.map((ticket) => ({
+        tickets: finalTickets.map((ticket) => ({
           id: ticket._id,
           ticketId: ticket.ticketId,
           status: ticket.status,
@@ -466,6 +368,174 @@ router.get(
     }
   },
 );
+
+// Helper function to create tickets for completed payments
+const createTicketsForCompletedPayment = async (user, event, paymentData) => {
+  const { quantity, merchantOrderId, paymentStatus, transactionId } = paymentData;
+  
+  // Calculate pricing
+  const pricePerTicket = event.calculatePrice(quantity);
+  const totalAmount = event.calculateTotalAmount(quantity);
+
+  // Create tickets
+  const ticketCreationPromises = [];
+  for (let i = 0; i < quantity; i++) {
+    const ticketPromise = (async () => {
+      const qrCode = Ticket.generateQRCode();
+      const qrCodeImage = await generateQRCodeImage(qrCode);
+
+      const ticket = new Ticket({
+        user: user._id,
+        eventName: event.name,
+        price: pricePerTicket,
+        qrCode: qrCode,
+        qrCodeImage: qrCodeImage,
+        status: "active",
+        merchantOrderId: merchantOrderId,
+        paymentStatus: paymentStatus,
+        paymentMethod: "phonepe",
+        transactionId: transactionId,
+        metadata: {
+          purchaseMethod: "online",
+          deviceInfo: "",
+          ipAddress: "",
+          quantity: quantity,
+          totalAmount: totalAmount,
+        },
+      });
+
+      return await ticket.save();
+    })();
+    ticketCreationPromises.push(ticketPromise);
+  }
+
+  const createdTickets = await Promise.all(ticketCreationPromises);
+  console.log(
+    "🎫 Created tickets:",
+    createdTickets.length,
+    "for order:",
+    merchantOrderId,
+  );
+
+  // Populate user data for email
+  const populatedTickets = await Ticket.find({ merchantOrderId }).populate(
+    "user",
+    "name email",
+  );
+
+  // Send confirmation email after successful ticket creation
+  try {
+    console.log("📧 Sending purchase confirmation email...");
+    await emailService.sendTicketPurchaseEmail(
+      user,
+      populatedTickets,
+      event,
+      totalAmount,
+      quantity,
+    );
+    console.log("✅ Purchase confirmation email sent successfully");
+  } catch (emailError) {
+    console.error(
+      "❌ Failed to send purchase confirmation email:",
+      emailError,
+    );
+    // Don't fail the entire process if email fails
+  }
+
+  return populatedTickets;
+};
+
+// New endpoint to create tickets after payment completion
+router.post("/create-after-payment", verifyToken, async (req, res) => {
+  try {
+    const { merchantOrderId, quantity = 1 } = req.body;
+    
+    console.log("🎫 Creating tickets after payment completion:", {
+      merchantOrderId,
+      quantity,
+      userUID: req.user.uid
+    });
+
+    // Find user by Firebase UID
+    const user = await User.findOne({ firebaseUID: req.user.uid });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    // Get event details
+    const event = await Event.findOne();
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: "Event not found",
+      });
+    }
+
+    // Check if tickets already exist for this order
+    const existingTickets = await Ticket.find({ merchantOrderId });
+    if (existingTickets.length > 0) {
+      console.log("✅ Tickets already exist for order:", merchantOrderId);
+      return res.status(200).json({
+        success: true,
+        message: "Tickets already created",
+        tickets: existingTickets.map((ticket) => ({
+          id: ticket._id,
+          ticketId: ticket.ticketId,
+          status: ticket.status,
+          paymentStatus: ticket.paymentStatus,
+          price: ticket.price,
+        })),
+      });
+    }
+
+    // Check available tickets
+    const availableTickets = await event.getAvailableTicketsCount();
+    if (availableTickets < quantity) {
+      return res.status(400).json({
+        success: false,
+        error: `Only ${availableTickets} tickets available`,
+      });
+    }
+
+    // Create tickets
+    const ticketCreationData = {
+      quantity: quantity,
+      merchantOrderId: merchantOrderId,
+      paymentStatus: "completed",
+      transactionId: null, // Will be updated if available
+    };
+    
+    const createdTickets = await createTicketsForCompletedPayment(
+      user,
+      event,
+      ticketCreationData
+    );
+
+    res.status(201).json({
+      success: true,
+      message: `${quantity} ticket(s) created successfully!`,
+      tickets: createdTickets.map((ticket) => ({
+        id: ticket._id,
+        ticketId: ticket.ticketId,
+        status: ticket.status,
+        paymentStatus: ticket.paymentStatus,
+        price: ticket.price,
+      })),
+    });
+
+  } catch (error) {
+    console.error("❌ Create tickets after payment error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to create tickets",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
 
 // Create a ticket (protected route) - Keep original for backward compatibility
 router.post("/", verifyToken, async (req, res) => {

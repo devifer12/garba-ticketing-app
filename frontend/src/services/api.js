@@ -154,6 +154,8 @@ export const ticketAPI = {
     api.post(API_ENDPOINTS.TICKETS.MARK_USED, { qrCode }),
   cancelTicket: (ticketId, reason) =>
     api.patch(`${API_ENDPOINTS.TICKETS.CANCEL}/${ticketId}`, { reason }),
+  createTicketsAfterPayment: (paymentData) =>
+    api.post(`${API_ENDPOINTS.TICKETS.BASE}/create-after-payment`, paymentData),
 };
 
 // Payment API for PhonePe integration

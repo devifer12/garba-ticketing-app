@@ -47,6 +47,7 @@ export const API_ENDPOINTS = {
     INITIATE_PAYMENT: "/tickets/initiate-payment",
     PAYMENT_STATUS: "/tickets/payment-status",
     PAYMENT_CALLBACK: "/tickets/payment-callback",
+    CREATE_AFTER_PAYMENT: "/tickets/create-after-payment",
   },
   ADMIN: {
     USERS: "/admin/users",

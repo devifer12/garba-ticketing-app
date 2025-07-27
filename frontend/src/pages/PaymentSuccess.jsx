@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { paymentAPI } from "../services/api";
+import { paymentAPI, ticketAPI } from "../services/api";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import Navbar from "../components/common/navbar/Navbar";
 
@@ -72,6 +72,26 @@ const PaymentSuccess = () => {
             paymentState === "checkout.order.completed"
           ) {
             mappedStatus = "completed";
+            
+            // If payment is completed but no tickets exist, create them
+            if (tickets.length === 0) {
+              console.log("🎫 Payment completed but no tickets found, creating tickets...");
+              try {
+                const createResponse = await ticketAPI.createTicketsAfterPayment({
+                  merchantOrderId: merchantOrderId,
+                  quantity: 1 // Default quantity
+                });
+                
+                if (createResponse.data.success) {
+                  console.log("✅ Tickets created successfully:", createResponse.data.tickets);
+                  // Update tickets in response
+                  tickets.push(...createResponse.data.tickets);
+                }
+              } catch (createError) {
+                console.error("❌ Failed to create tickets:", createError);
+                // Don't fail the whole process, just log the error
+              }
+            }
           } else if (
             paymentState === "FAILED" ||
             paymentState === "checkout.order.failed"
