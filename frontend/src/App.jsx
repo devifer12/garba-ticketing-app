@@ -15,6 +15,7 @@ import ErrorBoundary from "./components/ui/ErrorBoundary";
 import { AuthProvider } from "./context/AuthContext";
 import { eventAPI } from "./services/api";
 import { logBundleSize, monitorMemoryUsage } from "./utils/performance";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +67,7 @@ function App() {
             img.onload = resolve;
             img.onerror = resolve; // Continue even if image fails
             img.src = src;
-          }),
+          })
       );
 
       // Wait for images to load or timeout after 3 seconds
@@ -135,6 +136,7 @@ function App() {
           </BrowserRouter>
         </AuthProvider>
       )}
+      <SpeedInsights />
     </ErrorBoundary>
   );
 }
