@@ -34,7 +34,7 @@ const FAQSection = () => {
     },
     {
       question: "What is the cancellation policy?",
-      answer: "Tickets can be cancelled up to 10 days before the event date for a full refund. Cancellations made within 10 days of the event are not eligible for refunds. Please refer to our Cancellation Policy for complete details."
+      answer: "Tickets can be cancelled up to 10 days before the event date for a refund. Cancellations made within 10 days of the event are not eligible for refunds. Please refer to our Cancellation Policy for complete details."
     },
     {
       question: "Can I bring my own dandiya sticks?",

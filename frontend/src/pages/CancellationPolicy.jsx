@@ -76,7 +76,7 @@ const CancellationPolicy = () => {
                       <ul className="list-disc list-inside space-y-2 ml-4 text-green-200">
                         <li>Full refund available (minus processing fees)</li>
                         <li>Cancellation can be processed online</li>
-                        <li>Refund processed within 5-7 business days</li>
+                        <li>Refund processed within 5-10 business days</li>
                         <li>Email confirmation sent immediately</li>
                       </ul>
                     </div>

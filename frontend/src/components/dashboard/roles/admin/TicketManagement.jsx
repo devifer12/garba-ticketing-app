@@ -424,24 +424,6 @@ const TicketManagement = () => {
                                 Cancelled: {formatDate(ticket.cancelledAt)}
                               </div>
                             )}
-                            <div className="text-xs">
-                              <span className="text-slate-400">Refund:</span>
-                              <span
-                                className={`ml-1 px-2 py-1 rounded text-xs ${
-                                  ticket.isRefundDone === true
-                                    ? "bg-green-900/30 text-green-300"
-                                    : ticket.isRefundDone === false
-                                      ? "bg-red-900/30 text-red-300"
-                                      : "bg-yellow-900/30 text-yellow-300"
-                                }`}
-                              >
-                                {ticket.isRefundDone === true
-                                  ? "Done"
-                                  : ticket.isRefundDone === false
-                                    ? "Failed"
-                                    : "Pending"}
-                              </span>
-                            </div>
                           </>
                         )}
                         {ticket.status !== "cancelled" && (

@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 const TicketCard = ({ ticket }) => {
   const [showQR, setShowQR] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
-  const [showRefundModal, setShowRefundModal] = useState(false);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -237,43 +236,6 @@ const TicketCard = ({ ticket }) => {
                 </p>
               </div>
             )}
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-red-200 text-xs">Refund Status:</span>
-              <span
-                className={`text-xs px-2 py-1 rounded ${
-                  ticket.isRefundDone === true
-                    ? "bg-green-900/30 text-green-300"
-                    : ticket.isRefundDone === false
-                      ? "bg-red-900/30 text-red-300"
-                      : ticket.refundStatus === "MANUAL_PROCESSING"
-                        ? "bg-blue-900/30 text-blue-300"
-                        : "bg-yellow-900/30 text-yellow-300"
-                }`}
-              >
-                {ticket.isRefundDone === true
-                  ? "Completed"
-                  : ticket.isRefundDone === false
-                    ? "Failed"
-                    : ticket.refundStatus === "MANUAL_PROCESSING"
-                      ? "Manual Processing"
-                      : "Pending"}
-              </span>
-            </div>
-            {ticket.refundAmount && (
-              <div className="mt-1">
-                <span className="text-red-200 text-xs">Refund Amount: </span>
-                <span className="text-green-400 text-xs font-medium">
-                  ₹{ticket.refundAmount}
-                </span>
-              </div>
-            )}
-            {ticket.refundStatus === "MANUAL_PROCESSING" && (
-              <div className="mt-1">
-                <p className="text-blue-200 text-xs">
-                  Processing manually within 5-7 days
-                </p>
-              </div>
-            )}
           </div>
         )}
 
@@ -346,19 +308,6 @@ const TicketCard = ({ ticket }) => {
                       check-in
                     </p>
                   </div>
-                </div>
-              )}
-              
-              {ticket.refundId && (
-                <div className="mt-2">
-                  <motion.button
-                    onClick={() => setShowRefundModal(true)}
-                    className="px-3 py-1 bg-blue-600/50 text-blue-300 rounded-lg text-xs hover:bg-blue-600/70 transition-colors"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    View Refund Details
-                  </motion.button>
                 </div>
               )}
             </motion.div>
@@ -441,19 +390,11 @@ const TicketCard = ({ ticket }) => {
 
           {ticket.status === "cancelled" && (
             <div className="text-center text-red-400 font-medium py-2">
-              ❌ Ticket Cancelled - Refund Pending
+              ❌ Ticket Cancelled
             </div>
           )}
         </div>
       </div>
-      
-      {/* Refund Status Modal */}
-      {showRefundModal && (
-        <RefundStatusModal
-          ticket={ticket}
-          onClose={() => setShowRefundModal(false)}
-        />
-      )}
     </motion.div>
   );
 };

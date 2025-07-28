@@ -659,14 +659,6 @@ class EmailService {
             .detail-value {
               color: #333;
             }
-            .refund-info {
-              background: #d1ecf1;
-              border: 1px solid #bee5eb;
-              color: #0c5460;
-              padding: 20px;
-              border-radius: 8px;
-              margin: 20px 0;
-            }
             .footer {
               background: #f8f9fa;
               padding: 20px;
@@ -733,31 +725,6 @@ class EmailService {
                     "en-US"
                   )}</span>
                 </div>
-                ${ticketData.refundAmount ? `
-                <div class="detail-row">
-                  <span class="detail-label">💸 Refund Amount:</span>
-                  <span class="detail-value">₹${ticketData.refundAmount}</span>
-                </div>
-                ` : ""}
-                ${ticketData.refundId ? `
-                <div class="detail-row">
-                  <span class="detail-label">🔢 Refund ID:</span>
-                  <span class="detail-value">${ticketData.refundId}</span>
-                </div>
-                ` : ""}
-              </div>
-              
-              <div class="refund-info">
-                <h3>💳 Refund Information</h3>
-                <p><strong>Refund Amount:</strong> ₹${ticketData.refundAmount || (ticketData.price - 40)}</p>
-                <p><strong>Processing Fees Deducted:</strong> ₹40</p>
-                <p><strong>Processing Time:</strong> 7-10 business days</p>
-                <p><strong>Refund Method:</strong> Original payment method</p>
-                ${ticketData.refundId ? 
-                  `<p><strong>Refund Status:</strong> ${ticketData.refundStatus || 'Initiated'}</p>
-                   <p>Your refund has been automatically initiated with PhonePe. You will receive a separate email confirmation once the refund is completed.</p>` :
-                  `<p>Refund will be processed manually within 5-7 business days.</p>`
-                }
               </div>
               
               <div style="text-align: center; margin: 30px 0;">

@@ -208,7 +208,6 @@ app.get("/api/status", (req, res) => {
         checkPaymentStatus: "GET /api/tickets/payment-status/:merchantOrderId",
         paymentCallback: "POST /api/tickets/payment-callback",
         initiatePayment: "/api/tickets/initiate-payment",
-        webhook: "POST /api/tickets/webhook",
       },
       admin: {
         allTickets: "GET /api/tickets/admin/all",
