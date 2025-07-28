@@ -19,7 +19,7 @@ require("dotenv").config({ path: "../.env" });
 const clientId = process.env.CLIENTID;
 const clientSecret = process.env.CLIENTSECRET;
 const clientVersion = process.env.CLIENTVERSION;
-const env = Env.SANDBOX; // Change to Env.PRODUCTION for production
+const env = Env.PRODUCTION; // Change to Env.PRODUCTION for production
 
 // Initialize PhonePe client
 const client = StandardCheckoutClient.getInstance(
