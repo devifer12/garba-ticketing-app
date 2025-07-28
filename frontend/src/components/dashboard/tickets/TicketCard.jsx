@@ -245,16 +245,35 @@ const TicketCard = ({ ticket }) => {
                     ? "bg-green-900/30 text-green-300"
                     : ticket.isRefundDone === false
                       ? "bg-red-900/30 text-red-300"
-                      : "bg-yellow-900/30 text-yellow-300"
+                      : ticket.refundStatus === "MANUAL_PROCESSING"
+                        ? "bg-blue-900/30 text-blue-300"
+                        : "bg-yellow-900/30 text-yellow-300"
                 }`}
               >
                 {ticket.isRefundDone === true
                   ? "Completed"
                   : ticket.isRefundDone === false
                     ? "Failed"
-                    : "Pending"}
+                    : ticket.refundStatus === "MANUAL_PROCESSING"
+                      ? "Manual Processing"
+                      : "Pending"}
               </span>
             </div>
+            {ticket.refundAmount && (
+              <div className="mt-1">
+                <span className="text-red-200 text-xs">Refund Amount: </span>
+                <span className="text-green-400 text-xs font-medium">
+                  ₹{ticket.refundAmount}
+                </span>
+              </div>
+            )}
+            {ticket.refundStatus === "MANUAL_PROCESSING" && (
+              <div className="mt-1">
+                <p className="text-blue-200 text-xs">
+                  Processing manually within 5-7 days
+                </p>
+              </div>
+            )}
           </div>
         )}
 

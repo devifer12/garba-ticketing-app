@@ -245,9 +245,9 @@ ticketSchema.methods.cancelTicket = async function (reason = null, refundData = 
   
   // Set refund information if provided
   if (refundData) {
-    this.refundId = refundData.merchantRefundId;
-    this.refundStatus = refundData.state;
-    this.refundAmount = refundData.amount ? refundData.amount / 100 : null; // Convert paisa to rupees
+    this.refundId = refundData.merchantRefundId || null;
+    this.refundStatus = refundData.state || "PENDING";
+    this.refundAmount = refundData.refundAmountRupees || (refundData.amount ? refundData.amount / 100 : null);
     this.refundInitiatedAt = new Date();
     
     // Set isRefundDone based on refund state
@@ -259,8 +259,17 @@ ticketSchema.methods.cancelTicket = async function (reason = null, refundData = 
     } else {
       this.isRefundDone = null; // Pending
     }
+    
+    // Handle manual processing flag
+    if (refundData.manual) {
+      this.refundStatus = "MANUAL_PROCESSING";
+      this.isRefundDone = null;
+    }
   } else {
-    this.isRefundDone = null; // Set to null initially if no refund data
+    // No refund data provided - set default values
+    this.refundStatus = "PENDING";
+    this.isRefundDone = null;
+    this.refundAmount = Math.max(1, this.price - 40); // Calculate expected refund amount
   }
   
   return await this.save();

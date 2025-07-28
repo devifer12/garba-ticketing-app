@@ -163,7 +163,9 @@ const RefundPolicy = () => {
                         <div>
                           <h4 className="font-semibold text-white mb-2">ANY PAYMET METHOD</h4>
                           <ul className="text-sm space-y-1">
-                            <li>• If approved, you’ll be automatically refunded and credited on your original payment method within 1-10  business days</li>
+                            <li>• If approved, you'll be automatically refunded and credited on your original payment method within 5-10 business days</li>
+                            <li>• Processing fees of ₹40 will be deducted from the refund amount</li>
+                            <li>• You will receive email notifications about refund status updates</li>
                           </ul>
                         </div>
                       </div>

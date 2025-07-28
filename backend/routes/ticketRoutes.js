@@ -1096,7 +1096,16 @@ router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
       }
     }
     // Cancel the ticket
-    await ticket.cancelTicket(reason.trim(), refundResult);
+    const refundData = refundResult ? {
+      merchantRefundId: refundResult.merchantRefundId,
+      state: refundResult.state,
+      amount: refundResult.amount,
+      refundAmountRupees: refundResult.refundAmountRupees,
+      manual: refundResult.manual || false,
+      error: refundResult.error || null
+    } : null;
+    
+    await ticket.cancelTicket(reason.trim(), refundData);
     console.log("✅ Ticket cancelled successfully:", ticket.ticketId);
 
     // Send cancellation email
@@ -1190,31 +1199,31 @@ const initiateRefund = async (ticket) => {
       amount: response.amount,
     });
 
-    // Update ticket with refund information
-    ticket.refundId = refundId;
-    ticket.refundStatus = response.state || "PENDING";
-    ticket.refundAmount = refundAmount / 100; // Store in rupees
-    ticket.refundInitiatedAt = new Date();
-    
-    // Set isRefundDone based on state
-    if (response.state === "COMPLETED") {
-      ticket.isRefundDone = true;
-    } else if (response.state === "FAILED") {
-      ticket.isRefundDone = false;
-    } else {
-      ticket.isRefundDone = null; // Pending
-    }
-
-    await ticket.save();
-
     return {
       refundId: response.refundId,
       state: response.state,
       amount: response.amount,
       merchantRefundId: refundId,
+      refundAmountRupees: refundAmount / 100,
     };
   } catch (error) {
     console.error("❌ Refund initiation error:", error);
+    
+    // Handle authorization errors specifically
+    if (error.message && error.message.includes('UnauthorizedAccess')) {
+      console.error("🔐 PhonePe Authorization Error - Check credentials and permissions");
+      // Return a fallback response for manual processing
+      return {
+        refundId: `MANUAL-${Date.now()}`,
+        state: "PENDING",
+        amount: Math.max(100, (ticket.price - 40) * 100),
+        merchantRefundId: `MANUAL-${Date.now()}`,
+        refundAmountRupees: Math.max(1, ticket.price - 40),
+        manual: true,
+        error: "Authorization failed - will be processed manually"
+      };
+    }
+    
     throw error;
   }
 };
@@ -1314,6 +1323,191 @@ router.get("/refund-status/:refundId", verifyToken, async (req, res) => {
     });
   }
 });
+
+// PhonePe Webhook endpoint for payment and refund status updates
+router.post("/webhook", async (req, res) => {
+  try {
+    console.log("📞 PhonePe Webhook received:", {
+      headers: req.headers,
+      body: req.body,
+      timestamp: new Date().toISOString()
+    });
+
+    const { response } = req.body;
+    
+    if (!response) {
+      console.log("❌ No response data in webhook");
+      return res.status(400).json({ error: "No response data" });
+    }
+
+    // Decode the base64 response
+    let decodedResponse;
+    try {
+      decodedResponse = JSON.parse(Buffer.from(response, 'base64').toString());
+      console.log("📋 Decoded webhook response:", decodedResponse);
+    } catch (decodeError) {
+      console.error("❌ Failed to decode webhook response:", decodeError);
+      return res.status(400).json({ error: "Invalid response format" });
+    }
+
+    const { data } = decodedResponse;
+    
+    if (!data) {
+      console.log("❌ No data in decoded response");
+      return res.status(400).json({ error: "No data in response" });
+    }
+
+    // Handle refund status updates
+    if (data.merchantRefundId) {
+      console.log("💰 Processing refund webhook:", {
+        refundId: data.merchantRefundId,
+        state: data.state,
+        amount: data.amount
+      });
+
+      // Find ticket by refund ID
+      const ticket = await Ticket.findOne({ refundId: data.merchantRefundId }).populate('user', 'name email');
+      
+      if (ticket) {
+        console.log("🎫 Found ticket for refund update:", ticket.ticketId);
+        
+        // Update refund status
+        ticket.refundStatus = data.state;
+        
+        if (data.state === "COMPLETED") {
+          ticket.isRefundDone = true;
+          ticket.refundCompletedAt = new Date();
+          console.log("✅ Refund completed for ticket:", ticket.ticketId);
+        } else if (data.state === "FAILED") {
+          ticket.isRefundDone = false;
+          console.log("❌ Refund failed for ticket:", ticket.ticketId);
+        } else {
+          ticket.isRefundDone = null; // Still pending
+          console.log("⏳ Refund still pending for ticket:", ticket.ticketId);
+        }
+        
+        await ticket.save();
+        
+        // Send email notification for refund completion
+        if (data.state === "COMPLETED") {
+          try {
+            const Event = require("../models/Event");
+            const event = await Event.findOne();
+            
+            // Send refund completion email
+            await emailService.sendCustomEmail(
+              ticket.user.email,
+              "💰 Refund Completed - Garba Rass 2025",
+              generateRefundCompletionEmail(ticket.user, ticket, event, data),
+              []
+            );
+            console.log("📧 Refund completion email sent");
+          } catch (emailError) {
+            console.error("❌ Failed to send refund completion email:", emailError);
+          }
+        }
+        
+        console.log("✅ Refund status updated successfully");
+      } else {
+        console.log("⚠️ No ticket found for refund ID:", data.merchantRefundId);
+      }
+    }
+    
+    // Handle payment status updates
+    else if (data.merchantOrderId) {
+      console.log("💳 Processing payment webhook:", {
+        orderId: data.merchantOrderId,
+        state: data.state,
+        amount: data.amount
+      });
+
+      // Find tickets by merchant order ID
+      const tickets = await Ticket.find({ merchantOrderId: data.merchantOrderId });
+      
+      if (tickets.length > 0) {
+        console.log(`🎫 Found ${tickets.length} tickets for payment update`);
+        
+        for (const ticket of tickets) {
+          if (data.state === "COMPLETED") {
+            ticket.paymentStatus = "completed";
+            ticket.transactionId = data.transactionId || ticket.transactionId;
+          } else if (data.state === "FAILED") {
+            ticket.paymentStatus = "failed";
+          }
+          
+          await ticket.save();
+        }
+        
+        console.log("✅ Payment status updated for all tickets");
+      } else {
+        console.log("⚠️ No tickets found for order ID:", data.merchantOrderId);
+      }
+    }
+
+    // Respond with success
+    res.status(200).json({ 
+      success: true, 
+      message: "Webhook processed successfully",
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error("❌ Webhook processing error:", error);
+    res.status(500).json({ 
+      error: "Webhook processing failed",
+      details: process.env.NODE_ENV === "development" ? error.message : undefined
+    });
+  }
+});
+
+// Helper function to generate refund completion email
+const generateRefundCompletionEmail = (userData, ticketData, eventData, refundData) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Refund Completed</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; background: white; color: black; }
+          .container { border: 2px solid #333; padding: 20px; max-width: 400px; margin: 0 auto; border-radius: 10px; }
+          .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 15px; }
+          .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: center; }
+          .details { margin: 10px 0; }
+          .label { font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>💰 Refund Completed</h1>
+            <h2>Garba Rass 2025</h2>
+          </div>
+          
+          <div class="success">
+            <h2>✅ Your refund has been processed successfully!</h2>
+            <p>Hello ${userData.name}, your refund for ticket cancellation has been completed.</p>
+          </div>
+          
+          <div class="details">
+            <div><span class="label">Ticket ID:</span> ${ticketData.ticketId}</div>
+            <div><span class="label">Refund ID:</span> ${refundData.merchantRefundId}</div>
+            <div><span class="label">Refund Amount:</span> ₹${(refundData.amount / 100).toFixed(2)}</div>
+            <div><span class="label">Processing Fees:</span> ₹40.00</div>
+            <div><span class="label">Original Ticket Price:</span> ₹${ticketData.price}</div>
+            <div><span class="label">Refund Status:</span> ${refundData.state}</div>
+            <div><span class="label">Processed On:</span> ${new Date().toLocaleDateString()}</div>
+          </div>
+          
+          <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #666;">
+            <p>The refund amount will be credited to your original payment method within 5-7 business days.</p>
+            <p>Thank you for your understanding.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+};
 
 // Admin routes (for managing all tickets)
 const { isAdmin, isManager } = require("../middlewares/roleMiddleware");

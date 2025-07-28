@@ -152,11 +152,22 @@ const RefundStatusModal = ({ ticket, onClose }) => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Status:</span>
-                        <span className="text-white">{refundStatus.status}</span>
+                        <span className={`${
+                          refundStatus.status === "COMPLETED" ? "text-green-400" :
+                          refundStatus.status === "FAILED" ? "text-red-400" :
+                          refundStatus.status === "MANUAL_PROCESSING" ? "text-blue-400" :
+                          "text-yellow-400"
+                        }`}>
+                          {refundStatus.status === "MANUAL_PROCESSING" ? "Manual Processing" : refundStatus.status}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Original Order:</span>
                         <span className="text-white font-mono text-xs">{refundStatus.originalOrderId}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Processing Fee:</span>
+                        <span className="text-red-400">₹40</span>
                       </div>
                     </div>
                   </div>
@@ -166,7 +177,7 @@ const RefundStatusModal = ({ ticket, onClose }) => {
                     <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-4">
                       <h4 className="text-green-300 font-medium mb-2">✅ Refund Completed</h4>
                       <p className="text-green-200 text-sm">
-                        Your refund has been processed successfully. The amount should appear in your account within 5-7 business days.
+                        Your refund of ₹{refundStatus.amount / 100} has been processed successfully. The amount should appear in your account within 5-7 business days.
                       </p>
                     </div>
                   )}
@@ -175,7 +186,16 @@ const RefundStatusModal = ({ ticket, onClose }) => {
                     <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-4">
                       <h4 className="text-yellow-300 font-medium mb-2">⏳ Refund Processing</h4>
                       <p className="text-yellow-200 text-sm">
-                        Your refund is being processed. This usually takes 5-7 business days. You'll receive an email confirmation once completed.
+                        Your refund of ₹{refundStatus.amount / 100} is being processed. This usually takes 5-10 business days. You'll receive an email confirmation once completed.
+                      </p>
+                    </div>
+                  )}
+
+                  {refundStatus.status === "MANUAL_PROCESSING" && (
+                    <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4">
+                      <h4 className="text-blue-300 font-medium mb-2">🔧 Manual Processing</h4>
+                      <p className="text-blue-200 text-sm">
+                        Your refund of ₹{refundStatus.amount / 100} is being processed manually due to a technical issue. This will be completed within 5-7 business days.
                       </p>
                     </div>
                   )}
@@ -184,7 +204,7 @@ const RefundStatusModal = ({ ticket, onClose }) => {
                     <div className="bg-red-900/20 border border-red-700/30 rounded-lg p-4">
                       <h4 className="text-red-300 font-medium mb-2">❌ Refund Failed</h4>
                       <p className="text-red-200 text-sm">
-                        There was an issue processing your refund. Please contact our support team for assistance.
+                        There was an issue processing your refund of ₹{refundStatus.amount / 100}. Please contact our support team at hyyevents@gmail.com for assistance.
                       </p>
                     </div>
                   )}

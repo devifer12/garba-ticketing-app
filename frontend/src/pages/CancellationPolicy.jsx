@@ -131,16 +131,16 @@ const CancellationPolicy = () => {
 
                     <h3 className="text-xl font-semibold text-navratri-orange mb-2 mt-6">Refund Timeline</h3>
                     <ul className="list-disc list-inside space-y-2 ml-4">
-                      <li><strong>Credit/Debit Cards:</strong> 5-7 business days</li>
-                      <li><strong>Net Banking:</strong> 3-5 business days</li>
-                      <li><strong>UPI/Wallets:</strong> 2-3 business days</li>
-                      <li><strong>Bank Transfer:</strong> 7-10 business days</li>
+                      <li><strong>All Payment Methods:</strong> 5-10 business days</li>
+                      <li><strong>Processing Fee:</strong> ₹40 will be deducted</li>
+                      <li><strong>Refund Amount:</strong> Original price minus ₹40 processing fee</li>
+                      <li><strong>Email Updates:</strong> You'll receive status notifications</li>
                     </ul>
 
                     <div className="bg-blue-900/20 border border-blue-700/30 rounded-xl p-4 mt-4">
                       <p className="text-blue-200">
-                        <strong>Note:</strong> Refund timelines may vary depending on your bank's processing time. 
-                        We initiate refunds immediately upon approval.
+                        <strong>Note:</strong> Refunds are processed automatically via PhonePe. In case of technical issues, 
+                        refunds may be processed manually within 5-7 business days.
                       </p>
                     </div>
                   </div>
