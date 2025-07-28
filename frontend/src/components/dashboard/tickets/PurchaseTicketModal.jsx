@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { paymentAPI } from "../../../services/api";
+import {Link} from "react-router-dom"; 
 
 const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
   const [quantity, setQuantity] = useState(1);
@@ -253,7 +254,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                   className="mt-1 rounded border-slate-600 bg-slate-700 text-navratri-orange focus:ring-navratri-orange/30"
                 />
                 <span className="text-slate-300 text-xs sm:text-sm">
-                  I agree to the terms and conditions and understand that
+                  I agree to the <Link to="/terms-of-service" className="text-blue-500 underline">Terms and conditions</Link> and understand that
                   tickets are non-transferable.
                 </span>
               </label>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { formatDate } from "../../../utils/helpers";
-
+import{ Link } from "react-router-dom";
 const CancelTicketModal = ({
   ticket,
   event,
@@ -159,7 +159,7 @@ const CancelTicketModal = ({
                     />
                     <span className="text-slate-300 text-xs sm:text-sm">
                       I understand that this cancellation is final and I agree
-                      to the refund policy. The ticket will be permanently
+                      to the <Link to="/refund-policy" className="text-blue-500">refund policy</Link>. The ticket will be permanently
                       cancelled.
                     </span>
                   </label>

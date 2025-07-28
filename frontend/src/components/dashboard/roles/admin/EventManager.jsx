@@ -827,7 +827,7 @@ const EventManager = () => {
                 <InputField
                   type="number"
                   name="groupPrice4"
-                  placeholder="Group Price (6+) (₹)"
+                  placeholder="Group Price (4+) (₹)"
                   icon="👥"
                   min="0"
                   step="1"
