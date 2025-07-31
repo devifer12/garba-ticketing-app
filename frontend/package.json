@@ -26,6 +26,7 @@
     "lucide-react": "^0.511.0",
     "motion": "^12.16.0",
     "qr-scanner": "^1.4.2",
+    "razorpay": "^2.9.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.1",

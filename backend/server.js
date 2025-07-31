@@ -18,8 +18,7 @@ const corsOptions = {
           process.env.FRONTEND_URL,
           "https://hyyevents.com",
           "https://www.hyyevents.com",
-          "https://api-preprod.phonepe.com/apis/pg-sandbox",
-          "https://mercury-uat.phonepe.com."
+          "https://api.razorpay.com"
         ]
       : [
           process.env.FRONTEND_URL,
@@ -29,8 +28,7 @@ const corsOptions = {
           "https://garba-ticketing-app.vercel.app",
           "https://hyyevents.vercel.app",
           "https://www.hyyevents.com",
-          "https://api-preprod.phonepe.com/apis/pg-sandbox",
-          "https://mercury-uat.phonepe.com."
+          "https://api.razorpay.com"
         ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -205,9 +203,8 @@ app.get("/api/status", (req, res) => {
         myTickets: "GET /api/tickets/my-tickets",
         getTicket: "GET /api/tickets/:ticketId",
         cancelTicket: "PATCH /api/tickets/cancel/:ticketId",
-        checkPaymentStatus: "GET /api/tickets/payment-status/:merchantOrderId",
-        paymentCallback: "POST /api/tickets/payment-callback",
-        initiatePayment: "/api/tickets/initiate-payment",
+        createOrder: "POST /api/tickets/create-order",
+        verifyPayment: "POST /api/tickets/verify-payment",
       },
       admin: {
         allTickets: "GET /api/tickets/admin/all",

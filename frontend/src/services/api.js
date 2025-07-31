@@ -160,12 +160,10 @@ export const ticketAPI = {
 
 // Payment API for PhonePe integration
 export const paymentAPI = {
-  initiatePayment: (paymentData) =>
-    api.post(`${API_ENDPOINTS.TICKETS.INITIATE_PAYMENT}`, paymentData),
-  checkPaymentStatus: (merchantOrderId) =>
-    api.get(`${API_ENDPOINTS.TICKETS.PAYMENT_STATUS}/${merchantOrderId}`),
-  handlePaymentCallback: (callbackData) =>
-    api.post(`${API_ENDPOINTS.TICKETS.PAYMENT_CALLBACK}`, callbackData),
+  createOrder: (orderData) =>
+    api.post(`${API_ENDPOINTS.TICKETS.CREATE_ORDER}`, orderData),
+  verifyPayment: (paymentData) =>
+    api.post(`${API_ENDPOINTS.TICKETS.VERIFY_PAYMENT}`, paymentData),
 };
 
 // Admin API with  support and error handling

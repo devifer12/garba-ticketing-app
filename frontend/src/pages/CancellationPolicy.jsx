@@ -139,7 +139,7 @@ const CancellationPolicy = () => {
 
                     <div className="bg-blue-900/20 border border-blue-700/30 rounded-xl p-4 mt-4">
                       <p className="text-blue-200">
-                        <strong>Note:</strong> Refunds are processed automatically via PhonePe. In case of technical issues, 
+                        <strong>Note:</strong> Refunds are processed automatically via Razorpay. In case of technical issues, 
                         refunds may be processed manually within 5-7 business days.
                       </p>
                     </div>

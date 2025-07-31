@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { paymentAPI } from "../../../services/api";
+import { toast } from "react-toastify";
 import {Link} from "react-router-dom"; 
 
 const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
@@ -35,8 +36,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
 
   const handlePurchase = async () => {
     try {
-      // Prepare payment data
-      const paymentData = {
+      // Create Razorpay order
+      const orderData = {
         quantity: quantity,
         amount: totalAmount,
         eventId: event._id || event.id,
@@ -45,19 +46,63 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
         pricingTier: currentTier.name,
       };
 
-      // Call the payment initiation API
-      const response = await paymentAPI.initiatePayment(paymentData);
+      const response = await paymentAPI.createOrder(orderData);
 
-      if (response.data.success && response.data.checkoutPageUrl) {
-        // Redirect to PhonePe payment page
-        window.location.href = response.data.checkoutPageUrl;
+      if (response.data.success) {
+        const { orderId, amount, currency, key } = response.data;
+        
+        // Initialize Razorpay checkout
+        const options = {
+          key: key,
+          amount: amount * 100, // Amount in paise
+          currency: currency,
+          name: "Garba Rass 2025",
+          description: `${quantity} ticket(s) for ${event.name}`,
+          order_id: orderId,
+          handler: async function (response) {
+            try {
+              // Verify payment on backend
+              const verifyResponse = await paymentAPI.verifyPayment({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                quantity: quantity,
+              });
+              
+              if (verifyResponse.data.success) {
+                toast.success("🎉 Payment successful! Your tickets have been generated.");
+                onClose();
+                // Refresh the page or redirect to dashboard
+                window.location.reload();
+              }
+            } catch (error) {
+              console.error("Payment verification failed:", error);
+              toast.error("Payment verification failed. Please contact support.");
+            }
+          },
+          prefill: {
+            name: event.user?.name || "",
+            email: event.user?.email || "",
+          },
+          theme: {
+            color: "#ff6500",
+          },
+          modal: {
+            ondismiss: function() {
+              toast.info("Payment cancelled");
+            }
+          }
+        };
+
+        // Open Razorpay checkout
+        const rzp = new window.Razorpay(options);
+        rzp.open();
       } else {
-        throw new Error(response.data.message || "Failed to initiate payment");
+        throw new Error(response.data.error || "Failed to create order");
       }
     } catch (error) {
-      console.error("Payment initiation failed:", error);
-      // Fall back to the original purchase method if payment fails
-      onPurchase(quantity);
+      console.error("Order creation failed:", error);
+      toast.error("Failed to create payment order. Please try again.");
     }
     setShowConfirm(false);
   };

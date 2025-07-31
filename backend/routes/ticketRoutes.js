@@ -6,27 +6,15 @@ const User = require("../models/User");
 const Event = require("../models/Event");
 const verifyToken = require("../middlewares/authMiddleware");
 const emailService = require("../services/emailService");
-const {
-  StandardCheckoutClient,
-  Env,
-  StandardCheckoutPayRequest,
-} = require("pg-sdk-node");
+const Razorpay = require("razorpay");
 const { randomUUID } = require("crypto");
 require("dotenv").config({ path: "../.env" });
 
-// PhonePe Configuration
-const clientId = process.env.CLIENTID;
-const clientSecret = process.env.CLIENTSECRET;
-const clientVersion = process.env.CLIENTVERSION;
-const env = Env.PRODUCTION; // Change to Env.PRODUCTION for production
-
-// Initialize PhonePe client
-const client = StandardCheckoutClient.getInstance(
-  clientId,
-  clientSecret,
-  clientVersion,
-  env,
-);
+// Razorpay Configuration
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 // Helper function to generate QR code image
 const generateQRCodeImage = async (qrData) => {
@@ -49,10 +37,10 @@ const generateQRCodeImage = async (qrData) => {
   }
 };
 
-// Initiate payment for tickets (protected route)
-router.post("/initiate-payment", verifyToken, async (req, res) => {
+// Create Razorpay order (protected route)
+router.post("/create-order", verifyToken, async (req, res) => {
   try {
-    const { quantity = 1, eventId } = req.body;
+    const { quantity = 1 } = req.body;
 
     // Find user by Firebase UID
     const user = await User.findOne({ firebaseUID: req.user.uid });
@@ -86,26 +74,27 @@ router.post("/initiate-payment", verifyToken, async (req, res) => {
     const amountInPaise = Math.round(totalAmount * 100); // Convert to paise
     const pricePerTicket = event.calculatePrice(quantity);
 
-    // Generate unique merchant order ID
-    const merchantOrderId = `GARBA-${Date.now()}-${randomUUID().substr(0, 8)}`;
-    const redirectUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/payment-success?merchantOrderId=${merchantOrderId}`;
-
-    // Create payment request
-    const request = StandardCheckoutPayRequest.builder()
-      .merchantOrderId(merchantOrderId)
-      .amount(amountInPaise)
-      .redirectUrl(redirectUrl)
-      .build();
+    // Generate unique receipt ID
+    const receiptId = `GARBA-${Date.now()}-${randomUUID().substr(0, 8)}`;
 
     try {
-      // Initiate payment with PhonePe
-      const response = await client.pay(request);
-      const checkoutPageUrl = response.redirectUrl;
+      // Create Razorpay order
+      const order = await razorpay.orders.create({
+        amount: amountInPaise,
+        currency: "INR",
+        receipt: receiptId,
+        notes: {
+          eventId: event._id.toString(),
+          userId: user._id.toString(),
+          quantity: quantity.toString(),
+          pricePerTicket: pricePerTicket.toString(),
+          eventName: event.name,
+        },
+      });
 
-      // For now, we'll rely on the payment status check to create tickets
       console.log(
-        "💳 Payment initiated for order:",
-        merchantOrderId,
+        "💳 Razorpay order created:",
+        order.id,
         "Amount:",
         totalAmount,
         "Quantity:",
@@ -114,264 +103,154 @@ router.post("/initiate-payment", verifyToken, async (req, res) => {
 
       res.status(200).json({
         success: true,
-        message: "Payment initiated successfully",
-        checkoutPageUrl: checkoutPageUrl,
-        merchantOrderId: merchantOrderId,
+        message: "Order created successfully",
+        orderId: order.id,
         amount: totalAmount,
         quantity: quantity,
         userId: user._id.toString(),
         eventId: event._id.toString(),
         pricePerTicket: pricePerTicket,
+        currency: "INR",
+        key: process.env.RAZORPAY_KEY_ID,
       });
-    } catch (paymentError) {
-      console.error("PhonePe payment initiation error:", paymentError);
+    } catch (razorpayError) {
+      console.error("Razorpay order creation error:", razorpayError);
       res.status(500).json({
         success: false,
-        error: "Failed to initiate payment",
+        error: "Failed to create payment order",
         details:
           process.env.NODE_ENV === "development"
-            ? paymentError.message
+            ? razorpayError.message
             : undefined,
       });
     }
   } catch (error) {
-    console.error("Payment initiation error:", error);
+    console.error("Order creation error:", error);
     res.status(500).json({
       success: false,
-      error: "Failed to initiate payment",
+      error: "Failed to create order",
       details:
         process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
 
-// Payment callback handler
-router.post("/payment-callback", async (req, res) => {
+// Verify Razorpay payment and create tickets
+router.post("/verify-payment", verifyToken, async (req, res) => {
   try {
-    const { username, password, authorization, responseBody } = req.body;
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      quantity,
+    } = req.body;
 
-    // Validate callback using PhonePe SDK
-    const callbackResponse = client.validateCallback(
-      username || "MERCHANT_USERNAME",
-      password || "MERCHANT_PASSWORD",
-      authorization,
-      responseBody,
-    );
+    console.log("🔍 Payment verification request:", {
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      quantity,
+    });
 
-    const orderId = callbackResponse.payload.orderId;
-    const state = callbackResponse.payload.state;
-
-    // Handle payment state
-    if (state === "checkout.order.completed") {
-      console.log("✅ Payment completed for order:", orderId);
-
-      res.status(200).json({
-        success: true,
-        message: "Payment completed successfully",
-        orderId: orderId,
-      });
-    } else {
-      // Payment failed or other states
-      console.log("❌ Payment failed, updating tickets for order:", orderId);
-
-      res.status(400).json({
+    // Find user by Firebase UID
+    const user = await User.findOne({ firebaseUID: req.user.uid });
+    if (!user) {
+      return res.status(404).json({
         success: false,
-        message: "Payment failed",
-        orderId: orderId,
-        state: state,
+        error: "User not found",
       });
     }
-  } catch (error) {
-    console.error("Payment callback error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to process payment callback",
-      details:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
-  }
-});
 
-// Check payment status
-router.get("/payment-status/:merchantOrderId",verifyToken,async (req, res) => {
-    try {
-      const { merchantOrderId } = req.params;
-      console.log(
-        "🔍 Backend: Checking payment status for order:",
-        merchantOrderId,
-      );
+    // Get event details
+    const event = await Event.findOne();
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: "Event not found",
+      });
+    }
 
-      // Find user by Firebase UID
-      const user = await User.findOne({ firebaseUID: req.user.uid });
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          error: "User not found",
-        });
-      }
+    // Verify payment signature
+    const crypto = require("crypto");
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(razorpay_order_id + "|" + razorpay_payment_id)
+      .digest("hex");
 
-      // Get event details
-      const event = await Event.findOne();
-      if (!event) {
-        return res.status(404).json({
-          success: false,
-          error: "Event not found",
-        });
-      }
+    if (expectedSignature !== razorpay_signature) {
+      console.error("❌ Payment signature verification failed");
+      return res.status(400).json({
+        success: false,
+        error: "Payment verification failed",
+      });
+    }
 
-      // Check if tickets already exist for this order (avoid duplicate creation)
-      let existingTickets = await Ticket.find({ merchantOrderId }).populate(
-        "user",
-        "name email",
-      );
+    // Check if tickets already exist for this order (avoid duplicate creation)
+    let existingTickets = await Ticket.find({ 
+      paymentId: razorpay_payment_id 
+    }).populate("user", "name email");
 
-      let paymentState = "unknown";
-
-      try {
-        // Check status with PhonePe
-        console.log(
-          "📞 Backend: Calling PhonePe API for order:",
-          merchantOrderId,
-        );
-        const response = await client.getOrderStatus(merchantOrderId);
-        paymentState = response.state;
-        console.log("✅ Backend: PhonePe API response state:", paymentState);
-
-        // Create tickets only if payment is completed and tickets don't exist
-        if (
-          paymentState === "checkout.order.completed" &&
-          (!existingTickets || existingTickets.length === 0)
-        ) {
-          console.log(
-            "✅ Payment completed, creating tickets for order:",
-            merchantOrderId,
-          );
-
-          // Default to 1 ticket if no quantity is stored
-          const quantity = 1;
-          
-          // Check available tickets again
-          const availableTickets = await event.getAvailableTicketsCount();
-          if (availableTickets < quantity) {
-            return res.status(400).json({
-              success: false,
-              error: `Only ${availableTickets} tickets available`,
-            });
-          }
-
-          // Call the ticket creation endpoint internally
-          console.log("🎫 Calling internal ticket creation...");
-          const ticketCreationData = {
-            quantity: quantity,
-            merchantOrderId: merchantOrderId,
-            paymentStatus: "completed",
-            transactionId: response.transactionId || null,
-          };
-          
-          // Create tickets using the existing ticket creation logic
-          const createdTickets = await createTicketsForCompletedPayment(
-            user,
-            event,
-            ticketCreationData
-          );
-          
-          existingTickets = createdTickets;
-        } else if (paymentState === "checkout.order.completed" && existingTickets && existingTickets.length > 0) {
-          console.log("✅ Payment completed, tickets already exist for order:", merchantOrderId);
-        }
-      } catch (phonepeError) {
-        console.error("❌ Backend: PhonePe status check error:", phonepeError);
-        
-        // If PhonePe API fails, check if we have existing tickets to determine state
-        if (existingTickets && existingTickets.length > 0) {
-          const firstTicket = existingTickets[0];
-          console.log(
-            "🔄 Backend: Using fallback from ticket status:",
-            firstTicket.paymentStatus,
-          );
-          if (firstTicket.paymentStatus === "completed") {
-            paymentState = "checkout.order.completed";
-          } else if (firstTicket.paymentStatus === "failed") {
-            paymentState = "checkout.order.failed";
-          } else if (firstTicket.paymentStatus === "pending") {
-            paymentState = "checkout.order.pending";
-          }
-        } else {
-          // No tickets exist and PhonePe API failed, but if we're checking status it likely means payment was completed
-          // Let's create tickets anyway for completed payments
-          console.log("🔄 Backend: PhonePe API failed, but creating tickets for completed payment");
-          paymentState = "checkout.order.completed";
-          
-          // Create fallback tickets
-          const quantity = 1;
-          const availableTickets = await event.getAvailableTicketsCount();
-          
-          if (availableTickets >= quantity) {
-            console.log("🎫 Creating fallback tickets...");
-            const ticketCreationData = {
-              quantity: quantity,
-              merchantOrderId: merchantOrderId,
-              paymentStatus: "completed",
-              transactionId: null,
-            };
-            
-            const createdTickets = await createTicketsForCompletedPayment(
-              user,
-              event,
-              ticketCreationData
-            );
-            
-            existingTickets = createdTickets;
-          }
-        }
-        console.log("🔄 Backend: Mapped fallback state:", paymentState);
-      }
-
-      // Get final ticket data
-      const finalTickets = await Ticket.find({ merchantOrderId }).populate(
-        "user",
-        "name email",
-      );
-
-      const responseData = {
+    if (existingTickets.length > 0) {
+      console.log("✅ Tickets already exist for payment:", razorpay_payment_id);
+      return res.status(200).json({
         success: true,
-        merchantOrderId: merchantOrderId,
-        paymentState: paymentState,
-        tickets: finalTickets.map((ticket) => ({
+        message: "Tickets already created",
+        tickets: existingTickets.map((ticket) => ({
           id: ticket._id,
           ticketId: ticket.ticketId,
           status: ticket.status,
           paymentStatus: ticket.paymentStatus,
-          transactionId: ticket.transactionId,
           price: ticket.price,
         })),
-      };
-
-      console.log(
-        "📤 Backend: Sending response:",
-        JSON.stringify(responseData, null, 2),
-      );
-      res.status(200).json(responseData);
-    } catch (error) {
-      console.error("❌ Backend: Payment status check error:", error);
-      const errorResponse = {
-        success: false,
-        error: "Failed to check payment status",
-        details:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
-      };
-      console.log(
-        "📤 Backend: Sending error response:",
-        JSON.stringify(errorResponse, null, 2),
-      );
-      res.status(500).json(errorResponse);
+      });
     }
-  },
-);
+
+    // Check available tickets again
+    const availableTickets = await event.getAvailableTicketsCount();
+    if (availableTickets < quantity) {
+      return res.status(400).json({
+        success: false,
+        error: `Only ${availableTickets} tickets available`,
+      });
+    }
+
+    // Create tickets
+    const createdTickets = await createTicketsForCompletedPayment(
+      user,
+      event,
+      {
+        quantity: quantity,
+        paymentId: razorpay_payment_id,
+        orderId: razorpay_order_id,
+        paymentStatus: "completed",
+        transactionId: razorpay_payment_id,
+      }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: `${quantity} ticket(s) created successfully!`,
+      tickets: createdTickets.map((ticket) => ({
+        id: ticket._id,
+        ticketId: ticket.ticketId,
+        status: ticket.status,
+        paymentStatus: ticket.paymentStatus,
+        price: ticket.price,
+      })),
+    });
+  } catch (error) {
+    console.error("❌ Payment verification error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to verify payment",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
 
 // Helper function to create tickets for completed payments
 const createTicketsForCompletedPayment = async (user, event, paymentData) => {
-  const { quantity, merchantOrderId, paymentStatus, transactionId } = paymentData;
+  const { quantity, paymentId, orderId, paymentStatus, transactionId } = paymentData;
   
   // Calculate pricing
   const pricePerTicket = event.calculatePrice(quantity);
@@ -391,9 +270,10 @@ const createTicketsForCompletedPayment = async (user, event, paymentData) => {
         qrCode: qrCode,
         qrCodeImage: qrCodeImage,
         status: "active",
-        merchantOrderId: merchantOrderId,
+        paymentId: paymentId,
+        orderId: orderId,
         paymentStatus: paymentStatus,
-        paymentMethod: "phonepe",
+        paymentMethod: "razorpay",
         transactionId: transactionId,
         metadata: {
           purchaseMethod: "online",
@@ -414,11 +294,11 @@ const createTicketsForCompletedPayment = async (user, event, paymentData) => {
     "🎫 Created tickets:",
     createdTickets.length,
     "for order:",
-    merchantOrderId,
+    orderId,
   );
 
   // Populate user data for email
-  const populatedTickets = await Ticket.find({ merchantOrderId }).populate(
+  const populatedTickets = await Ticket.find({ paymentId }).populate(
     "user",
     "name email",
   );
@@ -444,98 +324,6 @@ const createTicketsForCompletedPayment = async (user, event, paymentData) => {
 
   return populatedTickets;
 };
-
-// New endpoint to create tickets after payment completion
-router.post("/create-after-payment", verifyToken, async (req, res) => {
-  try {
-    const { merchantOrderId, quantity = 1 } = req.body;
-    
-    console.log("🎫 Creating tickets after payment completion:", {
-      merchantOrderId,
-      quantity,
-      userUID: req.user.uid
-    });
-
-    // Find user by Firebase UID
-    const user = await User.findOne({ firebaseUID: req.user.uid });
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found",
-      });
-    }
-
-    // Get event details
-    const event = await Event.findOne();
-    if (!event) {
-      return res.status(404).json({
-        success: false,
-        error: "Event not found",
-      });
-    }
-
-    // Check if tickets already exist for this order
-    const existingTickets = await Ticket.find({ merchantOrderId });
-    if (existingTickets.length > 0) {
-      console.log("✅ Tickets already exist for order:", merchantOrderId);
-      return res.status(200).json({
-        success: true,
-        message: "Tickets already created",
-        tickets: existingTickets.map((ticket) => ({
-          id: ticket._id,
-          ticketId: ticket.ticketId,
-          status: ticket.status,
-          paymentStatus: ticket.paymentStatus,
-          price: ticket.price,
-        })),
-      });
-    }
-
-    // Check available tickets
-    const availableTickets = await event.getAvailableTicketsCount();
-    if (availableTickets < quantity) {
-      return res.status(400).json({
-        success: false,
-        error: `Only ${availableTickets} tickets available`,
-      });
-    }
-
-    // Create tickets
-    const ticketCreationData = {
-      quantity: quantity,
-      merchantOrderId: merchantOrderId,
-      paymentStatus: "completed",
-      transactionId: null, // Will be updated if available
-    };
-    
-    const createdTickets = await createTicketsForCompletedPayment(
-      user,
-      event,
-      ticketCreationData
-    );
-
-    res.status(201).json({
-      success: true,
-      message: `${quantity} ticket(s) created successfully!`,
-      tickets: createdTickets.map((ticket) => ({
-        id: ticket._id,
-        ticketId: ticket.ticketId,
-        status: ticket.status,
-        paymentStatus: ticket.paymentStatus,
-        price: ticket.price,
-      })),
-    });
-
-  } catch (error) {
-    console.error("❌ Create tickets after payment error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to create tickets",
-      details:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
-  }
-});
 
 // Create a ticket (protected route) - Keep original for backward compatibility
 router.post("/", verifyToken, async (req, res) => {

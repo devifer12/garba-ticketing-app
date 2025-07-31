@@ -86,7 +86,7 @@ const ticketSchema = new mongoose.Schema(
       default: null,
     },
 
-    merchantOrderId: {
+    orderId: {
       type: String,
       default: null,
     },
@@ -99,7 +99,7 @@ const ticketSchema = new mongoose.Schema(
 
     paymentMethod: {
       type: String,
-      default: "phonepe",
+      default: "razorpay",
     },
 
     transactionId: {

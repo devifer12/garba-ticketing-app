@@ -556,7 +556,6 @@ class EmailService {
                 <h2>₹${totalAmount}</h2>
               </div>
               
-              <div class="instructions">
                 <h3>📱 QR Code Instructions</h3>
                 <ul>
                   <li><strong>Your tickets are attached as PDF files</strong> - Download and save them</li>
