@@ -147,6 +147,7 @@ const authRoutes = require("./routes/authRoutes");
 const ticketRoutes = require("./routes/ticketRoutes");
 const eventRoutes = require("./routes/eventRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const refundRoutes = require("./routes/refundRoutes");
 
 // Health check route
 app.get("/api/health", (req, res) => {
@@ -164,6 +165,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/event", eventRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/refunds", refundRoutes);
 
 // Protected test route for debugging
 app.get("/api/protected", verifyFirebaseToken, (req, res) => {

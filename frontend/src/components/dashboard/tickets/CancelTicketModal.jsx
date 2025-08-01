@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { formatDate } from "../../../utils/helpers";
-import{ Link } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { refundAPI } from "../../../services/api";
+import { toast } from "react-toastify";
+
 const CancelTicketModal = ({
   ticket,
   event,
@@ -12,12 +15,32 @@ const CancelTicketModal = ({
   const [reason, setReason] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
+  const [refundStatus, setRefundStatus] = useState(null);
+  const [showRefundTracking, setShowRefundTracking] = useState(false);
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (!reason.trim()) {
       return;
     }
-    onCancel(ticket.id, reason.trim());
+    
+    try {
+      // Use the new refund API instead of the old cancel method
+      const response = await refundAPI.createRefund(ticket.id, reason.trim());
+      
+      if (response.data.success) {
+        setRefundStatus(response.data.refund);
+        setShowRefundTracking(true);
+        toast.success("🔄 Refund initiated successfully!");
+        
+        // Call the original onCancel to update the parent component
+        if (onCancel) {
+          onCancel(ticket.id, reason.trim());
+        }
+      }
+    } catch (error) {
+      console.error("Refund initiation failed:", error);
+      toast.error("Failed to initiate refund. Please try again.");
+    }
   };
 
   const calculateDaysUntilEvent = () => {
@@ -31,6 +54,117 @@ const CancelTicketModal = ({
   const canCancel = daysUntilEvent >= 10;
 
   if (!ticket || !event) return null;
+
+  // Show refund tracking if refund was initiated
+  if (showRefundTracking && refundStatus) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        >
+          <div className="p-4 sm:p-6 md:p-8">
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="text-3xl sm:text-4xl mb-3">✅</div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
+                Refund Initiated Successfully
+              </h2>
+              <p className="text-slate-400 text-sm sm:text-base">
+                Your refund is being processed
+              </p>
+            </div>
+
+            {/* Refund Details */}
+            <div className="bg-slate-700/50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 space-y-2 sm:space-y-3">
+              <div className="flex justify-between text-sm sm:text-base">
+                <span className="text-slate-400">Refund ID:</span>
+                <span className="text-white font-mono text-xs sm:text-sm">
+                  {refundStatus.refundId}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm sm:text-base">
+                <span className="text-slate-400">Original Amount:</span>
+                <span className="text-white font-medium">₹{refundStatus.originalAmount}</span>
+              </div>
+              <div className="flex justify-between text-sm sm:text-base">
+                <span className="text-slate-400">Processing Fee:</span>
+                <span className="text-red-300 font-medium">-₹{refundStatus.processingFee}</span>
+              </div>
+              <div className="border-t border-slate-600/50 pt-2 sm:pt-3">
+                <div className="flex justify-between">
+                  <span className="text-white font-bold text-sm sm:text-base">
+                    Refund Amount:
+                  </span>
+                  <span className="text-green-400 font-bold text-lg sm:text-xl">
+                    ₹{refundStatus.refundAmount}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Status Timeline */}
+            <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+              <h4 className="text-blue-300 font-medium mb-2 text-sm sm:text-base">
+                📊 Refund Status: {refundStatus.status.toUpperCase()}
+              </h4>
+              <div className="space-y-2 text-blue-200 text-xs sm:text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-400">✅</span>
+                  <span>Refund request created</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-400">🔄</span>
+                  <span>Processing with payment gateway</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400">⏳</span>
+                  <span>Completion (5-10 business days)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Important Information */}
+            <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+              <h4 className="text-yellow-300 font-medium mb-2 text-sm sm:text-base">
+                📋 What happens next:
+              </h4>
+              <ul className="text-yellow-200 text-xs sm:text-sm space-y-1">
+                <li>• Your ticket has been cancelled</li>
+                <li>• Refund is being processed automatically</li>
+                <li>• You'll receive email updates on progress</li>
+                <li>• Funds will be credited to your original payment method</li>
+                <li>• Processing typically takes 5-10 business days</li>
+              </ul>
+            </div>
+
+            {/* Action Button */}
+            <div className="text-center">
+              <motion.button
+                onClick={onClose}
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                ✅ Done
+              </motion.button>
+            </div>
+
+            {/* Support Information */}
+            <div className="mt-4 text-center">
+              <p className="text-slate-500 text-xs">
+                Questions? Contact us at <strong>hyyevents@gmail.com</strong>
+              </p>
+              <p className="text-slate-500 text-xs">
+                Reference: {refundStatus.refundId}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

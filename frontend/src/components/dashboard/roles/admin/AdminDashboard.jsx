@@ -11,6 +11,7 @@ import EventManager from "./EventManager";
 import UserManagement from "./UserManagement";
 import TicketManagement from "./TicketManagement";
 import AnalyticsDashboard from "./AnalyticsDashboard";
+import RefundManagement from "./RefundManagement";
 
 const AdminDashboard = () => {
   const { user, backendUser, refreshUserData } = useAuth();
@@ -422,6 +423,15 @@ const ManagementCards = ({ onViewChange, userRole }) => {
       color: "violet",
       adminOnly: false,
     },
+    {
+      icon: "💰",
+      title: "Manage Refunds",
+      description:
+        "Track and manage refund requests, process manual refunds.",
+      view: "refund-management",
+      color: "purple",
+      adminOnly: false,
+    },
   ];
 
   // Show all cards for both admin and manager
@@ -463,6 +473,7 @@ const SubView = ({ view, onBack, userRole }) => {
     "user-management": UserManagement,
     "ticket-management": TicketManagement,
     analytics: AnalyticsDashboard,
+    "refund-management": RefundManagement,
   };
 
   const Component = components[view];

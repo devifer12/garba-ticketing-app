@@ -10,6 +10,7 @@ import ErrorDisplay from "../../ui/ErrorDisplay";
 import UserAvatar from "../../ui/UserAvatar";
 import TicketsDetails from "../tickets/TicketsDetails";
 import PurchaseTicketModal from "../tickets/PurchaseTicketModal";
+import RefundTracker from "../refunds/RefundTracker";
 
 const GuestDashboard = () => {
   const { user, backendUser } = useAuth();
@@ -18,6 +19,7 @@ const GuestDashboard = () => {
   const [tickets, setTickets] = useState([]);
   const [purchasing, setPurchasing] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [currentView, setCurrentView] = useState("dashboard");
 
   const fetchDashboardData = async () => {
     await execute(
@@ -78,6 +80,27 @@ const GuestDashboard = () => {
       setPurchasing(false);
     }
   };
+
+  // Handle view changes
+  if (currentView === "refunds") {
+    return (
+      <div className="min-h-screen">
+        <div className="max-w-6xl mx-auto mb-8 px-4">
+          <div className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/30">
+            <div className="mb-6">
+              <button
+                onClick={() => setCurrentView("dashboard")}
+                className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-lg transition-all flex items-center gap-2"
+              >
+                ← Back to Dashboard
+              </button>
+            </div>
+            <RefundTracker />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -159,7 +182,11 @@ const GuestDashboard = () => {
           )}
 
           {/* Quick Actions */}
-          <QuickActions tickets={tickets} onRefresh={fetchDashboardData} />
+          <QuickActions 
+            tickets={tickets} 
+            onRefresh={fetchDashboardData}
+            onViewRefunds={() => setCurrentView("refunds")}
+          />
         </div>
       </motion.div>
 
@@ -270,7 +297,7 @@ const PurchaseSection = ({ event, onPurchase, purchasing }) => (
   </div>
 );
 
-const QuickActions = ({ tickets, onRefresh }) => (
+const QuickActions = ({ tickets, onRefresh, onViewRefunds }) => (
   <motion.div
     variants={ANIMATION_VARIANTS.item}
     className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"
@@ -286,6 +313,13 @@ const QuickActions = ({ tickets, onRefresh }) => (
           document
             .getElementById("tickets-section")
             ?.scrollIntoView({ behavior: "smooth" }),
+      },
+      {
+        icon: "💰",
+        title: "Refund Tracker",
+        description: "Track the status of your refund requests",
+        action: "View Refunds",
+        onClick: onViewRefunds,
       },
       {
         icon: "🔄",

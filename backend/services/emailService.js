@@ -743,6 +743,478 @@ class EmailService {
     `;
   }
 
+  // Generate refund initiated email HTML
+  generateRefundInitiatedEmailHTML(userData, ticketData, refundData) {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Refund Initiated</title>
+          <style>
+            body {
+              font-family: 'Arial', sans-serif;
+              line-height: 1.6;
+              color: #333;
+              background-color: #f4f4f4;
+              margin: 0;
+              padding: 0;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              background: white;
+              border-radius: 10px;
+              overflow: hidden;
+              box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            }
+            .header {
+              background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+              color: white;
+              padding: 30px;
+              text-align: center;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 28px;
+            }
+            .content {
+              padding: 30px;
+            }
+            .refund-message {
+              background: #dbeafe;
+              border: 1px solid #93c5fd;
+              color: #1e40af;
+              padding: 15px;
+              border-radius: 5px;
+              margin-bottom: 20px;
+              text-align: center;
+            }
+            .refund-details {
+              background: #f8f9fa;
+              padding: 20px;
+              border-radius: 8px;
+              margin: 20px 0;
+            }
+            .detail-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 10px;
+              padding-bottom: 10px;
+              border-bottom: 1px solid #eee;
+            }
+            .detail-row:last-child {
+              border-bottom: none;
+              margin-bottom: 0;
+            }
+            .detail-label {
+              font-weight: bold;
+              color: #666;
+            }
+            .detail-value {
+              color: #333;
+            }
+            .status-timeline {
+              background: #f0f9ff;
+              border: 1px solid #0ea5e9;
+              padding: 20px;
+              border-radius: 8px;
+              margin: 20px 0;
+            }
+            .footer {
+              background: #f8f9fa;
+              padding: 20px;
+              text-align: center;
+              color: #666;
+              font-size: 14px;
+            }
+            @media (max-width: 600px) {
+              .container {
+                margin: 10px;
+              }
+              .content {
+                padding: 20px;
+              }
+              .detail-row {
+                flex-direction: column;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔄 Refund Initiated</h1>
+              <p>Your refund request is being processed</p>
+            </div>
+            
+            <div class="content">
+              <div class="refund-message">
+                <h2>💳 Refund Processing Started</h2>
+                <p>Hello ${userData.name}, your refund request for ${ticketData.eventName} has been initiated and is currently being processed.</p>
+              </div>
+              
+              <div class="refund-details">
+                <h3>📋 Refund Details</h3>
+                <div class="detail-row">
+                  <span class="detail-label">🎫 Ticket ID:</span>
+                  <span class="detail-value">${ticketData.ticketId}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">🆔 Refund ID:</span>
+                  <span class="detail-value">${refundData.refundId}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">💰 Original Amount:</span>
+                  <span class="detail-value">₹${refundData.originalAmount}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">💸 Processing Fee:</span>
+                  <span class="detail-value">₹${refundData.processingFee}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">💵 Refund Amount:</span>
+                  <span class="detail-value"><strong>₹${refundData.refundAmount}</strong></span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">📅 Requested On:</span>
+                  <span class="detail-value">${new Date(refundData.createdAt).toLocaleDateString("en-US")}</span>
+                </div>
+              </div>
+              
+              <div class="status-timeline">
+                <h3>📊 Refund Status: Processing</h3>
+                <p>Your refund is currently being processed by our payment partner. Here's what happens next:</p>
+                <ul>
+                  <li>✅ <strong>Refund Initiated</strong> - Your request has been submitted</li>
+                  <li>🔄 <strong>Processing</strong> - Payment gateway is processing the refund</li>
+                  <li>⏳ <strong>Completion</strong> - Funds will be credited to your original payment method</li>
+                </ul>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <p><strong>⏱️ Expected Timeline:</strong></p>
+                <p>Refunds typically take 5-10 business days to appear in your account, depending on your bank or payment method.</p>
+              </div>
+              
+              <div style="text-align: center; margin: 20px 0;">
+                <p>Questions? Contact us at <strong>hyyevents@gmail.com</strong></p>
+                <p>Reference your Refund ID: <strong>${refundData.refundId}</strong></p>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p>Thank you for your understanding.</p>
+              <p>This is an automated email. Please do not reply to this email.</p>
+              <p>© 2025 Garba Rass. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  // Generate refund completed email HTML
+  generateRefundCompletedEmailHTML(userData, ticketData, refundData) {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Refund Completed</title>
+          <style>
+            body {
+              font-family: 'Arial', sans-serif;
+              line-height: 1.6;
+              color: #333;
+              background-color: #f4f4f4;
+              margin: 0;
+              padding: 0;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              background: white;
+              border-radius: 10px;
+              overflow: hidden;
+              box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            }
+            .header {
+              background: linear-gradient(135deg, #10b981, #059669);
+              color: white;
+              padding: 30px;
+              text-align: center;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 28px;
+            }
+            .content {
+              padding: 30px;
+            }
+            .success-message {
+              background: #d1fae5;
+              border: 1px solid #6ee7b7;
+              color: #065f46;
+              padding: 15px;
+              border-radius: 5px;
+              margin-bottom: 20px;
+              text-align: center;
+            }
+            .refund-details {
+              background: #f8f9fa;
+              padding: 20px;
+              border-radius: 8px;
+              margin: 20px 0;
+            }
+            .detail-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 10px;
+              padding-bottom: 10px;
+              border-bottom: 1px solid #eee;
+            }
+            .detail-row:last-child {
+              border-bottom: none;
+              margin-bottom: 0;
+            }
+            .detail-label {
+              font-weight: bold;
+              color: #666;
+            }
+            .detail-value {
+              color: #333;
+            }
+            .footer {
+              background: #f8f9fa;
+              padding: 20px;
+              text-align: center;
+              color: #666;
+              font-size: 14px;
+            }
+            @media (max-width: 600px) {
+              .container {
+                margin: 10px;
+              }
+              .content {
+                padding: 20px;
+              }
+              .detail-row {
+                flex-direction: column;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>✅ Refund Completed</h1>
+              <p>Your refund has been successfully processed</p>
+            </div>
+            
+            <div class="content">
+              <div class="success-message">
+                <h2>🎉 Refund Successful!</h2>
+                <p>Hello ${userData.name}, your refund for ${ticketData.eventName} has been completed successfully.</p>
+              </div>
+              
+              <div class="refund-details">
+                <h3>📋 Refund Summary</h3>
+                <div class="detail-row">
+                  <span class="detail-label">🆔 Refund ID:</span>
+                  <span class="detail-value">${refundData.refundId}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">💵 Refunded Amount:</span>
+                  <span class="detail-value"><strong>₹${refundData.refundAmount}</strong></span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">📅 Processed On:</span>
+                  <span class="detail-value">${new Date(refundData.processedAt).toLocaleDateString("en-US")}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">⏱️ Processing Time:</span>
+                  <span class="detail-value">${refundData.processingTime || 0} hours</span>
+                </div>
+              </div>
+              
+              <div style="background: #ecfdf5; border: 1px solid #6ee7b7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>💳 Payment Information</h3>
+                <p>The refund amount of <strong>₹${refundData.refundAmount}</strong> has been credited back to your original payment method.</p>
+                <p><strong>Note:</strong> It may take 5-10 business days for the amount to reflect in your account, depending on your bank or payment provider.</p>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <p>If you don't see the refund in your account within 10 business days, please contact your bank or payment provider.</p>
+              </div>
+              
+              <div style="text-align: center; margin: 20px 0;">
+                <p>Questions? Contact us at <strong>hyyevents@gmail.com</strong></p>
+                <p>Reference your Refund ID: <strong>${refundData.refundId}</strong></p>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p>Thank you for choosing Garba Rass 2025!</p>
+              <p>This is an automated email. Please do not reply to this email.</p>
+              <p>© 2025 Garba Rass. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  // Generate refund failed email HTML
+  generateRefundFailedEmailHTML(userData, ticketData, refundData) {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Refund Failed</title>
+          <style>
+            body {
+              font-family: 'Arial', sans-serif;
+              line-height: 1.6;
+              color: #333;
+              background-color: #f4f4f4;
+              margin: 0;
+              padding: 0;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              background: white;
+              border-radius: 10px;
+              overflow: hidden;
+              box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            }
+            .header {
+              background: linear-gradient(135deg, #ef4444, #dc2626);
+              color: white;
+              padding: 30px;
+              text-align: center;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 28px;
+            }
+            .content {
+              padding: 30px;
+            }
+            .error-message {
+              background: #fee2e2;
+              border: 1px solid #fca5a5;
+              color: #991b1b;
+              padding: 15px;
+              border-radius: 5px;
+              margin-bottom: 20px;
+              text-align: center;
+            }
+            .refund-details {
+              background: #f8f9fa;
+              padding: 20px;
+              border-radius: 8px;
+              margin: 20px 0;
+            }
+            .detail-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 10px;
+              padding-bottom: 10px;
+              border-bottom: 1px solid #eee;
+            }
+            .detail-row:last-child {
+              border-bottom: none;
+              margin-bottom: 0;
+            }
+            .detail-label {
+              font-weight: bold;
+              color: #666;
+            }
+            .detail-value {
+              color: #333;
+            }
+            .footer {
+              background: #f8f9fa;
+              padding: 20px;
+              text-align: center;
+              color: #666;
+              font-size: 14px;
+            }
+            @media (max-width: 600px) {
+              .container {
+                margin: 10px;
+              }
+              .content {
+                padding: 20px;
+              }
+              .detail-row {
+                flex-direction: column;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>❌ Refund Failed</h1>
+              <p>There was an issue processing your refund</p>
+            </div>
+            
+            <div class="content">
+              <div class="error-message">
+                <h2>⚠️ Refund Processing Failed</h2>
+                <p>Hello ${userData.name}, unfortunately your refund request for ${ticketData.eventName} could not be processed automatically.</p>
+              </div>
+              
+              <div class="refund-details">
+                <h3>📋 Refund Details</h3>
+                <div class="detail-row">
+                  <span class="detail-label">🆔 Refund ID:</span>
+                  <span class="detail-value">${refundData.refundId}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">💵 Refund Amount:</span>
+                  <span class="detail-value">₹${refundData.refundAmount}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">❌ Failure Reason:</span>
+                  <span class="detail-value">${refundData.failureReason || "Technical issue"}</span>
+                </div>
+              </div>
+              
+              <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>🔧 Next Steps</h3>
+                <p>Don't worry! Our support team has been notified and will process your refund manually.</p>
+                <ul>
+                  <li>We will contact you within 24 hours</li>
+                  <li>Manual processing typically takes 3-5 business days</li>
+                  <li>You will receive confirmation once completed</li>
+                </ul>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <p>For immediate assistance, contact us at <strong>hyyevents@gmail.com</strong></p>
+                <p>Reference your Refund ID: <strong>${refundData.refundId}</strong></p>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p>We apologize for the inconvenience.</p>
+              <p>This is an automated email. Please do not reply to this email.</p>
+              <p>© 2025 Garba Rass. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
   calculateSavings(quantity, eventData) {
     const individualPrice = eventData.ticketPrice;
     let actualPrice, tier;
@@ -968,6 +1440,90 @@ class EmailService {
         "Failed to send cancellation email:",
         process.env.NODE_ENV === "development" ? error : error.message
       );
+      throw error;
+    }
+  }
+
+  // Send refund initiated email
+  async sendRefundInitiatedEmail(userData, ticketData, refundData) {
+    try {
+      if (!this.transporter) {
+        throw new Error("Email service not initialized");
+      }
+
+      const mailOptions = {
+        from: {
+          name: "Garba Rass 2025",
+          address: process.env.EMAIL_USER,
+        },
+        to: userData.email,
+        subject: "🔄 Refund Initiated - Garba Rass 2025",
+        html: this.generateRefundInitiatedEmailHTML(userData, ticketData, refundData),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      if (process.env.NODE_ENV === "development") {
+        console.log("✅ Refund initiated email sent:", result.messageId);
+      }
+      return result;
+    } catch (error) {
+      console.error("Failed to send refund initiated email:", error);
+      throw error;
+    }
+  }
+
+  // Send refund completed email
+  async sendRefundCompletedEmail(userData, ticketData, refundData) {
+    try {
+      if (!this.transporter) {
+        throw new Error("Email service not initialized");
+      }
+
+      const mailOptions = {
+        from: {
+          name: "Garba Rass 2025",
+          address: process.env.EMAIL_USER,
+        },
+        to: userData.email,
+        subject: "✅ Refund Completed - Garba Rass 2025",
+        html: this.generateRefundCompletedEmailHTML(userData, ticketData, refundData),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      if (process.env.NODE_ENV === "development") {
+        console.log("✅ Refund completed email sent:", result.messageId);
+      }
+      return result;
+    } catch (error) {
+      console.error("Failed to send refund completed email:", error);
+      throw error;
+    }
+  }
+
+  // Send refund failed email
+  async sendRefundFailedEmail(userData, ticketData, refundData) {
+    try {
+      if (!this.transporter) {
+        throw new Error("Email service not initialized");
+      }
+
+      const mailOptions = {
+        from: {
+          name: "Garba Rass 2025",
+          address: process.env.EMAIL_USER,
+        },
+        to: userData.email,
+        subject: "❌ Refund Processing Issue - Garba Rass 2025",
+        html: this.generateRefundFailedEmailHTML(userData, ticketData, refundData),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      if (process.env.NODE_ENV === "development") {
+        console.log("✅ Refund failed email sent:", result.messageId);
+      }
+      return result;
+    } catch (error) {
+      console.error("Failed to send refund failed email:", error);
       throw error;
     }
   }

@@ -201,6 +201,18 @@ export const adminAPI = {
   getSystemHealth: () => api.get(API_ENDPOINTS.ADMIN.SYSTEM_HEALTH),
 };
 
+// Refund API
+export const refundAPI = {
+  createRefund: (ticketId, reason) =>
+    api.post(API_ENDPOINTS.REFUNDS.CREATE, { ticketId, reason }),
+  getMyRefunds: () => api.get(API_ENDPOINTS.REFUNDS.MY_REFUNDS),
+  getRefundStatus: (refundId) =>
+    api.get(`${API_ENDPOINTS.REFUNDS.STATUS}/${refundId}`),
+  getAllRefunds: (params) =>
+    api.get(API_ENDPOINTS.REFUNDS.ADMIN_ALL, { params }),
+  getRefundStats: () => api.get(API_ENDPOINTS.REFUNDS.ADMIN_STATS),
+};
+
 // Utility functions
 export const apiUtils = {
   formatErrorMessage: (error) => {

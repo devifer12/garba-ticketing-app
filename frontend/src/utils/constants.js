@@ -57,6 +57,13 @@ export const API_ENDPOINTS = {
     EXPORT: "/admin/tickets/export",
     SYSTEM_HEALTH: "/admin/system/health",
   },
+  REFUNDS: {
+    CREATE: "/refunds/create",
+    MY_REFUNDS: "/refunds/my-refunds",
+    STATUS: "/refunds/status",
+    ADMIN_ALL: "/refunds/admin/all",
+    ADMIN_STATS: "/refunds/admin/stats",
+  },
 };
 
 export const ERROR_MESSAGES = {

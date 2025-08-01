@@ -869,43 +869,74 @@ router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
       });
     }
 
-    await ticket.cancelTicket(reason.trim());
-    console.log("✅ Ticket cancelled successfully:", ticket.ticketId);
-
-    // Send cancellation email
+    // Initiate refund process instead of just cancelling
     try {
-      console.log("📧 Attempting to send cancellation email...");
-      await emailService.sendTicketCancellationEmail(
-        ticket.user,
-        ticket,
-        event,
+      console.log("💰 Initiating refund process...");
+      
+      const metadata = {
+        ipAddress: req.ip || req.connection.remoteAddress || "",
+        userAgent: req.headers["user-agent"] || "",
+      };
+
+      const refundResult = await refundService.initiateRefund(
+        ticketId,
+        user._id,
+        reason.trim(),
+        metadata
       );
-      console.log("✅ Cancellation email sent successfully");
-    } catch (emailError) {
-      console.error("⚠️ Failed to send cancellation email:", emailError);
-      console.error("📧 Cancellation email error details:", {
-        message: emailError.message,
-        code: emailError.code,
-        response: emailError.response,
+
+      console.log("✅ Refund initiated successfully:", refundResult.refund.refundId);
+
+      res.status(200).json({
+        success: true,
+        message: "Ticket cancelled and refund initiated successfully",
+        ticket: {
+          id: ticket._id,
+          ticketId: ticket.ticketId,
+          status: "cancelled",
+          cancelledAt: new Date(),
+          cancellationReason: reason.trim(),
+          user: {
+            name: ticket.user.name,
+            email: ticket.user.email,
+          },
+        },
+        refund: refundResult.refund,
       });
-      // Continue with cancellation even if email fails
+
+    } catch (refundError) {
+      console.error("❌ Refund initiation failed:", refundError);
+      
+      // Fallback: Cancel ticket without refund
+      await ticket.cancelTicket(reason.trim());
+      console.log("✅ Ticket cancelled (without refund):", ticket.ticketId);
+
+      // Send regular cancellation email
+      try {
+        await emailService.sendTicketCancellationEmail(ticket.user, ticket, event);
+        console.log("✅ Cancellation email sent successfully");
+      } catch (emailError) {
+        console.error("⚠️ Failed to send cancellation email:", emailError);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Ticket cancelled successfully. Refund will be processed manually.",
+        ticket: {
+          id: ticket._id,
+          ticketId: ticket.ticketId,
+          status: ticket.status,
+          cancelledAt: ticket.cancelledAt,
+          cancellationReason: ticket.cancellationReason,
+          user: {
+            name: ticket.user.name,
+            email: ticket.user.email,
+          },
+        },
+        refundNote: "Refund will be processed manually within 5-7 business days",
+      });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Ticket cancelled successfully",
-      ticket: {
-        id: ticket._id,
-        ticketId: ticket.ticketId,
-        status: ticket.status,
-        cancelledAt: ticket.cancelledAt,
-        cancellationReason: ticket.cancellationReason,
-        user: {
-          name: ticket.user.name,
-          email: ticket.user.email,
-        },
-      },
-    });
   } catch (error) {
     console.error("❌ Cancel ticket error:", error);
     res.status(500).json({
