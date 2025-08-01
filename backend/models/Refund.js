@@ -48,7 +48,7 @@ const refundSchema = new mongoose.Schema(
 
     processingFee: {
       type: Number,
-      default: 40, // ₹40 processing fee
+      default: 20, // ₹20 processing fee
     },
 
     // Razorpay refund details
@@ -171,7 +171,7 @@ refundSchema.pre("save", function (next) {
 
 // Static method to create refund request
 refundSchema.statics.createRefundRequest = async function (ticketData, userData, reason) {
-  const refundAmount = Math.max(1, ticketData.price - 40); // Minimum ₹1 after processing fee
+  const refundAmount = Math.max(1, ticketData.price - 20); // Minimum ₹1 after processing fee
 
   const refund = new this({
     ticket: ticketData._id,

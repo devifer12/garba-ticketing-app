@@ -124,16 +124,16 @@ const CancellationPolicy = () => {
                   <div className="space-y-4">
                     <h3 className="text-xl font-semibold text-navratri-orange mb-2">Processing Fees</h3>
                     <ul className="list-disc list-inside space-y-2 ml-4">
-                      <li>Payment gateway fees: ₹25 per ticket (non-refundable)</li>
-                      <li>Platform processing fee: ₹15 per ticket (non-refundable)</li>
-                      <li>Total deduction: ₹40 per cancelled ticket</li>
+                      <li>Payment gateway fees: ₹10 per ticket (non-refundable)</li>
+                      <li>Platform processing fee: ₹10 per ticket (non-refundable)</li>
+                      <li>Total deduction: ₹20 per cancelled ticket</li>
                     </ul>
 
                     <h3 className="text-xl font-semibold text-navratri-orange mb-2 mt-6">Refund Timeline</h3>
                     <ul className="list-disc list-inside space-y-2 ml-4">
                       <li><strong>All Payment Methods:</strong> 5-10 business days</li>
-                      <li><strong>Processing Fee:</strong> ₹40 will be deducted</li>
-                      <li><strong>Refund Amount:</strong> Original price minus ₹40 processing fee</li>
+                      <li><strong>Processing Fee:</strong> ₹20 will be deducted</li>
+                      <li><strong>Refund Amount:</strong> Original price minus ₹20 processing fee</li>
                       <li><strong>Email Updates:</strong> You'll receive status notifications</li>
                     </ul>
 

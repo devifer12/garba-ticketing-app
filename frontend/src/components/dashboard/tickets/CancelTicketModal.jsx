@@ -272,13 +272,13 @@ const CancelTicketModal = ({
                   </h4>
                   <ul className="text-blue-200 text-xs sm:text-sm space-y-1">
                     <li>• Refund will be initiated automatically via PhonePe</li>
-                    <li>• Processing fees of ₹40 will be deducted</li>
+                    <li>• Processing fees of ₹20 will be deducted</li>
                     <li>• Refund will be processed within 5-10 business days</li>
                     <li>
                       • Amount will be credited to your original payment method
                     </li>
                     <li>• You will receive a confirmation email</li>
-                    <li>• <strong>Refund amount: ₹{Math.max(1, ticket.price - 40)}</strong> (after ₹40 processing fee)</li>
+                    <li>• <strong>Refund amount: ₹{Math.max(1, ticket.price - 20)}</strong> (after ₹20 processing fee)</li>
                   </ul>
                 </div>
 

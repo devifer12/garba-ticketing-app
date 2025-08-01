@@ -164,7 +164,7 @@ const RefundPolicy = () => {
                           <h4 className="font-semibold text-white mb-2">ANY PAYMET METHOD</h4>
                           <ul className="text-sm space-y-1">
                             <li>• If approved, you'll be automatically refunded via Razorpay and credited on your original payment method within 5-10 business days</li>
-                            <li>• Processing fees of ₹40 will be deducted from the refund amount</li>
+                            <li>• Processing fees of ₹20 will be deducted from the refund amount</li>
                             <li>• You will receive email notifications about refund status updates</li>
                           </ul>
                         </div>
@@ -179,9 +179,9 @@ const RefundPolicy = () => {
                     <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-xl p-6">
                       <h3 className="text-xl font-semibold text-yellow-300 mb-3">Processing Fees (Non-Refundable)</h3>
                       <div className="space-y-2 text-yellow-200">
-                        <p><strong>Payment Gateway Fee:</strong> ₹25 per ticket</p>
-                        <p><strong>Platform Processing Fee:</strong> ₹15 per ticket</p>
-                        <p><strong>Total Deduction:</strong> ₹40 per ticket</p>
+                        <p><strong>Payment Gateway Fee:</strong> ₹10 per ticket</p>
+                        <p><strong>Platform Processing Fee:</strong> ₹10 per ticket</p>
+                        <p><strong>Total Deduction:</strong> ₹20 per ticket</p>
                       </div>
                     </div>
 
@@ -190,11 +190,11 @@ const RefundPolicy = () => {
                       <div className="space-y-3">
                         <div className="bg-slate-700/30 rounded-lg p-4">
                           <p><strong>Example 1:</strong> Single ticket worth ₹500</p>
-                          <p>Refund amount: ₹500 - ₹40 = <strong>₹460</strong></p>
+                          <p>Refund amount: ₹500 - ₹20 = <strong>₹480</strong></p>
                         </div>
                         <div className="bg-slate-700/30 rounded-lg p-4">
                           <p><strong>Example 2:</strong> 3 tickets worth ₹1,500 (₹500 each)</p>
-                          <p>Refund amount: ₹1,500 - (₹40 × 3) = <strong>₹1,380</strong></p>
+                          <p>Refund amount: ₹1,500 - (₹20 × 3) = <strong>₹1,440</strong></p>
                         </div>
                       </div>
                     </div>
