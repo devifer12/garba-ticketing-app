@@ -8,6 +8,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
   const [quantity, setQuantity] = useState(1);
   const [showConfirm, setShowConfirm] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // New state variable for internal processing
 
   // Calculate price based on quantity (tiered pricing)
   const calculatePrice = (qty) => {
@@ -35,6 +36,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
   };
 
   const handlePurchase = async () => {
+    setIsProcessing(true); // Set processing state to true immediately
     try {
       // Create Razorpay order
       const orderData = {
@@ -60,6 +62,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
           description: `${quantity} ticket(s) for ${event.name}`,
           order_id: orderId,
           handler: async function (response) {
+            setIsProcessing(true); // Re-enable processing state for verification
             try {
               // Verify payment on backend
               const verifyResponse = await paymentAPI.verifyPayment({
@@ -80,6 +83,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
             } catch (error) {
               console.error("Payment verification failed:", error);
               toast.error("Payment verification failed. Please contact support.");
+            } finally {
+              setIsProcessing(false);
             }
           },
           prefill: {
@@ -105,6 +110,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
     } catch (error) {
       console.error("Order creation failed:", error);
       toast.error("Failed to create payment order. Please try again.");
+    } finally {
+      setIsProcessing(false); // Hide loading on error or successful order creation
     }
     setShowConfirm(false);
   };
@@ -274,7 +281,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
             <div className="flex flex-col sm:flex-row gap-3">
               <motion.button
                 onClick={() => setShowConfirm(true)}
-                disabled={purchasing || quantity === 0 || !agreedToTerms}
+                disabled={isProcessing || quantity === 0 || !agreedToTerms}
                 className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-lg shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -284,7 +291,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
 
               <motion.button
                 onClick={onClose}
-                disabled={purchasing}
+                disabled={isProcessing}
                 className="px-4 sm:px-6 py-2 sm:py-3 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all disabled:opacity-50 text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -370,12 +377,12 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
             <div className="flex flex-col sm:flex-row gap-3">
               <motion.button
                 onClick={handlePurchase}
-                disabled={purchasing}
+                disabled={isProcessing}
                 className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-600 to-green-500 text-white font-bold rounded-lg shadow-lg hover:shadow-green-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                {purchasing ? (
+                {isProcessing ? (
                   <>
                     <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-t-2 border-b-2 border-white"></div>
                     Processing...
@@ -387,7 +394,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
 
               <motion.button
                 onClick={() => setShowConfirm(false)}
-                disabled={purchasing}
+                disabled={isProcessing}
                 className="px-4 sm:px-6 py-2 sm:py-3 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all disabled:opacity-50 text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
