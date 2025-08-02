@@ -141,9 +141,12 @@ const Footer = () => {
               {footerLinks.policies.map((link, index) => (
                 <li key={index}>
                   <motion.button
-                    onClick={() => navigate(link.path)}
                     className="text-slate-400 hover:text-navratri-orange transition-colors text-sm"
                     whileHover={{ x: 5 }}
+                    onClick={() => {
+                      navigate(link.path);
+                      window.scrollTo({ top: 0, behavior: "instant" });
+                    }}
                   >
                     {link.name}
                   </motion.button>

@@ -66,6 +66,10 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 // Body parsing middleware with optimized limits
+// Special handling for webhook routes that need raw body
+app.use('/api/refunds/webhook', express.raw({ type: 'application/json' }));
+
+// Regular JSON parsing for other routes
 app.use(express.json({ limit: "2mb" })); // Further reduced for production
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 

@@ -4,7 +4,7 @@ import { apiUtils } from "../services/api";
 
 // Simple in-memory cache for API responses
 const apiCache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes - increased cache duration
 
 export const useApi = () => {
   const [loading, setLoading] = useState(false);
@@ -35,6 +35,7 @@ export const useApi = () => {
       if (cacheKey) {
         const cached = apiCache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < cacheDuration) {
+          if (showLoading) setLoading(false); // Ensure loading is false for cached results
           return cached.data;
         }
       }
@@ -52,7 +53,7 @@ export const useApi = () => {
         });
 
         // Clean up old cache entries
-        if (apiCache.size > 50) {
+        if (apiCache.size > 100) { // Increased cache size
           const oldestKey = apiCache.keys().next().value;
           apiCache.delete(oldestKey);
         }

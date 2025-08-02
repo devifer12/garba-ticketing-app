@@ -310,9 +310,13 @@ class RefundService {
   // Verify webhook signature
   verifyWebhookSignature(body, signature, secret) {
     const crypto = require("crypto");
+    
+    // Ensure body is a Buffer or string for HMAC calculation
+    const bodyBuffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
+    
     const expectedSignature = crypto
       .createHmac("sha256", secret)
-      .update(body)
+      .update(bodyBuffer)
       .digest("hex");
 
     return expectedSignature === signature;

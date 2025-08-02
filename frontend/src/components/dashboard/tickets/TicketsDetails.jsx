@@ -275,53 +275,6 @@ const TicketsDetails = () => {
           </div>
         </motion.div>
 
-        {/* Event Information */}
-        {event && (
-          <motion.div
-            className="bg-slate-800/30 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 border border-slate-700/30 mb-6 sm:mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="text-center mb-4 sm:mb-6">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
-                {event.name}
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-                <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4">
-                  <div className="text-xl sm:text-2xl mb-2">📅</div>
-                  <h3 className="text-white font-semibold mb-1 text-sm sm:text-base">
-                    Date
-                  </h3>
-                  <p className="text-slate-300 text-sm sm:text-base">
-                    {formatDate(event.date)}
-                  </p>
-                </div>
-
-                <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4">
-                  <div className="text-xl sm:text-2xl mb-2">🕐</div>
-                  <h3 className="text-white font-semibold mb-1 text-sm sm:text-base">
-                    Time
-                  </h3>
-                  <p className="text-slate-300 text-sm sm:text-base">
-                    {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                  </p>
-                </div>
-
-                <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4 sm:col-span-2 md:col-span-1">
-                  <div className="text-xl sm:text-2xl mb-2">📍</div>
-                  <h3 className="text-white font-semibold mb-1 text-sm sm:text-base">
-                    Venue
-                  </h3>
-                  <p className="text-slate-300 text-sm sm:text-base">
-                    {event.venue}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
         {/* Tickets Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

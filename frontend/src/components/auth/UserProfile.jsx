@@ -59,8 +59,23 @@ const UserProfile = ({ className = "" }) => {
       items.push({
         icon: "🎫",
         label: "My Tickets",
-        action: () => handleNavigation("/dashboard"),
-        show: true
+        show: true,
+        action: () => {
+          // Close dropdown first
+          setIsDropdownOpen(false);
+          // Navigate to the dashboard page
+          navigate("/dashboard");
+          // After navigating, wait for the page to render, then scroll
+          setTimeout(() => {
+            const ticketsSection = document.getElementById("tickets-section");
+            if (ticketsSection) {
+              ticketsSection.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }
+          }, 400); // 200ms delay for rendering
+        },
       });
     }
 
@@ -120,7 +135,7 @@ const UserProfile = ({ className = "" }) => {
         )}
 
         {/* User Info - Hidden on mobile */}
-        <div className="hidden sm:block text-left">
+        <div className=" sm:block text-left">
           <p className="text-white font-medium text-xs sm:text-sm leading-tight">
             {displayName}
           </p>

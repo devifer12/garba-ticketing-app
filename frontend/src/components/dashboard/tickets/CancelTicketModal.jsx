@@ -203,7 +203,7 @@ const CancelTicketModal = ({
                 <div className="flex justify-between">
                   <span className="text-slate-400">Price:</span>
                   <span className="text-white font-medium">
-                    ₹{ticket.price}
+                    ₹{Math.max(1, ticket.price - 20)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -360,7 +360,7 @@ const CancelTicketModal = ({
               <div className="flex justify-between text-sm sm:text-base">
                 <span className="text-slate-400">Refund Amount:</span>
                 <span className="text-green-400 font-bold">
-                  ₹{ticket.price}
+                  ₹{Math.max(1, ticket.price - 20)}
                 </span>
               </div>
 

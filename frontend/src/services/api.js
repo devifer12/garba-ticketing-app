@@ -4,7 +4,7 @@ import { API_ENDPOINTS, ERROR_MESSAGES } from "../utils/constants.js";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
-  timeout: 15000, // Increased for serverless cold starts
+  timeout: 30000, // Further increased for better performance
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -154,8 +154,6 @@ export const ticketAPI = {
     api.post(API_ENDPOINTS.TICKETS.MARK_USED, { qrCode }),
   cancelTicket: (ticketId, reason) =>
     api.patch(`${API_ENDPOINTS.TICKETS.CANCEL}/${ticketId}`, { reason }),
-  createTicketsAfterPayment: (paymentData) =>
-    api.post(`${API_ENDPOINTS.TICKETS.BASE}/create-after-payment`, paymentData),
 };
 
 // Payment API for PhonePe integration

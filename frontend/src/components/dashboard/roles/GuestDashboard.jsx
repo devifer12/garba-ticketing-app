@@ -309,10 +309,13 @@ const QuickActions = ({ tickets, onRefresh, onViewRefunds }) => (
         description: "View and manage your purchased tickets",
         action: "View Tickets",
         count: tickets.length,
-        onClick: () =>
-          document
-            .getElementById("tickets-section")
-            ?.scrollIntoView({ behavior: "smooth" }),
+        onClick: () => {
+          // Directly scroll to tickets section
+          const ticketsSection = document.getElementById("tickets-section");
+          if (ticketsSection) {
+            ticketsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        },
       },
       {
         icon: "💰",

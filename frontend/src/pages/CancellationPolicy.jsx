@@ -6,6 +6,11 @@ import Footer from '../components/common/footer/Footer';
 
 const CancellationPolicy = () => {
   const navigate = useNavigate();
+  
+  // Scroll to top when component mounts
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },

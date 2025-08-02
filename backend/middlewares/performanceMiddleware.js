@@ -13,10 +13,10 @@ const performanceMiddleware = (req, res, next) => {
 
     // Log slow requests - use environment variable for threshold
     const slowQueryThreshold =
-      parseInt(process.env.SLOW_QUERY_THRESHOLD) || 1000;
+      parseInt(process.env.SLOW_QUERY_THRESHOLD) || 5000; // Further increased threshold
     if (duration > slowQueryThreshold) {
       console.warn(
-        `Slow request detected: ${req.method} ${req.path} - ${duration}ms`,
+        `⚠️ Slow request: ${req.method} ${req.path} - ${duration}ms`,
       );
     }
 
@@ -28,7 +28,9 @@ const performanceMiddleware = (req, res, next) => {
 
     // Development logging
     if (process.env.NODE_ENV === "development") {
-      console.log(`${req.method} ${req.path} - ${duration}ms`);
+      if (duration > 1000) { // Only log requests over 1000ms in development
+        console.log(`${req.method} ${req.path} - ${duration}ms`);
+      }
     }
 
     return originalJson.call(this, data);
@@ -39,9 +41,7 @@ const performanceMiddleware = (req, res, next) => {
 
 // Database query performance monitoring
 const dbPerformanceMiddleware = (req, res, next) => {
-  const enableLogging =
-    process.env.LOG_SLOW_QUERIES === "true" ||
-    process.env.NODE_ENV === "development";
+  const enableLogging = process.env.LOG_SLOW_QUERIES === "true";
 
   if (enableLogging) {
     const mongoose = require("mongoose");
@@ -49,15 +49,12 @@ const dbPerformanceMiddleware = (req, res, next) => {
     // Monitor slow queries
     mongoose.set("debug", (collectionName, method, query, doc) => {
       const start = Date.now();
-      if (process.env.NODE_ENV === "development") {
-        console.log(`DB Query: ${collectionName}.${method}`, query);
-      }
 
       // You can add query timing here if needed
       setTimeout(() => {
         const duration = Date.now() - start;
         const slowDbThreshold =
-          parseInt(process.env.SLOW_DB_QUERY_THRESHOLD) || 100;
+          parseInt(process.env.SLOW_DB_QUERY_THRESHOLD) || 500;
         if (duration > slowDbThreshold) {
           console.warn(
             `Slow DB query: ${collectionName}.${method} - ${duration}ms`,
@@ -72,13 +69,11 @@ const dbPerformanceMiddleware = (req, res, next) => {
 
 // Memory usage monitoring
 const memoryMonitoringMiddleware = (req, res, next) => {
-  const enableMonitoring =
-    process.env.ENABLE_PERFORMANCE_MONITORING === "true" ||
-    process.env.NODE_ENV === "development";
+  const enableMonitoring = process.env.ENABLE_PERFORMANCE_MONITORING === "true";
 
   if (enableMonitoring) {
     const memUsage = process.memoryUsage();
-    const memoryThreshold = parseInt(process.env.MEMORY_THRESHOLD_MB) || 100;
+    const memoryThreshold = parseInt(process.env.MEMORY_THRESHOLD_MB) || 200;
 
     // Log memory usage for heavy requests
     if (memUsage.heapUsed > memoryThreshold * 1024 * 1024) {

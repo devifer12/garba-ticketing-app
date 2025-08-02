@@ -4,18 +4,18 @@ require("dotenv").config({ path: "../.env" });
 const connectDB = async () => {
   try {
     // Use environment variables for connection pool settings
-    const maxPoolSize = parseInt(process.env.MONGODB_MAX_POOL_SIZE) || 20;
+    const maxPoolSize = parseInt(process.env.MONGODB_MAX_POOL_SIZE) || 10; // Reduced pool size
     const minPoolSize = parseInt(process.env.MONGODB_MIN_POOL_SIZE) || 5;
 
     await mongoose.connect(process.env.MONGODB_URI, {
       maxPoolSize, // Use environment variable or default
       minPoolSize, // Use environment variable or default
-      serverSelectionTimeoutMS: 10000, // Increased timeout for serverless
-      socketTimeoutMS: 60000, // Increased socket timeout
+      serverSelectionTimeoutMS: 15000, // Further increased timeout
+      socketTimeoutMS: 45000, // Optimized socket timeout
       connectTimeoutMS: 10000, // Connection timeout
       bufferCommands: true,
       // Performance optimizations
-      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+      maxIdleTimeMS: 60000, // Increased idle time for better connection reuse
       heartbeatFrequencyMS: 10000, // Check connection health every 10 seconds
     });
 

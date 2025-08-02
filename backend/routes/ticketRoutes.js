@@ -494,10 +494,11 @@ router.get("/my-tickets", verifyToken, async (req, res) => {
     const tickets = await Ticket.find({ user: user._id })
       .populate("user", "name email")
       .populate("scannedBy", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean(); // Use lean for better performance
 
     const responseTickets = tickets.map((ticket) => ({
-      id: ticket._id,
+      id: ticket._id.toString(),
       ticketId: ticket.ticketId,
       qrCode: ticket.qrCode,
       qrCodeImage: ticket.qrCodeImage,
@@ -508,8 +509,8 @@ router.get("/my-tickets", verifyToken, async (req, res) => {
       updatedAt: ticket.updatedAt,
       entryTime: ticket.entryTime,
       scannedAt: ticket.scannedAt,
-      isScanned: ticket.isScanned,
-      hasEntered: ticket.hasEntered,
+      isScanned: !!ticket.scannedAt,
+      hasEntered: !!ticket.entryTime,
       scannedBy: ticket.scannedBy
         ? {
             name: ticket.scannedBy.name,
@@ -954,7 +955,7 @@ const { isAdmin, isManager } = require("../middlewares/roleMiddleware");
 // Get all tickets (Admin/Manager only)
 router.get("/admin/all", verifyToken, isManager, async (req, res) => {
   try {
-    const { status, page = 1, limit = 20, search } = req.query;
+    const { status, page = 1, limit = 10, search } = req.query; // Reduced default limit
 
     let query = {};
     if (status && status !== "all") {
@@ -976,11 +977,13 @@ router.get("/admin/all", verifyToken, isManager, async (req, res) => {
       ];
     }
 
+    const limitNum = Math.min(20, Math.max(1, parseInt(limit))); // Cap limit for performance
+
     const tickets = await Ticket.find(query)
       .populate("user", "name email role")
       .populate("scannedBy", "name email")
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
+      .limit(limitNum)
       .skip((page - 1) * limit);
 
     const total = await Ticket.countDocuments(query);
@@ -990,7 +993,7 @@ router.get("/admin/all", verifyToken, isManager, async (req, res) => {
       count: tickets.length,
       total,
       page: parseInt(page),
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / limitNum),
       tickets: tickets.map((ticket) => ticket.getSafeTicketData()),
     });
   } catch (error) {

@@ -29,7 +29,7 @@ router.get("/users", verifyToken, isAdminOrManager, async (req, res) => {
   try {
     const { page = 1, limit = 20, role, search } = req.query;
     const pageNum = Math.max(1, parseInt(page));
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit))); // Cap limit at 50
+    const limitNum = Math.min(20, Math.max(1, parseInt(limit))); // Reduced limit for better performance
 
     let query = {};
 

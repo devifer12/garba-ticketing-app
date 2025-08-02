@@ -52,7 +52,7 @@ const Navbar = () => {
         transition={{ duration: 0.4 }}> {/* Reduced duration */}
         
         {/* Top Bar with Controls */}
-        <div className="absolute top-0 left-0 right-0 z-50 p-4 pointer-events-none">
+        <div className="absolute top-5 left-0 right-0 z-50 p-1 pointer-events-none">
           <div className="flex justify-end items-start">
             {/* Authentication Section - Right Side */}
             <div className="flex items-center mt-8 pointer-events-auto">

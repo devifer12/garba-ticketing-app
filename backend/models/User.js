@@ -54,18 +54,12 @@ const userSchema = new mongoose.Schema({
 // ENHANCED: Static method to find or create user from Google auth
 userSchema.statics.findOrCreateGoogleUser = async function (googleUserData) {
   const { uid, email, name, picture, email_verified } = googleUserData;
-  if (process.env.NODE_ENV === "development") {
-    console.log("🔍 findOrCreateGoogleUser called with:", { uid, email, name });
-  }
 
   try {
     // First, try to find user by Firebase UID
     let user = await this.findOne({ firebaseUID: uid });
 
     if (user) {
-      if (process.env.NODE_ENV === "development") {
-        console.log("✅ Existing user found by UID:", user.email);
-      }
 
       // Update last login time only
       user.lastLogin = new Date();
@@ -78,12 +72,6 @@ userSchema.statics.findOrCreateGoogleUser = async function (googleUserData) {
     const existingEmailUser = await this.findOne({ email: email });
 
     if (existingEmailUser) {
-      if (process.env.NODE_ENV === "development") {
-        console.log(
-          "📧 Found user by email, updating with Firebase UID:",
-          email,
-        );
-      }
 
       // Update existing user with Firebase UID (for migration)
       existingEmailUser.firebaseUID = uid;
@@ -100,17 +88,11 @@ userSchema.statics.findOrCreateGoogleUser = async function (googleUserData) {
       }
 
       await existingEmailUser.save();
-      if (process.env.NODE_ENV === "development") {
-        console.log("✅ Existing email user updated with Firebase UID");
-      }
 
       return existingEmailUser;
     }
 
     // Create completely new user
-    if (process.env.NODE_ENV === "development") {
-      console.log("🆕 Creating brand new user for:", email);
-    }
 
     const newUserData = {
       firebaseUID: uid,
@@ -123,21 +105,10 @@ userSchema.statics.findOrCreateGoogleUser = async function (googleUserData) {
       createdAt: new Date(),
     };
 
-    if (process.env.NODE_ENV === "development") {
-      console.log("📝 New user data being created:", newUserData);
-    }
 
     const newUser = new this(newUserData);
     const savedUser = await newUser.save();
 
-    if (process.env.NODE_ENV === "development") {
-      console.log("✅ New user created successfully:", {
-        id: savedUser._id,
-        email: savedUser.email,
-        firebaseUID: savedUser.firebaseUID,
-        name: savedUser.name,
-      });
-    }
 
     return savedUser;
   } catch (error) {
@@ -148,9 +119,6 @@ userSchema.statics.findOrCreateGoogleUser = async function (googleUserData) {
 
     // Handle duplicate key errors gracefully
     if (error.code === 11000) {
-      if (process.env.NODE_ENV === "development") {
-        console.log("🔍 Duplicate key error detected");
-      }
 
       // Try to find the conflicting user and return it
       try {
@@ -159,12 +127,6 @@ userSchema.statics.findOrCreateGoogleUser = async function (googleUserData) {
         });
 
         if (conflictUser) {
-          if (process.env.NODE_ENV === "development") {
-            console.log(
-              "✅ Found conflicting user, returning it:",
-              conflictUser.email,
-            );
-          }
 
           // Update Firebase UID if missing
           if (!conflictUser.firebaseUID) {

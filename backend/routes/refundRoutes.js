@@ -197,16 +197,25 @@ router.patch("/admin/:refundId/status", verifyToken, isAdmin, async (req, res) =
 });
 
 // Webhook endpoint for Razorpay (public)
-router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+router.post("/webhook", async (req, res) => {
   try {
+    // Get raw body for signature verification
+    let rawBody;
+    if (Buffer.isBuffer(req.body)) {
+      rawBody = req.body;
+    } else if (typeof req.body === 'string') {
+      rawBody = Buffer.from(req.body);
+    } else {
+      rawBody = Buffer.from(JSON.stringify(req.body));
+    }
+
     const signature = req.headers["x-razorpay-signature"];
-    const body = req.body;
 
     console.log("🔔 Refund webhook received");
 
     // Verify webhook signature
     const isValid = refundService.verifyWebhookSignature(
-      body,
+      rawBody,
       signature,
       process.env.RAZORPAY_WEBHOOK_SECRET
     );
@@ -217,7 +226,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
     }
 
     // Parse the event
-    const event = JSON.parse(body.toString());
+    const event = typeof req.body === 'object' ? req.body : JSON.parse(rawBody.toString());
 
     // Process the webhook event
     await refundService.handleWebhookEvent(event);

@@ -72,8 +72,10 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
               if (verifyResponse.data.success) {
                 toast.success("🎉 Payment successful! Your tickets have been generated.");
                 onClose();
-                // Refresh the page or redirect to dashboard
-                window.location.reload();
+                // Redirect to payment success page
+                setTimeout(() => {
+                  window.location.href = "/payment-success";
+                },);
               }
             } catch (error) {
               console.error("Payment verification failed:", error);
