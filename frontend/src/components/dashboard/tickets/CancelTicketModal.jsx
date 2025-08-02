@@ -32,10 +32,8 @@ const CancelTicketModal = ({
         setShowRefundTracking(true);
         toast.success("🔄 Refund initiated successfully!");
         
-        // Call the original onCancel to update the parent component
-        if (onCancel) {
-          onCancel(ticket.id, reason.trim());
-        }
+        // Don't call onCancel since the refund API already handles the cancellation
+        // The parent component will be updated when the modal closes
       }
     } catch (error) {
       console.error("Refund initiation failed:", error);
@@ -142,7 +140,11 @@ const CancelTicketModal = ({
             {/* Action Button */}
             <div className="text-center">
               <motion.button
-                onClick={onClose}
+                onClick={() => {
+                  onClose();
+                  // Trigger a refresh of the parent component
+                  window.location.reload();
+                }}
                 className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

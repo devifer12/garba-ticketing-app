@@ -75,7 +75,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                 // Redirect to payment success page
                 setTimeout(() => {
                   window.location.href = "/payment-success";
-                },);
+                }, 1000);
               }
             } catch (error) {
               console.error("Payment verification failed:", error);
@@ -132,29 +132,6 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
               </p>
             </div>
 
-            {/* Event Details */}
-            <div className="bg-slate-700/50 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
-                <div>
-                  <span className="text-slate-400">Price per ticket:</span>
-                  <p className="text-white font-bold text-sm sm:text-base">
-                    ₹{pricePerTicket}
-                  </p>
-                  {currentTier.discount && (
-                    <p className="text-green-400 text-xs">
-                      {currentTier.name} pricing
-                    </p>
-                  )}
-                </div>
-                <div className="col-span-2">
-                  <span className="text-slate-400">Venue:</span>
-                  <p className="text-white font-medium text-sm sm:text-base">
-                    {event.venue}
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Pricing Tiers Information */}
             <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
               <h4 className="text-blue-300 font-medium mb-2 text-sm sm:text-base">
@@ -181,40 +158,6 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
                   <span>Group 4+</span>
                   <span>₹{event.groupPrice4 || event.ticketPrice} each</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Quantity Selector */}
-            <div className="mb-4 sm:mb-6">
-              <label className="block text-slate-300 font-medium mb-2 sm:mb-3 text-sm sm:text-base">
-                Number of Tickets
-              </label>
-
-              <div className="flex items-center justify-center gap-3 sm:gap-4">
-                <motion.button
-                  onClick={() => handleQuantityChange(quantity - 1)}
-                  disabled={quantity <= 1}
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg flex items-center justify-center font-bold text-base sm:text-lg"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  -
-                </motion.button>
-
-                <div className="bg-slate-700/50 rounded-lg px-4 sm:px-6 py-2 sm:py-3 min-w-[60px] sm:min-w-[80px] text-center">
-                  <span className="text-white font-bold text-lg sm:text-xl">
-                    {quantity}
-                  </span>
-                </div>
-
-                <motion.button
-                  onClick={() => handleQuantityChange(quantity + 1)}
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg flex items-center justify-center font-bold text-base sm:text-lg"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  +
-                </motion.button>
               </div>
             </div>
 
@@ -277,18 +220,38 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
               </div>
             </div>
 
-            {/* Important Information */}
-            <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-              <h4 className="text-blue-300 font-medium mb-2 text-sm sm:text-base">
-                📋 What you'll get:
-              </h4>
-              <ul className="text-blue-200 text-xs sm:text-sm space-y-1">
-                <li>• Unique QR code for each ticket</li>
-                <li>• Instant ticket generation</li>
-                <li>• Downloadable and printable tickets</li>
-                <li>• Email confirmation</li>
-                <li>• Entry to the event</li>
-              </ul>
+            {/* Quantity Selector */}
+            <div className="mb-4 sm:mb-6">
+              <label className="block text-slate-300 font-medium mb-2 sm:mb-3 text-sm sm:text-base">
+                Number of Tickets
+              </label>
+
+              <div className="flex items-center justify-center gap-3 sm:gap-4">
+                <motion.button
+                  onClick={() => handleQuantityChange(quantity - 1)}
+                  disabled={quantity <= 1}
+                  className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg flex items-center justify-center font-bold text-base sm:text-lg"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  -
+                </motion.button>
+
+                <div className="bg-slate-700/50 rounded-lg px-4 sm:px-6 py-2 sm:py-3 min-w-[60px] sm:min-w-[80px] text-center">
+                  <span className="text-white font-bold text-lg sm:text-xl">
+                    {quantity}
+                  </span>
+                </div>
+
+                <motion.button
+                  onClick={() => handleQuantityChange(quantity + 1)}
+                  className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg flex items-center justify-center font-bold text-base sm:text-lg"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  +
+                </motion.button>
+              </div>
             </div>
 
             {/* Terms Agreement */}

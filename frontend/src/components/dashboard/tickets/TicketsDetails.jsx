@@ -123,21 +123,12 @@ const TicketsDetails = () => {
     try {
       setCancelling(true);
 
-      const abortController = new AbortController();
-      const response = await ticketAPI.cancelTicket(
-        ticketId,
-        reason,
-        abortController.signal,
-      );
-
-      if (response.data.success) {
-        toast.success("🚫 Ticket cancelled successfully!");
-        setShowCancelModal(false);
-        setSelectedTicket(null);
-
-        // Refresh tickets and event data
-        await fetchData();
-      }
+      // Just refresh the data when the modal closes
+      setShowCancelModal(false);
+      setSelectedTicket(null);
+      
+      // Refresh tickets and event data
+      await fetchData();
     } catch (err) {
       if (err.name !== "AbortError") {
         console.error("Failed to cancel ticket:", err);
