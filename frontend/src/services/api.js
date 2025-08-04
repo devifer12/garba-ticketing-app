@@ -186,6 +186,8 @@ export const adminAPI = {
     api
       .get(API_ENDPOINTS.TICKETS.ADMIN_STATS)
       .catch(() => ({ data: { total: 0, revenue: 0 } })),
+  issueManualTickets: (ticketData) =>
+    api.post(`${API_ENDPOINTS.TICKETS.BASE}/admin/issue-manual`, ticketData),
   getDashboardAnalytics: () => api.get(API_ENDPOINTS.ADMIN.ANALYTICS),
   getTicketManagement: (params) =>
     api.get(API_ENDPOINTS.ADMIN.TICKET_MANAGEMENT, { params }),

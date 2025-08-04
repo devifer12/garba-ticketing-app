@@ -426,6 +426,19 @@ const TicketManagement = () => {
                             )}
                           </>
                         )}
+                        {ticket.metadata?.issuedByAdmin && (
+                          <div className="text-xs">
+                            <span className="text-orange-400">Issued by:</span>
+                            <p className="text-orange-300 text-xs">
+                              {ticket.metadata.issuedBy?.name || "Admin"}
+                            </p>
+                            {ticket.metadata.notes && (
+                              <p className="text-slate-400 text-xs bg-slate-700/30 rounded p-1 mt-1 max-w-xs truncate" title={ticket.metadata.notes}>
+                                {ticket.metadata.notes}
+                              </p>
+                            )}
+                          </div>
+                        )}
                         {ticket.status !== "cancelled" && (
                           <button
                             onClick={() => handleDeleteTicket(ticket._id)}

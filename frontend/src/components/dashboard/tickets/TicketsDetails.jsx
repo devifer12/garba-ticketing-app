@@ -292,7 +292,7 @@ const TicketsDetails = () => {
                       >
                         <div className="relative">
                           <TicketCard ticket={ticket} />
-                          {ticket.status === "active" && (
+                          {ticket.status === "active" && !ticket.metadata?.issuedByAdmin && (
                             <div className="absolute top-3.5 right-22 z-10">
                               <motion.button
                                 onClick={() => handleOpenCancelModal(ticket)}

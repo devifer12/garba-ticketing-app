@@ -825,6 +825,14 @@ router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
       });
     }
 
+    // Check if ticket is admin-issued and non-cancellable
+    if (ticket.metadata?.issuedByAdmin && !ticket.metadata?.isCancellable) {
+      return res.status(400).json({
+        success: false,
+        error: "This ticket was issued by admin and cannot be cancelled",
+      });
+    }
+
     // Check if ticket is already cancelled or used
     if (ticket.status === "cancelled") {
       return res.status(400).json({
@@ -1106,6 +1114,168 @@ router.delete("/admin/:ticketId", verifyToken, isAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to delete ticket",
+    });
+  }
+});
+
+// Manual ticket issuance for offline payments (Admin/Manager only)
+router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
+  try {
+    const { userId, quantity = 1, paymentDone = false, notes = "" } = req.body;
+
+    console.log("🎫 Manual ticket issuance request:", {
+      userId,
+      quantity,
+      paymentDone,
+      issuedBy: req.user.uid,
+    });
+
+    // Validate input
+    if (!userId || !quantity || quantity < 1) {
+      return res.status(400).json({
+        success: false,
+        error: "User ID and valid quantity are required",
+      });
+    }
+
+    // Find the issuing admin/manager
+    const issuingUser = await User.findOne({ firebaseUID: req.user.uid });
+    if (!issuingUser) {
+      return res.status(404).json({
+        success: false,
+        error: "Issuing user not found",
+      });
+    }
+
+    // Find the target guest user
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        error: "Target user not found",
+      });
+    }
+
+    // Get event details
+    const event = await Event.findOne();
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: "Event not found",
+      });
+    }
+
+    // Check if enough tickets are available
+    const availableTickets = await event.getAvailableTicketsCount();
+    if (availableTickets < quantity) {
+      return res.status(400).json({
+        success: false,
+        error: `Only ${availableTickets} tickets available`,
+      });
+    }
+
+    // Calculate pricing (use same logic as regular purchases)
+    const pricePerTicket = event.calculatePrice(quantity);
+    const totalAmount = event.calculateTotalAmount(quantity);
+
+    // Create tickets
+    const ticketCreationPromises = [];
+    for (let i = 0; i < quantity; i++) {
+      const ticketPromise = (async () => {
+        const qrCode = Ticket.generateQRCode();
+        const qrCodeImage = await generateQRCodeImage(qrCode);
+
+        const ticket = new Ticket({
+          user: targetUser._id,
+          eventName: event.name,
+          price: pricePerTicket,
+          qrCode: qrCode,
+          qrCodeImage: qrCodeImage,
+          status: "active",
+          paymentId: `MANUAL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          orderId: `MANUAL-ORDER-${Date.now()}`,
+          paymentStatus: paymentDone ? "completed" : "pending",
+          paymentMethod: "manual",
+          transactionId: `MANUAL-${Date.now()}`,
+          metadata: {
+            purchaseMethod: "manual",
+            issuedByAdmin: true,
+            isCancellable: false,
+            paymentDone: paymentDone,
+            issuedBy: {
+              userId: issuingUser._id,
+              name: issuingUser.name,
+              email: issuingUser.email,
+              role: issuingUser.role,
+            },
+            quantity: quantity,
+            totalAmount: totalAmount,
+            notes: notes,
+            deviceInfo: req.headers["user-agent"] || "",
+            ipAddress: req.ip || req.connection.remoteAddress || "",
+          },
+        });
+
+        return await ticket.save();
+      })();
+      ticketCreationPromises.push(ticketPromise);
+    }
+
+    const createdTickets = await Promise.all(ticketCreationPromises);
+    console.log("🎫 Manual tickets created:", createdTickets.length);
+
+    // Populate user data for email
+    const populatedTickets = await Ticket.find({ 
+      _id: { $in: createdTickets.map(t => t._id) }
+    }).populate("user", "name email");
+
+    // Send confirmation email to the guest user
+    try {
+      console.log("📧 Sending manual ticket confirmation email...");
+      await emailService.sendTicketPurchaseEmail(
+        targetUser,
+        populatedTickets,
+        event,
+        totalAmount,
+        quantity,
+        issuingUser
+      );
+      console.log("✅ Manual ticket confirmation email sent successfully");
+    } catch (emailError) {
+      console.error("❌ Failed to send manual ticket email:", emailError);
+      // Don't fail the entire process if email fails
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `${quantity} ticket(s) issued manually for ${targetUser.name}`,
+      tickets: populatedTickets.map((ticket) => ({
+        id: ticket._id,
+        ticketId: ticket.ticketId,
+        status: ticket.status,
+        paymentStatus: ticket.paymentStatus,
+        price: ticket.price,
+        issuedByAdmin: true,
+      })),
+      totalAmount: totalAmount,
+      pricePerTicket: pricePerTicket,
+      issuedFor: {
+        name: targetUser.name,
+        email: targetUser.email,
+      },
+      issuedBy: {
+        name: issuingUser.name,
+        email: issuingUser.email,
+        role: issuingUser.role,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Manual ticket issuance error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to issue tickets manually",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });

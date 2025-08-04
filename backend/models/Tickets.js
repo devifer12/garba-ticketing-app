@@ -234,6 +234,7 @@ ticketSchema.methods.getSafeTicketData = function () {
     cancelledAt: this.cancelledAt,
     cancellationReason: this.cancellationReason,
     isCancelled: this.isCancelled,
+    metadata: this.metadata, // Include metadata for admin-issued tickets
     user: {
       name: this.user?.name,
       email: this.user?.email,

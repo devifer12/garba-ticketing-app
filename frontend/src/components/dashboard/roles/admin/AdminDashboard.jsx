@@ -12,6 +12,7 @@ import UserManagement from "./UserManagement";
 import TicketManagement from "./TicketManagement";
 import AnalyticsDashboard from "./AnalyticsDashboard";
 import RefundManagement from "./RefundManagement";
+import ManualTicketIssuance from "./ManualTicketIssuance";
 
 const AdminDashboard = () => {
   const { user, backendUser, refreshUserData } = useAuth();
@@ -415,6 +416,15 @@ const ManagementCards = ({ onViewChange, userRole }) => {
       adminOnly: false,
     },
     {
+      icon: "🎟️",
+      title: "Issue Manual Tickets",
+      description:
+        "Issue tickets manually for offline payments (cash/direct UPI).",
+      view: "manual-ticket-issuance",
+      color: "orange",
+      adminOnly: false,
+    },
+    {
       icon: "📊",
       title: "Analytics",
       description:
@@ -472,6 +482,7 @@ const SubView = ({ view, onBack, userRole }) => {
     "event-manager": EventManager,
     "user-management": UserManagement,
     "ticket-management": TicketManagement,
+    "manual-ticket-issuance": ManualTicketIssuance,
     analytics: AnalyticsDashboard,
     "refund-management": RefundManagement,
   };

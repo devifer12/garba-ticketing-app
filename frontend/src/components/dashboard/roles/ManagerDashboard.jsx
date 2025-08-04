@@ -241,15 +241,27 @@ const ManagerDashboard = () => {
 
         {/* Analytics Button */}
         <motion.div variants={ANIMATION_VARIANTS.item} className="text-center">
-          <motion.button
-            onClick={() => setCurrentView('analytics')}
-            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg hover:shadow-purple-500/25 transition-all duration-300 flex items-center justify-center gap-3 text-lg mx-auto"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <span className="text-xl">📊</span>
-            View Detailed Analytics
-          </motion.button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <motion.button
+              onClick={() => setCurrentView('analytics')}
+              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg hover:shadow-purple-500/25 transition-all duration-300 flex items-center justify-center gap-3 text-lg"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span className="text-xl">📊</span>
+              View Analytics
+            </motion.button>
+            
+            <motion.button
+              onClick={() => setCurrentView('manual-tickets')}
+              className="px-8 py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold rounded-xl shadow-lg hover:shadow-orange-500/25 transition-all duration-300 flex items-center justify-center gap-3 text-lg"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span className="text-xl">🎟️</span>
+              Issue Manual Tickets
+            </motion.button>
+          </div>
         </motion.div>
       </div>
     </motion.div>
