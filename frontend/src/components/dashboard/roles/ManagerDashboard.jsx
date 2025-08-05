@@ -7,6 +7,7 @@ import { ANIMATION_VARIANTS } from '../../../utils/constants.js';
 import LoadingSpinner from '../../ui/LoadingSpinner';
 import UserAvatar from '../../ui/UserAvatar';
 import AnalyticsDashboard from '../roles/admin/AnalyticsDashboard';
+import ManualTicketIssuance from './admin/ManualTicketIssuance';
 
 const ManagerDashboard = () => {
   const { user, backendUser } = useAuth();
@@ -82,6 +83,22 @@ const ManagerDashboard = () => {
           </button>
         </div>
         <AnalyticsDashboard userRole="manager" />
+      </div>
+    );
+  }
+
+  if (currentView === 'manual-ticket-issuance') {
+    return (
+      <div>
+        <div className="mb-6">
+          <button
+            onClick={() => setCurrentView('dashboard')}
+            className="px-4 py-2 bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 rounded-lg transition-all flex items-center gap-2"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+        <ManualTicketIssuance userRole="manager" />
       </div>
     );
   }
@@ -253,7 +270,7 @@ const ManagerDashboard = () => {
             </motion.button>
             
             <motion.button
-              onClick={() => setCurrentView('manual-tickets')}
+              onClick={() => setCurrentView('manual-ticket-issuance')}
               className="px-8 py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold rounded-xl shadow-lg hover:shadow-orange-500/25 transition-all duration-300 flex items-center justify-center gap-3 text-lg"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

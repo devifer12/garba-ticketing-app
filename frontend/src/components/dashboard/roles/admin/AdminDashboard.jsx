@@ -483,7 +483,7 @@ const SubView = ({ view, onBack, userRole }) => {
     "user-management": UserManagement,
     "ticket-management": TicketManagement,
     "manual-ticket-issuance": ManualTicketIssuance,
-    analytics: AnalyticsDashboard,
+    "analytics": AnalyticsDashboard,
     "refund-management": RefundManagement,
   };
 
