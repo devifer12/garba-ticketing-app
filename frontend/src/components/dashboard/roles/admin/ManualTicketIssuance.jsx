@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { adminAPI, eventAPI, apiUtils } from "../../../../services/api";
 import { toast } from "react-toastify";
 import { formatDate, formatTime } from "../../../../utils/helpers";
+import { useNavigate } from "react-router-dom";
 
 const ManualTicketIssuance = ({ userRole }) => {
   const [users, setUsers] = useState([]);
@@ -11,12 +12,21 @@ const ManualTicketIssuance = ({ userRole }) => {
   const [issuing, setIssuing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [newUserData, setNewUserData] = useState({
+    name: "",
+    email: "",
+  });
   const [formData, setFormData] = useState({
     quantity: 1,
     paymentDone: false,
     notes: "",
   });
   const [showConfirm, setShowConfirm] = useState(false);
+  const [issuedTickets, setIssuedTickets] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchInitialData();
@@ -52,6 +62,22 @@ const ManualTicketIssuance = ({ userRole }) => {
   const handleUserSelect = (user) => {
     setSelectedUser(user);
     setSearchTerm(user.name);
+    setIsNewUser(false);
+    setNewUserData({ name: "", email: "" });
+  };
+
+  const handleNewUserToggle = () => {
+    setIsNewUser(!isNewUser);
+    setSelectedUser(null);
+    setSearchTerm("");
+    setNewUserData({ name: "", email: "" });
+  };
+
+  const handleNewUserDataChange = (field, value) => {
+    setNewUserData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleInputChange = (field, value) => {
@@ -70,8 +96,27 @@ const ManualTicketIssuance = ({ userRole }) => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedUser) {
-      toast.error("Please select a user");
+    if (!selectedUser && !isNewUser) {
+      toast.error("Please select a user or create a new one");
+      return;
+    }
+
+    if (isNewUser) {
+      if (!newUserData.name.trim() || !newUserData.email.trim()) {
+        toast.error("Please enter both name and email for new user");
+        return;
+      }
+      
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(newUserData.email)) {
+        toast.error("Please enter a valid email address");
+        return;
+      }
+    }
+
+    if (!selectedUser && !isNewUser) {
+      toast.error("Please select a user or create a new one");
       return;
     }
 
@@ -84,7 +129,11 @@ const ManualTicketIssuance = ({ userRole }) => {
       setIssuing(true);
 
       const ticketData = {
-        userId: selectedUser._id,
+        ...(selectedUser ? { userId: selectedUser._id } : {}),
+        ...(isNewUser ? { 
+          userName: newUserData.name.trim(), 
+          userEmail: newUserData.email.trim() 
+        } : {}),
         quantity: parseInt(formData.quantity),
         paymentDone: formData.paymentDone,
         notes: formData.notes.trim(),
@@ -93,17 +142,11 @@ const ManualTicketIssuance = ({ userRole }) => {
       const response = await adminAPI.issueManualTickets(ticketData);
 
       if (response.data.success) {
-        toast.success(`🎉 ${formData.quantity} ticket(s) issued successfully for ${selectedUser.name}!`);
-        
-        // Reset form
-        setSelectedUser(null);
-        setSearchTerm("");
-        setFormData({
-          quantity: 1,
-          paymentDone: false,
-          notes: "",
-        });
+        setIssuedTickets(response.data);
+        setShowSuccessModal(true);
         setShowConfirm(false);
+        
+        toast.success(`🎉 ${formData.quantity} ticket(s) issued successfully for ${response.data.user.name}!`);
       }
     } catch (error) {
       console.error("Failed to issue tickets:", error);
@@ -112,6 +155,49 @@ const ManualTicketIssuance = ({ userRole }) => {
     } finally {
       setIssuing(false);
     }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!issuedTickets?.tickets) return;
+
+    try {
+      setDownloadingPDF(true);
+      
+      const ticketIds = issuedTickets.tickets.map(ticket => ticket.id);
+      const response = await adminAPI.generateTicketPDF(ticketIds);
+      
+      // Create blob and download
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `garba-tickets-${issuedTickets.user.name.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("📄 PDF tickets downloaded successfully!");
+    } catch (error) {
+      console.error("Failed to download PDF:", error);
+      toast.error("Failed to download PDF tickets");
+    } finally {
+      setDownloadingPDF(false);
+    }
+  };
+
+  const resetForm = () => {
+    setSelectedUser(null);
+    setSearchTerm("");
+    setIsNewUser(false);
+    setNewUserData({ name: "", email: "" });
+    setFormData({
+      quantity: 1,
+      paymentDone: false,
+      notes: "",
+    });
+    setIssuedTickets(null);
+    setShowSuccessModal(false);
   };
 
   if (loading) {
@@ -196,69 +282,158 @@ const ManualTicketIssuance = ({ userRole }) => {
             <div className="space-y-4">
               <label className="block text-slate-300 font-medium text-lg">
                 <span className="text-2xl mr-2">👤</span>
-                Select Guest User
+                Select or Create Guest User
               </label>
               
-              {/* Search Input */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
+              {/* Toggle between existing and new user */}
+              <div className="flex items-center gap-4 mb-4">
+                <button
+                  onClick={() => {
+                    setIsNewUser(false);
                     setSelectedUser(null);
+                    setSearchTerm("");
                   }}
-                  className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/30 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30"
-                />
-                
-                {/* User Dropdown */}
-                {searchTerm && !selectedUser && filteredUsers.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-10">
-                    {filteredUsers.slice(0, 10).map((user) => (
-                      <motion.div
-                        key={user._id}
-                        className="p-4 hover:bg-slate-700/50 cursor-pointer border-b border-slate-700/30 last:border-b-0"
-                        onClick={() => handleUserSelect(user)}
-                        whileHover={{ backgroundColor: "rgba(51, 65, 85, 0.5)" }}
-                      >
-                        <div className="flex items-center gap-3">
-                          {user.profilePicture ? (
-                            <img
-                              src={user.profilePicture}
-                              alt={user.name}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-white font-bold">
-                              {user.name?.charAt(0) || 'U'}
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-white font-medium">{user.name}</p>
-                            <p className="text-slate-400 text-sm">{user.email}</p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
+                  className={`px-4 py-2 rounded-lg transition-all ${
+                    !isNewUser 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600/50'
+                  }`}
+                >
+                  Existing User
+                </button>
+                <button
+                  onClick={handleNewUserToggle}
+                  className={`px-4 py-2 rounded-lg transition-all ${
+                    isNewUser 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600/50'
+                  }`}
+                >
+                  New User
+                </button>
               </div>
 
-              {/* Selected User Display */}
-              {selectedUser && (
-                <div className="bg-green-900/20 border border-green-700/30 rounded-xl p-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-green-400 text-xl">✅</span>
+              {!isNewUser ? (
+                // Existing User Selection
+                <>
+                  {/* Search Input */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search by name or email..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setSelectedUser(null);
+                      }}
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/30 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                    />
+                    
+                    {/* User Dropdown */}
+                    {searchTerm && !selectedUser && filteredUsers.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-10">
+                        {filteredUsers.slice(0, 10).map((user) => (
+                          <motion.div
+                            key={user._id}
+                            className="p-4 hover:bg-slate-700/50 cursor-pointer border-b border-slate-700/30 last:border-b-0"
+                            onClick={() => handleUserSelect(user)}
+                            whileHover={{ backgroundColor: "rgba(51, 65, 85, 0.5)" }}
+                          >
+                            <div className="flex items-center gap-3">
+                              {user.profilePicture ? (
+                                <img
+                                  src={user.profilePicture}
+                                  alt={user.name}
+                                  className="w-10 h-10 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-white font-bold">
+                                  {user.name?.charAt(0) || 'U'}
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-white font-medium">{user.name}</p>
+                                <p className="text-slate-400 text-sm">{user.email}</p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Selected User Display */}
+                  {selectedUser && (
+                    <div className="bg-green-900/20 border border-green-700/30 rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-green-400 text-xl">✅</span>
+                        <div>
+                          <p className="text-white font-medium">Selected: {selectedUser.name}</p>
+                          <p className="text-green-300 text-sm">{selectedUser.email}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                // New User Creation Form
+                <div className="space-y-4">
+                  <div className="bg-green-900/20 border border-green-700/30 rounded-xl p-4 mb-4">
+                    <div className="flex items-center gap-2 text-green-300 mb-2">
+                      <span className="text-xl">🆕</span>
+                      <span className="font-medium">Create New User</span>
+                    </div>
+                    <p className="text-green-200 text-sm">
+                      Enter details for a new user who will receive the tickets
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-white font-medium">Selected: {selectedUser.name}</p>
-                      <p className="text-green-300 text-sm">{selectedUser.email}</p>
+                      <label className="block text-slate-300 font-medium mb-2">
+                        Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter full name..."
+                        value={newUserData.name}
+                        onChange={(e) => handleNewUserDataChange("name", e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/30 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-slate-300 font-medium mb-2">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="Enter email address..."
+                        value={newUserData.email}
+                        onChange={(e) => handleNewUserDataChange("email", e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/30 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30"
+                      />
                     </div>
                   </div>
+
+                  {/* New User Preview */}
+                  {newUserData.name && newUserData.email && (
+                    <div className="bg-blue-900/20 border border-blue-700/30 rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-blue-400 text-xl">👤</span>
+                        <div>
+                          <p className="text-white font-medium">New User: {newUserData.name}</p>
+                          <p className="text-blue-300 text-sm">{newUserData.email}</p>
+                          <p className="text-blue-200 text-xs">Will be created as Guest user</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
+              {/* Search Input */}
             {/* Quantity Selection */}
             <div className="space-y-4">
               <label className="block text-slate-300 font-medium text-lg">
@@ -372,7 +547,7 @@ const ManualTicketIssuance = ({ userRole }) => {
             <div className="flex flex-col sm:flex-row gap-4 pt-6">
               <motion.button
                 onClick={() => setShowConfirm(true)}
-                disabled={!selectedUser || !formData.quantity || issuing}
+                disabled={(!selectedUser && !isNewUser) || !formData.quantity || issuing || (isNewUser && (!newUserData.name.trim() || !newUserData.email.trim()))}
                 className="flex-1 px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-orange-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -382,7 +557,7 @@ const ManualTicketIssuance = ({ userRole }) => {
               </motion.button>
 
               <motion.button
-                onClick={() => window.history.back()}
+                onClick={() => navigate("/dashboard")}
                 className="px-8 py-4 bg-slate-600/50 text-slate-300 font-medium rounded-xl border border-slate-500/30 hover:bg-slate-600/70 transition-all duration-300 flex items-center justify-center gap-3 text-lg"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -405,11 +580,14 @@ const ManualTicketIssuance = ({ userRole }) => {
             <div className="bg-slate-700/50 rounded-xl p-6 space-y-4">
               <div className="flex justify-between">
                 <span className="text-slate-400">Issue tickets for:</span>
-                <span className="text-white font-medium">{selectedUser?.name}</span>
+                <span className="text-white font-medium">
+                  {selectedUser?.name || newUserData.name}
+                  {isNewUser && <span className="text-green-400 text-sm ml-2">(New User)</span>}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Email:</span>
-                <span className="text-white font-medium">{selectedUser?.email}</span>
+                <span className="text-white font-medium">{selectedUser?.email || newUserData.email}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Event:</span>
@@ -441,6 +619,7 @@ const ManualTicketIssuance = ({ userRole }) => {
             <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-4">
               <h4 className="text-yellow-300 font-medium mb-2">⚠️ Important:</h4>
               <ul className="text-yellow-200 text-sm space-y-1">
+                {isNewUser && <li>• A new user account will be created</li>}
                 <li>• These tickets will be marked as "Issued by Admin"</li>
                 <li>• They cannot be cancelled by the user</li>
                 <li>• Email confirmation will be sent to the user</li>
@@ -465,7 +644,7 @@ const ManualTicketIssuance = ({ userRole }) => {
                 ) : (
                   <>
                     <span className="text-xl">🚀</span>
-                    Confirm & Issue Tickets
+                    {isNewUser ? 'Create User & Issue Tickets' : 'Confirm & Issue Tickets'}
                   </>
                 )}
               </motion.button>
@@ -484,6 +663,145 @@ const ManualTicketIssuance = ({ userRole }) => {
           </div>
         )}
       </div>
+
+      {/* Success Modal with PDF Download Option */}
+      {showSuccessModal && issuedTickets && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+          >
+            <div className="p-6">
+              {/* Success Header */}
+              <div className="text-center mb-6">
+                <motion.div
+                  className="text-6xl mb-4"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                >
+                  🎉
+                </motion.div>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Tickets Issued Successfully!
+                </h2>
+                <p className="text-slate-400">
+                  {formData.quantity} ticket(s) have been issued to {issuedTickets.user.name}
+                </p>
+              </div>
+
+              {/* Ticket Summary */}
+              <div className="bg-slate-700/50 rounded-xl p-6 mb-6 space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Recipient:</span>
+                  <span className="text-white font-medium">
+                    {issuedTickets.user.name}
+                    {issuedTickets.user.isNewUser && (
+                      <span className="text-green-400 text-sm ml-2">(New User)</span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Email:</span>
+                  <span className="text-white font-medium">{issuedTickets.user.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Tickets Issued:</span>
+                  <span className="text-white font-medium">{issuedTickets.tickets.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Total Amount:</span>
+                  <span className="text-yellow-400 font-bold text-xl">₹{issuedTickets.totalAmount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Payment Status:</span>
+                  <span className={`font-medium ${formData.paymentDone ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {formData.paymentDone ? '✅ Received' : '⏳ Pending'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Email Confirmation */}
+              <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-2 text-blue-300 mb-2">
+                  <span className="text-xl">📧</span>
+                  <span className="font-medium">Email Sent</span>
+                </div>
+                <p className="text-blue-200 text-sm">
+                  Ticket confirmation email has been sent to {issuedTickets.user.email}
+                </p>
+              </div>
+
+              {/* PDF Download Option */}
+              <div className="bg-purple-900/20 border border-purple-700/30 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-2 text-purple-300 mb-3">
+                  <span className="text-xl">📄</span>
+                  <span className="font-medium">Download PDF Tickets</span>
+                </div>
+                <p className="text-purple-200 text-sm mb-4">
+                  Would you like to download a PDF copy of the tickets for printing or record keeping?
+                </p>
+                
+                <div className="flex gap-3">
+                  <motion.button
+                    onClick={handleDownloadPDF}
+                    disabled={downloadingPDF}
+                    className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {downloadingPDF ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <span>📥</span>
+                        Download PDF
+                      </>
+                    )}
+                  </motion.button>
+                  
+                  <motion.button
+                    onClick={() => setShowSuccessModal(false)}
+                    className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Skip
+                  </motion.button>
+                </div>
+              </div>
+
+              {/* Final Actions */}
+              <div className="flex flex-col gap-3">
+                <motion.button
+                  onClick={resetForm}
+                  className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all flex items-center justify-center gap-2"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span>🎫</span>
+                  Issue More Tickets
+                </motion.button>
+                
+                <motion.button
+                  onClick={() => navigate("/dashboard")}
+                  className="w-full px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span>🏠</span>
+                  Back to Dashboard
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 };

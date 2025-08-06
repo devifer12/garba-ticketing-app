@@ -8,6 +8,7 @@ const verifyToken = require("../middlewares/authMiddleware");
 const emailService = require("../services/emailService");
 const Razorpay = require("razorpay");
 const { randomUUID } = require("crypto");
+const PDFDocument = require("pdfkit");
 require("dotenv").config({ path: "../.env" });
 
 // Razorpay Configuration
@@ -185,8 +186,8 @@ router.post("/verify-payment", verifyToken, async (req, res) => {
     }
 
     // Check if tickets already exist for this order (avoid duplicate creation)
-    let existingTickets = await Ticket.find({ 
-      paymentId: razorpay_payment_id 
+    let existingTickets = await Ticket.find({
+      paymentId: razorpay_payment_id,
     }).populate("user", "name email");
 
     if (existingTickets.length > 0) {
@@ -214,17 +215,13 @@ router.post("/verify-payment", verifyToken, async (req, res) => {
     }
 
     // Create tickets
-    const createdTickets = await createTicketsForCompletedPayment(
-      user,
-      event,
-      {
-        quantity: quantity,
-        paymentId: razorpay_payment_id,
-        orderId: razorpay_order_id,
-        paymentStatus: "completed",
-        transactionId: razorpay_payment_id,
-      }
-    );
+    const createdTickets = await createTicketsForCompletedPayment(user, event, {
+      quantity: quantity,
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      paymentStatus: "completed",
+      transactionId: razorpay_payment_id,
+    });
 
     res.status(201).json({
       success: true,
@@ -250,8 +247,9 @@ router.post("/verify-payment", verifyToken, async (req, res) => {
 
 // Helper function to create tickets for completed payments
 const createTicketsForCompletedPayment = async (user, event, paymentData) => {
-  const { quantity, paymentId, orderId, paymentStatus, transactionId } = paymentData;
-  
+  const { quantity, paymentId, orderId, paymentStatus, transactionId } =
+    paymentData;
+
   // Calculate pricing
   const pricePerTicket = event.calculatePrice(quantity);
   const totalAmount = event.calculateTotalAmount(quantity);
@@ -294,13 +292,13 @@ const createTicketsForCompletedPayment = async (user, event, paymentData) => {
     "🎫 Created tickets:",
     createdTickets.length,
     "for order:",
-    orderId,
+    orderId
   );
 
   // Populate user data for email
   const populatedTickets = await Ticket.find({ paymentId }).populate(
     "user",
-    "name email",
+    "name email"
   );
 
   // Send confirmation email after successful ticket creation
@@ -311,14 +309,11 @@ const createTicketsForCompletedPayment = async (user, event, paymentData) => {
       populatedTickets,
       event,
       totalAmount,
-      quantity,
+      quantity
     );
     console.log("✅ Purchase confirmation email sent successfully");
   } catch (emailError) {
-    console.error(
-      "❌ Failed to send purchase confirmation email:",
-      emailError,
-    );
+    console.error("❌ Failed to send purchase confirmation email:", emailError);
     // Don't fail the entire process if email fails
   }
 
@@ -431,7 +426,7 @@ router.post("/", verifyToken, async (req, res) => {
         createdTickets,
         event,
         totalAmount,
-        quantity,
+        quantity
       );
       if (process.env.NODE_ENV === "development") {
         console.log("✅ Purchase confirmation email sent successfully");
@@ -439,9 +434,7 @@ router.post("/", verifyToken, async (req, res) => {
     } catch (emailError) {
       console.error(
         "Failed to send purchase confirmation email:",
-        process.env.NODE_ENV === "development"
-          ? emailError
-          : emailError.message,
+        process.env.NODE_ENV === "development" ? emailError : emailError.message
       );
       // Don't fail the ticket creation if email fails
     }
@@ -675,7 +668,7 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
   } catch (error) {
     console.error(
       "QR verification error:",
-      process.env.NODE_ENV === "development" ? error : error.message,
+      process.env.NODE_ENV === "development" ? error : error.message
     );
     res.status(500).json({
       success: false,
@@ -725,7 +718,7 @@ router.post("/mark-used", verifyToken, async (req, res) => {
     // Find ticket by QR code
     const ticket = await Ticket.findOne({ qrCode: qrCode }).populate(
       "user",
-      "name email",
+      "name email"
     );
 
     if (!ticket) {
@@ -773,7 +766,7 @@ router.post("/mark-used", verifyToken, async (req, res) => {
   } catch (error) {
     console.error(
       "Mark ticket as used error:",
-      process.env.NODE_ENV === "development" ? error : error.message,
+      process.env.NODE_ENV === "development" ? error : error.message
     );
     res.status(500).json({
       success: false,
@@ -861,7 +854,7 @@ router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
     const eventDate = new Date(event.date);
     const currentDate = new Date();
     const daysDifference = Math.ceil(
-      (eventDate - currentDate) / (1000 * 60 * 60 * 24),
+      (eventDate - currentDate) / (1000 * 60 * 60 * 24)
     );
 
     console.log("📅 Cancellation policy check:", {
@@ -881,7 +874,7 @@ router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
     // Initiate refund process instead of just cancelling
     try {
       console.log("💰 Initiating refund process...");
-      
+
       const metadata = {
         ipAddress: req.ip || req.connection.remoteAddress || "",
         userAgent: req.headers["user-agent"] || "",
@@ -894,7 +887,10 @@ router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
         metadata
       );
 
-      console.log("✅ Refund initiated successfully:", refundResult.refund.refundId);
+      console.log(
+        "✅ Refund initiated successfully:",
+        refundResult.refund.refundId
+      );
 
       res.status(200).json({
         success: true,
@@ -912,17 +908,20 @@ router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
         },
         refund: refundResult.refund,
       });
-
     } catch (refundError) {
       console.error("❌ Refund initiation failed:", refundError);
-      
+
       // Fallback: Cancel ticket without refund
       await ticket.cancelTicket(reason.trim());
       console.log("✅ Ticket cancelled (without refund):", ticket.ticketId);
 
       // Send regular cancellation email
       try {
-        await emailService.sendTicketCancellationEmail(ticket.user, ticket, event);
+        await emailService.sendTicketCancellationEmail(
+          ticket.user,
+          ticket,
+          event
+        );
         console.log("✅ Cancellation email sent successfully");
       } catch (emailError) {
         console.error("⚠️ Failed to send cancellation email:", emailError);
@@ -930,7 +929,8 @@ router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
 
       res.status(200).json({
         success: true,
-        message: "Ticket cancelled successfully. Refund will be processed manually.",
+        message:
+          "Ticket cancelled successfully. Refund will be processed manually.",
         ticket: {
           id: ticket._id,
           ticketId: ticket.ticketId,
@@ -942,10 +942,10 @@ router.patch("/cancel/:ticketId", verifyToken, async (req, res) => {
             email: ticket.user.email,
           },
         },
-        refundNote: "Refund will be processed manually within 5-7 business days",
+        refundNote:
+          "Refund will be processed manually within 5-7 business days",
       });
     }
-
   } catch (error) {
     console.error("❌ Cancel ticket error:", error);
     res.status(500).json({
@@ -1033,7 +1033,7 @@ router.patch(
       const ticket = await Ticket.findByIdAndUpdate(
         ticketId,
         { status },
-        { new: true },
+        { new: true }
       ).populate("user", "name email");
 
       if (!ticket) {
@@ -1055,7 +1055,7 @@ router.patch(
         error: "Failed to update ticket status",
       });
     }
-  },
+  }
 );
 
 // Delete ticket (Admin only)
@@ -1065,7 +1065,7 @@ router.delete("/admin/:ticketId", verifyToken, isAdmin, async (req, res) => {
 
     const ticket = await Ticket.findById(ticketId).populate(
       "user",
-      "name email",
+      "name email"
     );
 
     if (!ticket) {
@@ -1086,7 +1086,7 @@ router.delete("/admin/:ticketId", verifyToken, isAdmin, async (req, res) => {
       await emailService.sendTicketCancellationEmail(
         ticket.user,
         ticket,
-        event,
+        event
       );
       if (process.env.NODE_ENV === "development") {
         console.log("✅ Cancellation email sent successfully");
@@ -1094,9 +1094,7 @@ router.delete("/admin/:ticketId", verifyToken, isAdmin, async (req, res) => {
     } catch (emailError) {
       console.error(
         "Failed to send cancellation email:",
-        process.env.NODE_ENV === "development"
-          ? emailError
-          : emailError.message,
+        process.env.NODE_ENV === "development" ? emailError : emailError.message
       );
       // Continue with deletion even if email fails
     }
@@ -1121,20 +1119,30 @@ router.delete("/admin/:ticketId", verifyToken, isAdmin, async (req, res) => {
 // Manual ticket issuance for offline payments (Admin/Manager only)
 router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
   try {
-    const { userId, quantity = 1, paymentDone = false, notes = "" } = req.body;
+    const {
+      userId,
+      userName,
+      userEmail,
+      quantity = 1,
+      paymentDone = false,
+      notes = "",
+    } = req.body;
 
     console.log("🎫 Manual ticket issuance request:", {
       userId,
+      userName,
+      userEmail,
       quantity,
       paymentDone,
       issuedBy: req.user.uid,
     });
 
-    // Validate input
-    if (!userId || !quantity || quantity < 1) {
+    // Validate input - either userId OR userName+userEmail required
+    if ((!userId && (!userName || !userEmail)) || !quantity || quantity < 1) {
       return res.status(400).json({
         success: false,
-        error: "User ID and valid quantity are required",
+        error:
+          "Either User ID or (User Name + Email) and valid quantity are required",
       });
     }
 
@@ -1147,13 +1155,79 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
       });
     }
 
-    // Find the target guest user
-    const targetUser = await User.findById(userId);
-    if (!targetUser) {
-      return res.status(404).json({
-        success: false,
-        error: "Target user not found",
+    let targetUser;
+
+    if (userId) {
+      // Find existing user by ID
+      targetUser = await User.findById(userId);
+      if (!targetUser) {
+        return res.status(404).json({
+          success: false,
+          error: "Target user not found",
+        });
+      }
+    } else {
+      // Create new user or find existing by email
+      const existingUser = await User.findOne({
+        email: userEmail.toLowerCase().trim(),
       });
+
+      if (existingUser) {
+        targetUser = existingUser;
+        console.log("✅ Found existing user by email:", userEmail);
+      } else {
+        // Create new user
+        console.log("🆕 Creating new user:", { userName, userEmail });
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(userEmail)) {
+          return res.status(400).json({
+            success: false,
+            error: "Invalid email format",
+          });
+        }
+
+        // Validate name
+        if (!userName.trim() || userName.trim().length < 2) {
+          return res.status(400).json({
+            success: false,
+            error: "Valid name is required (minimum 2 characters)",
+          });
+        }
+
+        try {
+          targetUser = new User({
+            name: userName.trim(),
+            email: userEmail.toLowerCase().trim(),
+            role: "guest",
+            isEmailVerified: false,
+            // Generate a temporary Firebase UID for manual users
+            firebaseUID: `MANUAL-${Date.now()}-${Math.random()
+              .toString(36)
+              .substr(2, 9)}`,
+            createdAt: new Date(),
+            lastLogin: new Date(),
+          });
+
+          await targetUser.save();
+          console.log("✅ New user created successfully:", targetUser._id);
+        } catch (createError) {
+          console.error("❌ Failed to create new user:", createError);
+
+          if (createError.code === 11000) {
+            return res.status(400).json({
+              success: false,
+              error: "A user with this email already exists",
+            });
+          }
+
+          return res.status(500).json({
+            success: false,
+            error: "Failed to create new user",
+          });
+        }
+      }
     }
 
     // Get event details
@@ -1192,7 +1266,9 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
           qrCode: qrCode,
           qrCodeImage: qrCodeImage,
           status: "active",
-          paymentId: `MANUAL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          paymentId: `MANUAL-${Date.now()}-${Math.random()
+            .toString(36)
+            .substr(2, 9)}`,
           orderId: `MANUAL-ORDER-${Date.now()}`,
           paymentStatus: paymentDone ? "completed" : "pending",
           paymentMethod: "manual",
@@ -1202,6 +1278,7 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
             issuedByAdmin: true,
             isCancellable: false,
             paymentDone: paymentDone,
+            isNewUser: !userId, // Flag to indicate if this was a new user
             issuedBy: {
               userId: issuingUser._id,
               name: issuingUser.name,
@@ -1225,8 +1302,8 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
     console.log("🎫 Manual tickets created:", createdTickets.length);
 
     // Populate user data for email
-    const populatedTickets = await Ticket.find({ 
-      _id: { $in: createdTickets.map(t => t._id) }
+    const populatedTickets = await Ticket.find({
+      _id: { $in: createdTickets.map((t) => t._id) },
     }).populate("user", "name email");
 
     // Send confirmation email to the guest user
@@ -1259,6 +1336,12 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
       })),
       totalAmount: totalAmount,
       pricePerTicket: pricePerTicket,
+      user: {
+        id: targetUser._id,
+        name: targetUser.name,
+        email: targetUser.email,
+        isNewUser: !userId,
+      },
       issuedFor: {
         name: targetUser.name,
         email: targetUser.email,
@@ -1295,7 +1378,7 @@ router.get("/admin/stats", verifyToken, isManager, async (req, res) => {
       success: true,
       ...stats,
       recentBookings: recentBookings.map((ticket) =>
-        ticket.getSafeTicketData(),
+        ticket.getSafeTicketData()
       ),
     });
   } catch (error) {
@@ -1303,6 +1386,260 @@ router.get("/admin/stats", verifyToken, isManager, async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to fetch ticket statistics",
+    });
+  }
+});
+
+// Generate PDF ticket for manual issuance (Admin/Manager only)
+router.post("/admin/generate-pdf", verifyToken, isManager, async (req, res) => {
+  try {
+    const { ticketIds } = req.body;
+
+    if (!ticketIds || !Array.isArray(ticketIds) || ticketIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Ticket IDs array is required",
+      });
+    }
+
+    // Find tickets
+    const tickets = await Ticket.find({
+      _id: { $in: ticketIds },
+    }).populate("user", "name email");
+
+    if (tickets.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "No tickets found",
+      });
+    }
+
+    // Get event details
+    const event = await Event.findOne();
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: "Event not found",
+      });
+    }
+
+    // Load custom fonts - Noto Sans Symbols is assumed to be available
+    const notoSansSymbolsPath = require("path").resolve(
+      __dirname,
+      "../assets/NotoSansSymbols-VariableFont_wght.ttf"
+    );
+
+    // Create PDF
+    const doc = new PDFDocument({ margin: 20 });
+
+    // Set response headers for PDF download
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="garba-tickets-${Date.now()}.pdf"`
+    );
+
+    // Pipe PDF to response
+    doc.pipe(res);
+
+    // Register custom font
+    doc.registerFont("NotoSansSymbols", notoSansSymbolsPath);
+
+    tickets.forEach((ticket, index) => {
+      if (index > 0) {
+        doc.addPage();
+      }
+
+      // Main container with a light background and padding
+      const containerWidth = doc.page.width - 40;
+      const containerHeight = doc.page.height - 40;
+      doc.rect(20, 20, containerWidth, containerHeight).fill("#FFF5EE");
+
+      // Event Header Section
+      doc
+        .fill("#E75B00")
+        .fontSize(22)
+        .font("NotoSansSymbols")
+        .text("Garba Rass", { align: "center", continued: false });
+
+      doc
+        .fill("#333333")
+        .fontSize(12)
+        .text(
+          new Date(event.date).toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }),
+          { align: "center" }
+        );
+      doc
+        .fontSize(10)
+        .text(`Time: ${event.startTime} - ${event.endTime}`, {
+          align: "center",
+        });
+
+      // Dashed separator
+      doc
+        .strokeColor("#E75B00")
+        .lineWidth(1)
+        .dash(5, { space: 5 })
+        .moveTo(40, doc.y + 15)
+        .lineTo(doc.page.width - 40, doc.y + 15)
+        .stroke()
+        .undash();
+
+      // Your Entry Pass Section
+      doc.y += 25;
+      doc
+        .fill("#E75B00")
+        .fontSize(16)
+        .text("Your Entry Pass", { align: "center" });
+      doc
+        .fill("#333333")
+        .fontSize(9)
+        .text("Present this QR code at the venue entrance", {
+          align: "center",
+        });
+
+      // QR Code Section
+      const qrCodeWidth = 150;
+      const qrCodeStartX = (doc.page.width - qrCodeWidth) / 2;
+      const qrCodeStartY = doc.y + 10;
+
+      if (ticket.qrCodeImage) {
+        try {
+          const base64Data = ticket.qrCodeImage.replace(
+            /^data:image\/[a-z]+;base64,/,
+            ""
+          );
+          const qrBuffer = Buffer.from(base64Data, "base64");
+          doc.image(qrBuffer, qrCodeStartX, qrCodeStartY, {
+            width: qrCodeWidth,
+            height: qrCodeWidth,
+          });
+        } catch (qrError) {
+          console.error("Failed to add QR code to PDF:", qrError);
+          doc.text("QR Code: " + ticket.qrCode, { align: "center" });
+        }
+      }
+
+      doc.y = qrCodeStartY + qrCodeWidth + 10;
+      doc
+        .fontSize(10)
+        .fill("#E75B00")
+        .text("Scan this code for quick entry", { align: "center" });
+
+      // Ticket Details Section
+      doc.y += 20;
+      const detailsX = 40; // X position for the labels
+      const valueX = 140; // X position for the values
+      const lineSpacing = 15; // Reduced line spacing
+
+      // Set base Y position for the details
+      let baseY = doc.y;
+
+      doc
+        .fill("#333333")
+        .fontSize(12)
+        .font("NotoSansSymbols")
+        .text("Name:", detailsX, baseY)
+        .text("Venue:", detailsX, baseY + lineSpacing)
+        .text("Price Paid:", detailsX, baseY + lineSpacing * 2);
+
+      doc
+        .fill("#E75B00")
+        .font("NotoSansSymbols")
+        .text(ticket.user.name, valueX, baseY)
+        .text(event.venue, valueX, baseY + lineSpacing, {
+          width: doc.page.width - valueX - 40,
+          align: "left",
+        })
+        .text(`₹${ticket.price}`, valueX, baseY + lineSpacing * 2);
+
+      // Dashed separator
+      doc.y = baseY + (lineSpacing * 3) + 20; // move cursor below details
+      doc
+        .strokeColor("#E75B00")
+        .lineWidth(1)
+        .dash(5, { space: 5 })
+        .moveTo(40, doc.y)
+        .lineTo(doc.page.width - 40, doc.y)
+        .stroke()
+        .undash();
+
+      // Important Instructions Section
+      doc.y += 10;
+      doc
+        .fill("#E75B00")
+        .fontSize(14)
+        .text("Important Instructions:", detailsX);
+      doc.y += 5;
+      doc
+        .fill("#333333")
+        .fontSize(9)
+        .text(
+          "• Arrive at the venue 30 minutes before the event starts",
+          detailsX,
+          doc.y
+        )
+        .text(
+          "• Present this QR code at the entrance for scanning",
+          detailsX,
+          doc.y + 6
+        )
+        .text(
+          "• Keep this ticket safe and do not share with others",
+          detailsX,
+          doc.y + 6
+        )
+        .text(
+          "• Entry is subject to venue capacity and safety guidelines",
+          detailsX,
+          doc.y + 2
+        )
+        .text("• No outside food or beverages allowed", detailsX, doc.y + 6)
+        .text(
+          "• Follow the dress code: Traditional Indian attire preferred",
+          detailsX,
+          doc.y + 6
+        );
+
+      // Dashed separator
+      doc.y += 75;
+      doc
+        .strokeColor("#E75B00")
+        .lineWidth(1)
+        .dash(5, { space: 5 })
+        .moveTo(40, doc.y)
+        .lineTo(doc.page.width - 40, doc.y)
+        .stroke()
+        .undash();
+
+      // Footer
+      doc.y += 15;
+      doc
+        .fill("#E75B00")
+        .fontSize(10)
+        .text("Thank you for choosing Garba Rass!", { align: "center" });
+      doc
+        .fill("#888888")
+        .fontSize(8)
+        .text("For support, contact us at heet.m.jain@gmail.com", {
+          align: "center",
+        });
+    });
+
+    // Finalize PDF
+    doc.end();
+  } catch (error) {
+    console.error("❌ PDF generation error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to generate PDF",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
