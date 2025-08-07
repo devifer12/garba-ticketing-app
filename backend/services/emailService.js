@@ -140,7 +140,6 @@ class EmailService {
       const primaryColor = "#ff6500";
       const textColor = "#333333";
       const lightGray = "#666666";
-      const backgroundColor = "#f8f9fa";
 
       // Add border
       doc
@@ -182,7 +181,7 @@ class EmailService {
 
       // QR Section background
       doc
-        .rect(80, 190, doc.page.width - 160, 200)
+        .rect(80, 190, doc.page.width - 160, 260)
         .fill("#f8f9fa")
         .stroke("#e9ecef");
 
@@ -221,7 +220,7 @@ class EmailService {
 
       // Venue detail
       doc
-        .rect(80, yPosition, doc.page.width - 160, 40)
+        .rect(80, yPosition, doc.page.width - 160, 60)
         .fill("#f8f9fa")
         .stroke("#e9ecef");
 

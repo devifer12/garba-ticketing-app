@@ -35,10 +35,9 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
     setQuantity(newQuantity);
   };
 
-  const handlePurchase = async () => {
-    setIsProcessing(true); // Set processing state to true immediately
+ const handlePurchase = async () => {
+    setIsProcessing(true);
     try {
-      // Create Razorpay order
       const orderData = {
         quantity: quantity,
         amount: totalAmount,
@@ -52,40 +51,45 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
 
       if (response.data.success) {
         const { orderId, amount, currency, key } = response.data;
-        
-        // Initialize Razorpay checkout
+
         const options = {
           key: key,
-          amount: amount * 100, // Amount in paise
+          amount: amount * 100,
           currency: currency,
           name: "Garba Rass 2025",
           description: `${quantity} ticket(s) for ${event.name}`,
           order_id: orderId,
-          handler: async function (response) {
-            setIsProcessing(true); // Re-enable processing state for verification
-            try {
-              // Verify payment on backend
-              const verifyResponse = await paymentAPI.verifyPayment({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                quantity: quantity,
-              });
-              
+          handler: function (response) {
+            // Show immediate feedback to the user
+            toast.success("🎉 Payment successful! Your tickets are being generated.");
+            
+            // Close the modal
+            onClose();
+
+            // Redirect immediately to a success page
+            // It's a good practice to have a page that informs the user
+            // that their tickets will be sent via email.
+            window.location.href = "/payment-success";
+
+            // Verify the payment in the background
+            paymentAPI.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              quantity: quantity,
+            }).then(verifyResponse => {
               if (verifyResponse.data.success) {
-                toast.success("🎉 Payment successful! Your tickets have been generated.");
-                onClose();
-                // Redirect to payment success page
-                setTimeout(() => {
-                  window.location.href = "/payment-success";
-                }, 1000);
+                console.log("Payment verification successful. Tickets sent.");
+              } else {
+                console.error("Payment verification failed.");
+                // You might want to trigger an email to your support team here
+                toast.error("Payment verification failed. Please contact support.");
               }
-            } catch (error) {
-              console.error("Payment verification failed:", error);
-              toast.error("Payment verification failed. Please contact support.");
-            } finally {
-              setIsProcessing(false);
-            }
+            }).catch(error => {
+              console.error("Error verifying payment:", error);
+              // Also, a good place to notify support
+              toast.error("An error occurred during payment verification. Please contact support.");
+            });
           },
           prefill: {
             name: event.user?.name || "",
@@ -101,7 +105,6 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
           }
         };
 
-        // Open Razorpay checkout
         const rzp = new window.Razorpay(options);
         rzp.open();
       } else {
@@ -111,7 +114,7 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
       console.error("Order creation failed:", error);
       toast.error("Failed to create payment order. Please try again.");
     } finally {
-      setIsProcessing(false); // Hide loading on error or successful order creation
+      setIsProcessing(false);
     }
     setShowConfirm(false);
   };
