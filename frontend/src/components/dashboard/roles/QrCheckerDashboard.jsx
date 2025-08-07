@@ -16,6 +16,8 @@ const QrCheckerDashboard = () => {
     rejectedScans: 0,
   });
   const [notification, setNotification] = useState(null);
+  const [scanResult, setScanResult] = useState(null);
+  const [showScanResult, setShowScanResult] = useState(false);
 
   // Load scan history from localStorage on component mount
   useEffect(() => {
@@ -83,10 +85,22 @@ const QrCheckerDashboard = () => {
     setNotification({ type, message, details, id: Date.now() });
 
     // Auto-hide notification
-    const duration = type === "success" ? 3000 : 5000;
+    const duration = type === "success" ? 4000 : 6000; // Increased duration for better readability
     setTimeout(() => {
       setNotification(null);
     }, duration);
+  };
+
+  // Show scan result overlay
+  const showScanResultOverlay = (result, ticket = null) => {
+    setScanResult({ ...result, ticket });
+    setShowScanResult(true);
+
+    // Auto-hide after 3.5 seconds
+    setTimeout(() => {
+      setShowScanResult(false);
+      setScanResult(null);
+    }, 3500);
   };
 
   const handleQRScan = async (qrCode) => {
@@ -99,6 +113,12 @@ const QrCheckerDashboard = () => {
       // Basic validation - more flexible now
       if (!qrCode || typeof qrCode !== "string" || qrCode.trim().length === 0) {
         addToScanHistory(qrCode, null, "invalid");
+        showScanResultOverlay({
+          type: "error",
+          title: "Entry Denied",
+          message: "Invalid QR Code",
+          details: "Empty or malformed QR code",
+        });
         showNotification(
           "error",
           "Invalid QR Code",
@@ -126,6 +146,15 @@ const QrCheckerDashboard = () => {
         // Check ticket status
         if (ticket.status === "used") {
           addToScanHistory(trimmedQR, ticket, "used");
+          showScanResultOverlay(
+            {
+              type: "error",
+              title: "Entry Denied",
+              message: "Ticket Already Used",
+              details: `Used on: ${new Date(ticket.entryTime).toLocaleString()}`,
+            },
+            ticket,
+          );
           showNotification(
             "error",
             "Ticket Already Used",
@@ -137,6 +166,15 @@ const QrCheckerDashboard = () => {
         // Check if ticket is cancelled
         if (ticket.status === "cancelled") {
           addToScanHistory(trimmedQR, ticket, "cancelled");
+          showScanResultOverlay(
+            {
+              type: "error",
+              title: "Entry Denied",
+              message: "Ticket Cancelled",
+              details: "This ticket is no longer valid",
+            },
+            ticket,
+          );
           showNotification(
             "error",
             "Ticket Cancelled",
@@ -157,6 +195,15 @@ const QrCheckerDashboard = () => {
             );
 
             addToScanHistory(trimmedQR, ticket, "valid", true);
+            showScanResultOverlay(
+              {
+                type: "success",
+                title: "Entry Allowed!",
+                message: `Welcome ${ticket.user?.name || "Guest"}`,
+                details: `Ticket verified successfully`,
+              },
+              ticket,
+            );
             showNotification(
               "success",
               `✅ Entry Allowed! Welcome ${ticket.user?.name}`,
@@ -174,6 +221,12 @@ const QrCheckerDashboard = () => {
       } else {
         console.log("❌ Backend returned unsuccessful response");
         addToScanHistory(trimmedQR, null, "invalid");
+        showScanResultOverlay({
+          type: "error",
+          title: "Entry Denied",
+          message: "Invalid Ticket",
+          details: "QR code not recognized or ticket not found",
+        });
         showNotification(
           "error",
           "Invalid Ticket",
@@ -192,20 +245,38 @@ const QrCheckerDashboard = () => {
 
       addToScanHistory(qrCode, null, "invalid");
 
-      // More specific error messages
+      // More specific error messages with scan result overlay
       if (error.response?.status === 404) {
+        showScanResultOverlay({
+          type: "error",
+          title: "Entry Denied",
+          message: "Ticket Not Found",
+          details: "This ticket does not exist in our system",
+        });
         showNotification(
           "error",
           "Ticket Not Found",
           "This ticket does not exist in our system",
         );
       } else if (error.response?.status === 400) {
+        showScanResultOverlay({
+          type: "error",
+          title: "Entry Denied",
+          message: "Invalid QR Code",
+          details: "QR code format is not recognized",
+        });
         showNotification(
           "error",
           "Invalid QR Code",
           "QR code format is not recognized",
         );
       } else {
+        showScanResultOverlay({
+          type: "error",
+          title: "Entry Denied",
+          message: "Verification Failed",
+          details: errorMessage,
+        });
         showNotification("error", "Verification Failed", errorMessage);
       }
     } finally {
@@ -331,6 +402,107 @@ const QrCheckerDashboard = () => {
                 </button>
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Scan Result Overlay */}
+      <AnimatePresence>
+        {showScanResult && scanResult && (
+          <motion.div
+            key="scan-result"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              className={`max-w-md w-full rounded-2xl p-8 text-center border-2 ${
+                scanResult.type === "success"
+                  ? "bg-green-900/90 border-green-500/50"
+                  : "bg-red-900/90 border-red-500/50"
+              } backdrop-blur-xl shadow-2xl`}
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <motion.div
+                className="text-8xl mb-6"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 10,
+                  delay: 0.2,
+                }}
+              >
+                {scanResult.type === "success" ? "✅" : "❌"}
+              </motion.div>
+
+              <motion.h2
+                className="text-3xl font-bold text-white mb-3"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                {scanResult.title}
+              </motion.h2>
+
+              <motion.p
+                className={`text-xl font-semibold mb-2 ${
+                  scanResult.type === "success"
+                    ? "text-green-200"
+                    : "text-red-200"
+                }`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                {scanResult.message}
+              </motion.p>
+
+              <motion.p
+                className={`text-sm ${
+                  scanResult.type === "success"
+                    ? "text-green-300"
+                    : "text-red-300"
+                }`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                {scanResult.details}
+              </motion.p>
+
+              {scanResult.ticket && (
+                <motion.div
+                  className="mt-6 p-4 bg-black/30 rounded-lg border border-white/20"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <p className="text-white font-medium">
+                    {scanResult.ticket.user?.name || "Guest"}
+                  </p>
+                  <p className="text-slate-300 text-sm">
+                    {scanResult.ticket.eventName}
+                  </p>
+                  <p className="text-slate-400 text-xs mt-1">
+                    Ticket ID: {scanResult.ticket.ticketId}
+                  </p>
+                </motion.div>
+              )}
+
+              <motion.div
+                className="mt-6 text-xs text-slate-400"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+              >
+                Ready for next scan in a moment...
+              </motion.div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

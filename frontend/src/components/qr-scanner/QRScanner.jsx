@@ -1,14 +1,14 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import QrScanner from 'qr-scanner';
+import React, { useRef, useEffect, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import QrScanner from "qr-scanner";
 
-const QRScanner = ({ 
-  onScan, 
-  onError, 
-  isActive = true, 
-  className = '',
-  overlayColor = 'rgba(0, 0, 0, 0.5)',
-  scanBoxColor = '#00ff00'
+const QRScanner = ({
+  onScan,
+  onError,
+  isActive = true,
+  className = "",
+  overlayColor = "rgba(0, 0, 0, 0.5)",
+  scanBoxColor = "#00ff00",
 }) => {
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
@@ -21,17 +21,19 @@ const QRScanner = ({
   const [lastScanTime, setLastScanTime] = useState(0);
   const [scannerReady, setScannerReady] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [showResult, setShowResult] = useState(false);
   const mountedRef = useRef(true);
 
   // Cleanup function
   const cleanupScanner = useCallback(() => {
     if (scannerRef.current) {
-      console.log('🧹 Cleaning up scanner...');
+      console.log("🧹 Cleaning up scanner...");
       try {
         scannerRef.current.stop();
         scannerRef.current.destroy();
       } catch (cleanupError) {
-        console.warn('⚠️ Error during scanner cleanup:', cleanupError);
+        console.warn("⚠️ Error during scanner cleanup:", cleanupError);
       }
       scannerRef.current = null;
     }
@@ -40,98 +42,110 @@ const QRScanner = ({
   }, []);
 
   // Handle QR scan result
-  const handleScanResult = useCallback((result) => {
-    const now = Date.now();
-    
-    // Throttle scans to prevent rapid-fire scanning
-    if (now - lastScanTime < 1000) {
-      console.log('🔄 Scan throttled - too soon after last scan');
-      return;
-    }
-    
-    setLastScanTime(now);
-    console.log('✅ QR Code detected:', result.data);
-    
-    // Pause scanner for 2 seconds to show result
-    setIsPaused(true);
-    
-    if (onScan) {
-      onScan(result.data);
-    }
-    
-    // Resume scanning after 2 seconds
-    setTimeout(() => {
-      if (mountedRef.current) {
-        setIsPaused(false);
+  const handleScanResult = useCallback(
+    (result) => {
+      const now = Date.now();
+
+      // Throttle scans to prevent rapid-fire scanning (increased to 3 seconds)
+      if (now - lastScanTime < 3000) {
+        console.log("🔄 Scan throttled - too soon after last scan");
+        return;
       }
-    }, 2000);
-  }, [lastScanTime, onScan]);
+
+      setLastScanTime(now);
+      console.log("✅ QR Code detected:", result.data);
+
+      // Show scan detected message immediately
+      setScanResult({ qrCode: result.data, status: "scanning" });
+      setShowResult(true);
+
+      // Pause scanner to show result
+      setIsPaused(true);
+
+      if (onScan) {
+        onScan(result.data);
+      }
+
+      // Resume scanning after 4 seconds (increased for better UX)
+      setTimeout(() => {
+        if (mountedRef.current) {
+          setIsPaused(false);
+          setShowResult(false);
+          setScanResult(null);
+        }
+      }, 4000);
+    },
+    [lastScanTime, onScan],
+  );
 
   // Check camera availability and initialize
   useEffect(() => {
     const checkCameraAndInit = async () => {
       if (!mountedRef.current) return;
-      
+
       try {
         setIsInitializing(true);
         setError(null);
-        
-        console.log('🔍 Checking camera availability...');
-        
+
+        console.log("🔍 Checking camera availability...");
+
         // Add timeout to prevent infinite loading
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Camera initialization timeout')), 10000);
+          setTimeout(
+            () => reject(new Error("Camera initialization timeout")),
+            10000,
+          );
         });
-        
+
         // Check if camera is available with timeout
         const cameraAvailable = await Promise.race([
           QrScanner.hasCamera(),
-          timeoutPromise
+          timeoutPromise,
         ]);
-        
-        console.log('📷 Camera available:', cameraAvailable);
-        
+
+        console.log("📷 Camera available:", cameraAvailable);
+
         if (!mountedRef.current) return;
         setHasCamera(cameraAvailable);
 
         if (!cameraAvailable) {
-          setError('No camera found on this device');
+          setError("No camera found on this device");
           return;
         }
 
         // Get available cameras with timeout
-        console.log('📋 Getting camera list...');
+        console.log("📋 Getting camera list...");
         const cameraList = await Promise.race([
           QrScanner.listCameras(true),
-          timeoutPromise
+          timeoutPromise,
         ]);
-        
-        console.log('📋 Available cameras:', cameraList);
-        
+
+        console.log("📋 Available cameras:", cameraList);
+
         if (!mountedRef.current) return;
         setCameras(cameraList);
-        
+
         if (cameraList.length === 0) {
-          setError('No cameras detected');
+          setError("No cameras detected");
           setHasCamera(false);
           return;
         }
-        
+
         // Prefer back camera for scanning
-        const backCamera = cameraList.find(camera => 
-          camera.label.toLowerCase().includes('back') || 
-          camera.label.toLowerCase().includes('rear') ||
-          camera.label.toLowerCase().includes('environment')
+        const backCamera = cameraList.find(
+          (camera) =>
+            camera.label.toLowerCase().includes("back") ||
+            camera.label.toLowerCase().includes("rear") ||
+            camera.label.toLowerCase().includes("environment"),
         );
         const preferredCamera = backCamera || cameraList[0];
-        console.log('🎯 Selected camera:', preferredCamera);
+        console.log("🎯 Selected camera:", preferredCamera);
         setSelectedCamera(preferredCamera);
-
       } catch (err) {
-        console.error('❌ Camera check failed:', err);
+        console.error("❌ Camera check failed:", err);
         if (mountedRef.current) {
-          const errorMessage = err.message.includes('timeout') 
-            ? 'Camera initialization timed out. Please check camera permissions and try again.'
+          const errorMessage = err.message.includes("timeout")
+            ? "Camera initialization timed out. Please check camera permissions and try again."
             : `Failed to access camera: ${err.message}`;
           setError(errorMessage);
           setHasCamera(false);
@@ -146,43 +160,45 @@ const QRScanner = ({
 
     // Add a small delay before starting initialization
     const initTimer = setTimeout(checkCameraAndInit, 100);
-    
+
     return () => clearTimeout(initTimer);
   }, [onError]);
 
   // Initialize scanner when camera is selected and video element is ready
   useEffect(() => {
-    if (!hasCamera || !selectedCamera || !videoRef.current || !mountedRef.current) return;
+    if (
+      !hasCamera ||
+      !selectedCamera ||
+      !videoRef.current ||
+      !mountedRef.current
+    )
+      return;
 
     const initScanner = async () => {
       try {
-        console.log('🔧 Initializing QR Scanner...');
-        
+        console.log("🔧 Initializing QR Scanner...");
+
         // Clean up existing scanner first
         cleanupScanner();
 
         // Wait for video element to be ready with timeout
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
         if (!mountedRef.current || !videoRef.current) return;
 
         // Add timeout for scanner creation
         const scannerPromise = new Promise((resolve, reject) => {
           try {
-            const scanner = new QrScanner(
-              videoRef.current,
-              handleScanResult,
-              {
-                onDecodeError: (error) => {
-                  console.debug('🔍 QR decode error (normal):', error.message);
-                },
-                preferredCamera: selectedCamera.id,
-                highlightScanRegion: true,
-                highlightCodeOutline: true,
-                maxScansPerSecond: 2,
-                returnDetailedScanResult: true,
-              }
-            );
+            const scanner = new QrScanner(videoRef.current, handleScanResult, {
+              onDecodeError: (error) => {
+                console.debug("🔍 QR decode error (normal):", error.message);
+              },
+              preferredCamera: selectedCamera.id,
+              highlightScanRegion: true,
+              highlightCodeOutline: true,
+              maxScansPerSecond: 1, // Reduced from 2 to 1 for smoother experience
+              returnDetailedScanResult: true,
+            });
             resolve(scanner);
           } catch (err) {
             reject(err);
@@ -190,14 +206,20 @@ const QRScanner = ({
         });
 
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Scanner initialization timeout')), 8000);
+          setTimeout(
+            () => reject(new Error("Scanner initialization timeout")),
+            8000,
+          );
         });
 
         // Create scanner with timeout
-        scannerRef.current = await Promise.race([scannerPromise, timeoutPromise]);
+        scannerRef.current = await Promise.race([
+          scannerPromise,
+          timeoutPromise,
+        ]);
 
-        console.log('✅ QR Scanner initialized successfully');
-        
+        console.log("✅ QR Scanner initialized successfully");
+
         if (mountedRef.current) {
           setScannerReady(true);
           setError(null);
@@ -210,12 +232,11 @@ const QRScanner = ({
             scannerRef.current.$overlay.style.borderColor = scanBoxColor;
           }
         }
-
       } catch (err) {
-        console.error('❌ Scanner initialization failed:', err);
+        console.error("❌ Scanner initialization failed:", err);
         if (mountedRef.current) {
-          const errorMessage = err.message.includes('timeout')
-            ? 'Scanner initialization timed out. Please refresh the page and try again.'
+          const errorMessage = err.message.includes("timeout")
+            ? "Scanner initialization timed out. Please refresh the page and try again."
             : `Failed to initialize scanner: ${err.message}`;
           setError(errorMessage);
           setScannerReady(false);
@@ -226,36 +247,50 @@ const QRScanner = ({
 
     // Add delay before initialization
     const initTimer = setTimeout(initScanner, 200);
-    
+
     return () => clearTimeout(initTimer);
-  }, [hasCamera, selectedCamera, handleScanResult, overlayColor, scanBoxColor, cleanupScanner, onError]);
+  }, [
+    hasCamera,
+    selectedCamera,
+    handleScanResult,
+    overlayColor,
+    scanBoxColor,
+    cleanupScanner,
+    onError,
+  ]);
 
   // Handle scanner start/stop based on isActive prop
   useEffect(() => {
-    if (!scannerRef.current || !scannerReady || hasCamera === false || !mountedRef.current) return;
+    if (
+      !scannerRef.current ||
+      !scannerReady ||
+      hasCamera === false ||
+      !mountedRef.current
+    )
+      return;
 
     const handleScannerState = async () => {
       try {
         if (isActive && !isScanning && !isPaused) {
-          console.log('▶️ Starting scanner...');
+          console.log("▶️ Starting scanner...");
           await scannerRef.current.start();
           if (mountedRef.current) {
             setIsScanning(true);
             setError(null);
-            console.log('✅ Scanner started successfully');
+            console.log("✅ Scanner started successfully");
           }
         } else if (!isActive && isScanning) {
-          console.log('⏹️ Stopping scanner...');
+          console.log("⏹️ Stopping scanner...");
           scannerRef.current.stop();
           if (mountedRef.current) {
             setIsScanning(false);
-            console.log('✅ Scanner stopped successfully');
+            console.log("✅ Scanner stopped successfully");
           }
         }
       } catch (err) {
-        console.error('❌ Scanner state change failed:', err);
+        console.error("❌ Scanner state change failed:", err);
         if (mountedRef.current) {
-          setError('Failed to control camera: ' + err.message);
+          setError("Failed to control camera: " + err.message);
           setIsScanning(false);
           if (onError) onError(err);
         }
@@ -275,20 +310,20 @@ const QRScanner = ({
     const handlePauseResume = async () => {
       try {
         if (isPaused && isScanning) {
-          console.log('⏸️ Pausing scanner...');
+          console.log("⏸️ Pausing scanner...");
           scannerRef.current.stop();
           // Don't change isScanning state, just pause temporarily
         } else if (!isPaused && isActive && !isScanning) {
-          console.log('▶️ Resuming scanner...');
+          console.log("▶️ Resuming scanner...");
           await scannerRef.current.start();
           if (mountedRef.current) {
             setIsScanning(true);
           }
         }
       } catch (err) {
-        console.error('❌ Scanner pause/resume failed:', err);
+        console.error("❌ Scanner pause/resume failed:", err);
         if (mountedRef.current) {
-          setError('Failed to pause/resume scanner: ' + err.message);
+          setError("Failed to pause/resume scanner: " + err.message);
         }
       }
     };
@@ -300,44 +335,46 @@ const QRScanner = ({
     if (cameras.length <= 1 || !scannerRef.current || !scannerReady) return;
 
     try {
-      console.log('🔄 Switching camera...');
-      const currentIndex = cameras.findIndex(cam => cam.id === selectedCamera?.id);
+      console.log("🔄 Switching camera...");
+      const currentIndex = cameras.findIndex(
+        (cam) => cam.id === selectedCamera?.id,
+      );
       const nextIndex = (currentIndex + 1) % cameras.length;
       const nextCamera = cameras[nextIndex];
-      
-      console.log('📷 Switching to camera:', nextCamera);
-      
+
+      console.log("📷 Switching to camera:", nextCamera);
+
       // Stop current scanner
       if (isScanning) {
         scannerRef.current.stop();
         setIsScanning(false);
       }
-      
+
       // Wait a bit before switching
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
       // Set new camera
       await scannerRef.current.setCamera(nextCamera.id);
       setSelectedCamera(nextCamera);
-      
+
       // Restart if it was active
       if (isActive && !isPaused) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         await scannerRef.current.start();
         setIsScanning(true);
       }
-      
-      console.log('✅ Camera switched successfully');
+
+      console.log("✅ Camera switched successfully");
     } catch (err) {
-      console.error('❌ Failed to switch camera:', err);
-      setError('Failed to switch camera: ' + err.message);
+      console.error("❌ Failed to switch camera:", err);
+      setError("Failed to switch camera: " + err.message);
     }
   };
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log('🔄 Component unmounting...');
+      console.log("🔄 Component unmounting...");
       mountedRef.current = true;
       cleanupScanner();
     };
@@ -346,7 +383,9 @@ const QRScanner = ({
   // Show loading state during initialization
   if (isInitializing || hasCamera === null) {
     return (
-      <div className={`relative bg-slate-800 rounded-xl overflow-hidden ${className}`}>
+      <div
+        className={`relative bg-slate-800 rounded-xl overflow-hidden ${className}`}
+      >
         <div className="aspect-square flex items-center justify-center p-8">
           <div className="text-center">
             <motion.div
@@ -354,7 +393,9 @@ const QRScanner = ({
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             />
-            <h3 className="text-white font-bold text-xl mb-2">Initializing...</h3>
+            <h3 className="text-white font-bold text-xl mb-2">
+              Initializing...
+            </h3>
             <p className="text-slate-400">
               Checking camera permissions and availability...
             </p>
@@ -367,11 +408,15 @@ const QRScanner = ({
   // Show no camera message
   if (hasCamera === false) {
     return (
-      <div className={`relative bg-slate-800 rounded-xl overflow-hidden ${className}`}>
+      <div
+        className={`relative bg-slate-800 rounded-xl overflow-hidden ${className}`}
+      >
         <div className="aspect-square flex items-center justify-center p-8">
           <div className="text-center">
             <div className="text-6xl mb-4">📷</div>
-            <h3 className="text-white font-bold text-xl mb-2">No Camera Available</h3>
+            <h3 className="text-white font-bold text-xl mb-2">
+              No Camera Available
+            </h3>
             <p className="text-slate-400 mb-4">
               Camera access is required to scan QR codes. Please ensure:
             </p>
@@ -394,7 +439,9 @@ const QRScanner = ({
   }
 
   return (
-    <div className={`relative bg-slate-800 rounded-xl overflow-hidden ${className}`}>
+    <div
+      className={`relative bg-slate-800 rounded-xl overflow-hidden ${className}`}
+    >
       {/* Video Element */}
       <video
         ref={videoRef}
@@ -411,18 +458,23 @@ const QRScanner = ({
           <div className="flex items-center gap-2">
             <motion.div
               className={`w-2 h-2 rounded-full ${
-                isPaused ? 'bg-yellow-400' : 
-                isScanning ? 'bg-green-400' : 
-                'bg-red-400'
+                isPaused
+                  ? "bg-yellow-400"
+                  : isScanning
+                    ? "bg-green-400"
+                    : "bg-red-400"
               }`}
               animate={isScanning && !isPaused ? { scale: [1, 1.2, 1] } : {}}
               transition={{ duration: 1, repeat: Infinity }}
             />
             <span className="text-white text-sm font-medium">
-              {isPaused ? 'Processing...' :
-               isScanning ? 'Scanning...' : 
-               scannerReady ? 'Ready' : 
-               'Initializing...'}
+              {isPaused
+                ? "Processing..."
+                : isScanning
+                  ? "Scanning..."
+                  : scannerReady
+                    ? "Ready"
+                    : "Initializing..."}
             </span>
           </div>
         </div>
@@ -435,23 +487,75 @@ const QRScanner = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
           </motion.button>
         )}
       </div>
 
+      {/* Scan Result Display */}
+      <AnimatePresence>
+        {showResult && scanResult && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: -20 }}
+            className="absolute inset-4 bg-blue-900/95 backdrop-blur-xl rounded-xl flex items-center justify-center z-30 border border-blue-500/50"
+          >
+            <div className="text-center p-6">
+              <motion.div
+                className="text-6xl mb-4"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 10 }}
+              >
+                📱
+              </motion.div>
+              <h3 className="text-white font-bold text-xl mb-2">
+                QR Code Detected!
+              </h3>
+              <p className="text-blue-200 text-sm mb-3">
+                Processing ticket verification...
+              </p>
+              <motion.div
+                className="w-8 h-8 border-2 border-white border-t-transparent rounded-full mx-auto"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              />
+              <p className="text-blue-300 text-xs mt-3 font-mono">
+                QR: {scanResult.qrCode.substring(0, 20)}...
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Scanning Instructions */}
       <div className="absolute bottom-4 left-4 right-4 z-10">
         <div className="bg-black/50 backdrop-blur-sm rounded-lg p-4 text-center">
           <p className="text-white text-sm">
-            {isPaused ? 'Processing scan result...' :
-             isScanning ? 'Point camera at QR code to scan ticket' :
-             scannerReady ? 'Camera ready - click Start Scanner to begin' :
-             'Preparing camera...'}
+            {showResult
+              ? "Verifying ticket - please wait..."
+              : isPaused
+                ? "Processing complete - ready for next scan"
+                : isScanning
+                  ? "Point camera at QR code to scan ticket"
+                  : scannerReady
+                    ? "Camera ready - click Start Scanner to begin"
+                    : "Preparing camera..."}
           </p>
-          {selectedCamera && (
+          {selectedCamera && !showResult && (
             <p className="text-slate-300 text-xs mt-1">
               Using: {selectedCamera.label}
             </p>
