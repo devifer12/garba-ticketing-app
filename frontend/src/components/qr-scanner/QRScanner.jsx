@@ -6,6 +6,7 @@ const QRScanner = ({
   onScan,
   onError,
   isActive = true,
+  isProcessing = false,
   className = "",
   overlayColor = "rgba(0, 0, 0, 0.5)",
   scanBoxColor = "#00ff00",
@@ -59,25 +60,13 @@ const QRScanner = ({
       setLastScanTime(now);
       console.log("✅ QR Code detected:", result.data);
 
-      // Show scan detected message immediately
-      setScanResult({ qrCode: result.data, status: "scanning" });
-      setShowResult(true);
-
-      // Pause scanner to show result
+      // Pause scanner immediately to prevent multiple scans
       setIsPaused(true);
 
+      // Don't show any result overlay immediately - let the parent handle it
       if (onScan) {
         onScan(result.data);
       }
-
-      // Resume scanning after 3 seconds
-      setTimeout(() => {
-        if (mountedRef.current) {
-          setIsPaused(false);
-          setShowResult(false);
-          setScanResult(null);
-        }
-      }, 3000);
     },
     [lastScanTime, onScan],
   );
@@ -175,6 +164,7 @@ const QRScanner = ({
       !selectedCamera ||
       !videoRef.current ||
       !mountedRef.current
+      // scannerRef.current 
     )
       return;
 
@@ -285,9 +275,15 @@ const QRScanner = ({
       }
     };
 
-    // Only handle state change if not paused
-    if (!isPaused) {
-      handleScannerState();
+    // Only handle state change if not paused and prevent redundant calls
+    if (!isPaused && scannerRef.current) {
+      const currentlyScanning = scannerRef.current._active;
+      if (
+        (isActive && !currentlyScanning) ||
+        (!isActive && currentlyScanning)
+      ) {
+        handleScannerState();
+      }
     }
   }, [
     isActive,
@@ -311,12 +307,14 @@ const QRScanner = ({
 
     const handlePauseResume = async () => {
       try {
-        if (isPaused && isScanning) {
+        const currentlyScanning = scannerRef.current._active;
+
+        if (isPaused && currentlyScanning) {
           console.log("⏸️ Pausing scanner...");
           scannerRef.current.stop();
           setCameraStream(false);
           // Don't change isScanning state, just pause temporarily
-        } else if (!isPaused && isActive && !isScanning) {
+        } else if (!isPaused && isActive && !currentlyScanning) {
           console.log("▶️ Resuming scanner...");
           await scannerRef.current.start();
           if (mountedRef.current) {
@@ -336,6 +334,15 @@ const QRScanner = ({
     handlePauseResume();
   }, [isPaused, isActive, isScanning, scannerReady, videoReady]);
 
+  useEffect(() => {
+    if (!isProcessing && isPaused) {
+      console.log("✅ Parent processing finished, resuming scanner...");
+      setIsPaused(false);
+      setShowResult(false);
+      setScanResult(null);
+    }
+  }, [isProcessing, isPaused]);
+  
   const switchCamera = async () => {
     if (cameras.length <= 1 || !scannerRef.current || !scannerReady) return;
 

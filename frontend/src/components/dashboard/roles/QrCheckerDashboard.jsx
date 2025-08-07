@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../context/AuthContext";
@@ -18,6 +18,7 @@ const QrCheckerDashboard = () => {
   const [notification, setNotification] = useState(null);
   const [scanResult, setScanResult] = useState(null);
   const [showScanResult, setShowScanResult] = useState(false);
+  const isProcessingRef = useRef(false);
 
   // Load scan history from localStorage on component mount
   useEffect(() => {
@@ -104,11 +105,14 @@ const QrCheckerDashboard = () => {
   };
 
   const handleQRScan = async (qrCode) => {
-    if (loading) return;
+    if (isProcessingRef.current) return;
 
     try {
+      isProcessingRef.current = true;
       setLoading(true);
-      console.log("🔍 QR Code scanned:", qrCode);
+      // console.log("🔍 QR Code scanned:", qrCode);
+      console.log("Lock engaged. Processing QR code...", qrCode);
+
 
       // Basic validation - more flexible now
       if (!qrCode || typeof qrCode !== "string" || qrCode.trim().length === 0) {
@@ -308,6 +312,8 @@ const QrCheckerDashboard = () => {
         showNotification("error", "⚠️ Verification Failed", errorMessage);
       }
     } finally {
+      console.log("Releasing scanner...");
+      isProcessingRef.current = false;
       setLoading(false);
     }
   };
@@ -698,6 +704,7 @@ const QrCheckerDashboard = () => {
             onScan={handleQRScan}
             onError={handleScanError}
             isActive={scannerActive}
+            isProcessing={loading}
             className="w-full"
             overlayColor="rgba(0, 0, 0, 0.6)"
             scanBoxColor="#10b981"
