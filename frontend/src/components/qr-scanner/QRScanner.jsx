@@ -23,6 +23,8 @@ const QRScanner = ({
   const [isPaused, setIsPaused] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [showResult, setShowResult] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const [cameraStream, setCameraStream] = useState(null);
   const mountedRef = useRef(true);
 
   // Cleanup function
@@ -39,6 +41,8 @@ const QRScanner = ({
     }
     setScannerReady(false);
     setIsScanning(false);
+    setVideoReady(false);
+    setCameraStream(null);
   }, []);
 
   // Handle QR scan result
@@ -66,14 +70,14 @@ const QRScanner = ({
         onScan(result.data);
       }
 
-      // Resume scanning after 4 seconds (increased for better UX)
+      // Resume scanning after 3 seconds
       setTimeout(() => {
         if (mountedRef.current) {
           setIsPaused(false);
           setShowResult(false);
           setScanResult(null);
         }
-      }, 4000);
+      }, 3000);
     },
     [lastScanTime, onScan],
   );
@@ -177,51 +181,34 @@ const QRScanner = ({
     const initScanner = async () => {
       try {
         console.log("🔧 Initializing QR Scanner...");
+        setVideoReady(false);
 
         // Clean up existing scanner first
         cleanupScanner();
 
-        // Wait for video element to be ready with timeout
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Wait for video element to be ready
+        await new Promise((resolve) => setTimeout(resolve, 300));
 
         if (!mountedRef.current || !videoRef.current) return;
 
-        // Add timeout for scanner creation
-        const scannerPromise = new Promise((resolve, reject) => {
-          try {
-            const scanner = new QrScanner(videoRef.current, handleScanResult, {
-              onDecodeError: (error) => {
-                console.debug("🔍 QR decode error (normal):", error.message);
-              },
-              preferredCamera: selectedCamera.id,
-              highlightScanRegion: true,
-              highlightCodeOutline: true,
-              maxScansPerSecond: 1, // Reduced from 2 to 1 for smoother experience
-              returnDetailedScanResult: true,
-            });
-            resolve(scanner);
-          } catch (err) {
-            reject(err);
-          }
+        // Create scanner with proper error handling
+        const scanner = new QrScanner(videoRef.current, handleScanResult, {
+          onDecodeError: (error) => {
+            console.debug("🔍 QR decode error (normal):", error.message);
+          },
+          preferredCamera: selectedCamera.id,
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          maxScansPerSecond: 1,
+          returnDetailedScanResult: true,
         });
 
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(
-            () => reject(new Error("Scanner initialization timeout")),
-            8000,
-          );
-        });
-
-        // Create scanner with timeout
-        scannerRef.current = await Promise.race([
-          scannerPromise,
-          timeoutPromise,
-        ]);
-
+        scannerRef.current = scanner;
         console.log("✅ QR Scanner initialized successfully");
 
         if (mountedRef.current) {
           setScannerReady(true);
+          setVideoReady(true);
           setError(null);
         }
 
@@ -235,20 +222,17 @@ const QRScanner = ({
       } catch (err) {
         console.error("❌ Scanner initialization failed:", err);
         if (mountedRef.current) {
-          const errorMessage = err.message.includes("timeout")
-            ? "Scanner initialization timed out. Please refresh the page and try again."
-            : `Failed to initialize scanner: ${err.message}`;
+          const errorMessage = `Failed to initialize scanner: ${err.message}`;
           setError(errorMessage);
           setScannerReady(false);
+          setVideoReady(false);
           if (onError) onError(err);
         }
       }
     };
 
-    // Add delay before initialization
-    const initTimer = setTimeout(initScanner, 200);
-
-    return () => clearTimeout(initTimer);
+    // Initialize immediately without delay
+    initScanner();
   }, [
     hasCamera,
     selectedCamera,
@@ -264,6 +248,7 @@ const QRScanner = ({
     if (
       !scannerRef.current ||
       !scannerReady ||
+      !videoReady ||
       hasCamera === false ||
       !mountedRef.current
     )
@@ -276,6 +261,7 @@ const QRScanner = ({
           await scannerRef.current.start();
           if (mountedRef.current) {
             setIsScanning(true);
+            setCameraStream(true);
             setError(null);
             console.log("✅ Scanner started successfully");
           }
@@ -284,6 +270,7 @@ const QRScanner = ({
           scannerRef.current.stop();
           if (mountedRef.current) {
             setIsScanning(false);
+            setCameraStream(false);
             console.log("✅ Scanner stopped successfully");
           }
         }
@@ -292,6 +279,7 @@ const QRScanner = ({
         if (mountedRef.current) {
           setError("Failed to control camera: " + err.message);
           setIsScanning(false);
+          setCameraStream(false);
           if (onError) onError(err);
         }
       }
@@ -301,35 +289,52 @@ const QRScanner = ({
     if (!isPaused) {
       handleScannerState();
     }
-  }, [isActive, isScanning, isPaused, hasCamera, scannerReady, onError]);
+  }, [
+    isActive,
+    isScanning,
+    isPaused,
+    hasCamera,
+    scannerReady,
+    videoReady,
+    onError,
+  ]);
 
   // Handle pause/resume when isPaused changes
   useEffect(() => {
-    if (!scannerRef.current || !scannerReady || !mountedRef.current) return;
+    if (
+      !scannerRef.current ||
+      !scannerReady ||
+      !videoReady ||
+      !mountedRef.current
+    )
+      return;
 
     const handlePauseResume = async () => {
       try {
         if (isPaused && isScanning) {
           console.log("⏸️ Pausing scanner...");
           scannerRef.current.stop();
+          setCameraStream(false);
           // Don't change isScanning state, just pause temporarily
         } else if (!isPaused && isActive && !isScanning) {
           console.log("▶️ Resuming scanner...");
           await scannerRef.current.start();
           if (mountedRef.current) {
             setIsScanning(true);
+            setCameraStream(true);
           }
         }
       } catch (err) {
         console.error("❌ Scanner pause/resume failed:", err);
         if (mountedRef.current) {
           setError("Failed to pause/resume scanner: " + err.message);
+          setCameraStream(false);
         }
       }
     };
 
     handlePauseResume();
-  }, [isPaused, isActive, isScanning, scannerReady]);
+  }, [isPaused, isActive, isScanning, scannerReady, videoReady]);
 
   const switchCamera = async () => {
     if (cameras.length <= 1 || !scannerRef.current || !scannerReady) return;
@@ -359,9 +364,10 @@ const QRScanner = ({
 
       // Restart if it was active
       if (isActive && !isPaused) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 300));
         await scannerRef.current.start();
         setIsScanning(true);
+        setCameraStream(true);
       }
 
       console.log("✅ Camera switched successfully");
@@ -386,7 +392,7 @@ const QRScanner = ({
       <div
         className={`relative bg-slate-800 rounded-xl overflow-hidden ${className}`}
       >
-        <div className="aspect-square flex items-center justify-center p-8">
+        <div className="h-64 sm:h-80 md:aspect-square flex items-center justify-center p-4 sm:p-8">
           <div className="text-center">
             <motion.div
               className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"
@@ -394,10 +400,10 @@ const QRScanner = ({
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             />
             <h3 className="text-white font-bold text-xl mb-2">
-              Initializing...
+              Setting up camera...
             </h3>
             <p className="text-slate-400">
-              Checking camera permissions and availability...
+              Please wait while we prepare the scanner
             </p>
           </div>
         </div>
@@ -411,7 +417,7 @@ const QRScanner = ({
       <div
         className={`relative bg-slate-800 rounded-xl overflow-hidden ${className}`}
       >
-        <div className="aspect-square flex items-center justify-center p-8">
+        <div className="h-64 sm:h-80 md:aspect-square flex items-center justify-center p-4 sm:p-8">
           <div className="text-center">
             <div className="text-6xl mb-4">📷</div>
             <h3 className="text-white font-bold text-xl mb-2">
@@ -442,20 +448,36 @@ const QRScanner = ({
     <div
       className={`relative bg-slate-800 rounded-xl overflow-hidden ${className}`}
     >
-      {/* Video Element */}
+      {/* Video Element - Only show when ready */}
       <video
         ref={videoRef}
-        className="w-full aspect-square object-cover"
+        className={`w-full h-64 sm:h-80 md:aspect-square object-cover transition-opacity duration-300 ${
+          videoReady && cameraStream ? "opacity-100" : "opacity-0"
+        }`}
         playsInline
         muted
         autoPlay
       />
 
-      {/* Scanner Controls Overlay */}
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-10">
+      {/* Video Loading Overlay */}
+      {(!videoReady || !cameraStream) && isActive && scannerReady && (
+        <div className="absolute inset-0 bg-slate-800 flex items-center justify-center">
+          <div className="text-center">
+            <motion.div
+              className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-3"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            />
+            <p className="text-white text-sm">Starting camera...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Scanner Controls Overlay - Mobile Optimized */}
+      <div className="absolute top-2 left-2 right-2 flex justify-between items-start z-10">
         {/* Status Indicator */}
-        <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2">
-          <div className="flex items-center gap-2">
+        <div className="bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1 sm:px-3 sm:py-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <motion.div
               className={`w-2 h-2 rounded-full ${
                 isPaused
@@ -467,7 +489,7 @@ const QRScanner = ({
               animate={isScanning && !isPaused ? { scale: [1, 1.2, 1] } : {}}
               transition={{ duration: 1, repeat: Infinity }}
             />
-            <span className="text-white text-sm font-medium">
+            <span className="text-white text-xs sm:text-sm font-medium">
               {isPaused
                 ? "Processing..."
                 : isScanning
@@ -483,12 +505,12 @@ const QRScanner = ({
         {cameras.length > 1 && scannerReady && (
           <motion.button
             onClick={switchCamera}
-            className="bg-black/50 backdrop-blur-sm rounded-lg p-2 text-white hover:bg-black/70 transition-colors"
+            className="bg-black/70 backdrop-blur-sm rounded-lg p-1.5 sm:p-2 text-white hover:bg-black/80 transition-colors"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
             <svg
-              className="w-5 h-5"
+              className="w-4 h-4 sm:w-5 sm:h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -541,10 +563,10 @@ const QRScanner = ({
         )}
       </AnimatePresence>
 
-      {/* Scanning Instructions */}
-      <div className="absolute bottom-4 left-4 right-4 z-10">
-        <div className="bg-black/50 backdrop-blur-sm rounded-lg p-4 text-center">
-          <p className="text-white text-sm">
+      {/* Scanning Instructions - Mobile Optimized */}
+      <div className="absolute bottom-2 left-2 right-2 z-10">
+        <div className="bg-black/70 backdrop-blur-sm rounded-lg p-2 sm:p-4 text-center">
+          <p className="text-white text-xs sm:text-sm">
             {showResult
               ? "Verifying ticket - please wait..."
               : isPaused
@@ -556,7 +578,7 @@ const QRScanner = ({
                     : "Preparing camera..."}
           </p>
           {selectedCamera && !showResult && (
-            <p className="text-slate-300 text-xs mt-1">
+            <p className="text-slate-300 text-xs mt-1 hidden sm:block">
               Using: {selectedCamera.label}
             </p>
           )}
@@ -599,16 +621,16 @@ const QRScanner = ({
         )}
       </AnimatePresence>
 
-      {/* Loading Overlay - Show when scanner should be active but isn't ready yet */}
-      {isActive && !isScanning && !error && hasCamera && !scannerReady && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+      {/* Scanner Initialization Overlay */}
+      {isActive && !scannerReady && !error && hasCamera && (
+        <div className="absolute inset-0 bg-slate-800 flex items-center justify-center z-10">
           <div className="text-center">
             <motion.div
-              className="w-8 h-8 border-2 border-white border-t-transparent rounded-full mx-auto mb-2"
+              className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-3"
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             />
-            <p className="text-white text-sm">Preparing camera...</p>
+            <p className="text-white text-sm">Initializing scanner...</p>
           </div>
         </div>
       )}

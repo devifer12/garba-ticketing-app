@@ -115,13 +115,13 @@ const QrCheckerDashboard = () => {
         addToScanHistory(qrCode, null, "invalid");
         showScanResultOverlay({
           type: "error",
-          title: "Entry Denied",
+          title: "❌ Entry Denied",
           message: "Invalid QR Code",
-          details: "Empty or malformed QR code",
+          details: "Empty or malformed QR code detected",
         });
         showNotification(
           "error",
-          "Invalid QR Code",
+          "❌ Invalid QR Code",
           "Empty or malformed QR code",
         );
         return;
@@ -146,19 +146,22 @@ const QrCheckerDashboard = () => {
         // Check ticket status
         if (ticket.status === "used") {
           addToScanHistory(trimmedQR, ticket, "used");
+          const entryTime = ticket.entryTime
+            ? new Date(ticket.entryTime).toLocaleString()
+            : "Unknown time";
           showScanResultOverlay(
             {
               type: "error",
-              title: "Entry Denied",
+              title: "❌ Entry Denied",
               message: "Ticket Already Used",
-              details: `Used on: ${new Date(ticket.entryTime).toLocaleString()}`,
+              details: `This ticket was previously used on: ${entryTime}`,
             },
             ticket,
           );
           showNotification(
             "error",
-            "Ticket Already Used",
-            `This ticket was already used. Entry time: ${new Date(ticket.entryTime).toLocaleString()}`,
+            "❌ Ticket Already Used",
+            `This ticket was previously used. Entry time: ${entryTime}`,
           );
           return;
         }
@@ -169,15 +172,15 @@ const QrCheckerDashboard = () => {
           showScanResultOverlay(
             {
               type: "error",
-              title: "Entry Denied",
+              title: "❌ Entry Denied",
               message: "Ticket Cancelled",
-              details: "This ticket is no longer valid",
+              details: "This ticket has been cancelled and is no longer valid",
             },
             ticket,
           );
           showNotification(
             "error",
-            "Ticket Cancelled",
+            "❌ Ticket Cancelled",
             "This ticket was cancelled and is no longer valid.",
           );
           return;
@@ -198,23 +201,33 @@ const QrCheckerDashboard = () => {
             showScanResultOverlay(
               {
                 type: "success",
-                title: "Entry Allowed!",
+                title: "✅ Entry Allowed!",
                 message: `Welcome ${ticket.user?.name || "Guest"}`,
-                details: `Ticket verified successfully`,
+                details: `Ticket verified and marked as used successfully`,
               },
               ticket,
             );
             showNotification(
               "success",
-              `✅ Entry Allowed! Welcome ${ticket.user?.name}`,
+              `✅ Entry Allowed! Welcome ${ticket.user?.name || "Guest"}`,
             );
           } catch (markError) {
             console.error("❌ Failed to mark ticket as used:", markError);
             addToScanHistory(trimmedQR, ticket, "valid", false);
+            showScanResultOverlay(
+              {
+                type: "error",
+                title: "⚠️ Processing Error",
+                message: "Failed to Mark Ticket",
+                details:
+                  "Valid ticket but could not mark as used. Please try scanning again.",
+              },
+              ticket,
+            );
             showNotification(
               "error",
-              "Failed to Process Entry",
-              "Could not mark ticket as used. Please try again.",
+              "⚠️ Failed to Process Entry",
+              "Valid ticket but could not mark as used. Please try again.",
             );
           }
         }
@@ -223,13 +236,13 @@ const QrCheckerDashboard = () => {
         addToScanHistory(trimmedQR, null, "invalid");
         showScanResultOverlay({
           type: "error",
-          title: "Entry Denied",
+          title: "❌ Entry Denied",
           message: "Invalid Ticket",
-          details: "QR code not recognized or ticket not found",
+          details: "QR code not recognized or ticket not found in system",
         });
         showNotification(
           "error",
-          "Invalid Ticket",
+          "❌ Invalid Ticket",
           "Ticket not found in system or QR code is invalid",
         );
       }
@@ -249,35 +262,50 @@ const QrCheckerDashboard = () => {
       if (error.response?.status === 404) {
         showScanResultOverlay({
           type: "error",
-          title: "Entry Denied",
+          title: "❌ Entry Denied",
           message: "Ticket Not Found",
           details: "This ticket does not exist in our system",
         });
         showNotification(
           "error",
-          "Ticket Not Found",
+          "❌ Ticket Not Found",
           "This ticket does not exist in our system",
         );
       } else if (error.response?.status === 400) {
         showScanResultOverlay({
           type: "error",
-          title: "Entry Denied",
-          message: "Invalid QR Code",
-          details: "QR code format is not recognized",
+          title: "❌ Entry Denied",
+          message: "Invalid QR Code Format",
+          details: "QR code format is not recognized by the system",
         });
         showNotification(
           "error",
-          "Invalid QR Code",
+          "❌ Invalid QR Code",
           "QR code format is not recognized",
+        );
+      } else if (
+        error.code === "NETWORK_ERROR" ||
+        error.message.includes("Network Error")
+      ) {
+        showScanResultOverlay({
+          type: "error",
+          title: "🌐 Connection Error",
+          message: "Network Issue",
+          details: "Please check your internet connection and try again",
+        });
+        showNotification(
+          "error",
+          "🌐 Network Error",
+          "Please check your internet connection and try again",
         );
       } else {
         showScanResultOverlay({
           type: "error",
-          title: "Entry Denied",
+          title: "⚠️ Entry Denied",
           message: "Verification Failed",
-          details: errorMessage,
+          details: errorMessage || "Unable to verify ticket. Please try again.",
         });
-        showNotification("error", "Verification Failed", errorMessage);
+        showNotification("error", "⚠️ Verification Failed", errorMessage);
       }
     } finally {
       setLoading(false);
@@ -324,15 +352,25 @@ const QrCheckerDashboard = () => {
       transition={{ duration: 0.6 }}
       className="max-w-6xl mx-auto space-y-8"
     >
-      {/* Notification System */}
+      {/* Notification System - Mobile Optimized */}
       <AnimatePresence>
         {notification && (
           <motion.div
             key={notification.id}
-            initial={{ opacity: 0, x: 300, scale: 0.8 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 300, scale: 0.8 }}
-            className={`fixed ${notification.type === "success" ? "bottom-4 right-4" : "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"} z-50 ${notification.type === "success" ? "max-w-sm" : "max-w-md"} w-full mx-4`}
+            initial={{
+              opacity: 0,
+              y: notification.type === "success" ? 100 : 0,
+              x: notification.type === "success" ? 0 : 0,
+              scale: 0.8,
+            }}
+            animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+            exit={{
+              opacity: 0,
+              y: notification.type === "success" ? 100 : 0,
+              x: notification.type === "success" ? 0 : 0,
+              scale: 0.8,
+            }}
+            className={`fixed ${notification.type === "success" ? "bottom-4 left-4 right-4 sm:bottom-4 sm:right-4 sm:left-auto" : "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"} z-50 ${notification.type === "success" ? "sm:max-w-sm" : "max-w-sm sm:max-w-md"} w-full ${notification.type === "success" ? "mx-0 sm:mx-4" : "mx-4"}`}
           >
             <div
               className={`${
