@@ -7,9 +7,14 @@ import { formatDate, formatTime } from "../../utils/helpers";
 import LazyImage from "../ui/LazyImage";
 import hero1 from "../../assets/hero1.webp";
 import Dandiya from "../../assets/dandiya.webp";
+import { useNavigate } from "react-router-dom";
 
 const Hero = memo(({ event }) => {
-  const { user } = useAuth();
+  const { user, backendUser } = useAuth();
+  const navigate = useNavigate();
+
+  // Get user role from backendUser or default to 'guest' if authenticated but no backend user yet
+  const userRole = backendUser?.role || (user ? 'guest' : null);
 
   // Debounced event data processing to prevent excessive re-calculations
   const debouncedEventProcessor = useCallback(
@@ -68,6 +73,119 @@ const Hero = memo(({ event }) => {
       timeRange: `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`,
     };
   }, [event]);
+
+  // Handle "View My Tickets" button click
+  const handleViewTickets = useCallback(() => {
+    navigate("/dashboard", { replace: false });
+    // Scroll to tickets section after navigation
+    setTimeout(() => {
+      const ticketsSection = document.getElementById("tickets-section");
+      if (ticketsSection) {
+        ticketsSection.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 400);
+  }, [navigate]);
+
+  // Handle "My Dashboard" button click
+  const handleMyDashboard = useCallback(() => {
+    navigate("/dashboard", { replace: false });
+  }, [navigate]);
+
+  // Determine which buttons to show based on user role
+  const renderActionButtons = () => {
+    // Pre-login state - show both buttons
+    if (!user) {
+      return (
+        <>
+          <div className="h-14 sm:h-16 flex items-center">
+            <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-8 sm:px-8 py-3 sm:py-4">
+              🎟️ Book Your Tickets Now
+            </PrimaryButton>
+          </div>
+          <div className="sm:h-16 flex items-center">
+            <GoogleSignInButton
+              className="w-auto sm:w-auto text-base sm:text-xl px-10 sm:px-12 py-3 sm:py-4"
+              showTextOnMobile={true}
+            >
+              📱 Sign In with Google
+            </GoogleSignInButton>
+          </div>
+        </>
+      );
+    }
+
+    // Post-login states based on role
+    switch (userRole) {
+      case 'guest':
+        return (
+          <>
+            <div className="h-14 sm:h-16 flex items-center">
+              <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-8 sm:px-8 py-3 sm:py-4">
+                🎟️ Book Your Tickets Now
+              </PrimaryButton>
+            </div>
+            <div className="h-14 sm:h-16 flex items-center">
+              <motion.button
+                onClick={handleViewTickets}
+                className="bg-slate-800/50 backdrop-blur-xl text-white px-8 sm:px-12 py-3 sm:py-4 rounded-full text-base sm:text-xl font-semibold border border-slate-600/50 hover:border-slate-500/50 hover:bg-slate-700/50 transition-all duration-300 min-w-[200px] sm:min-w-[250px]"
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                🎫 View My Tickets
+              </motion.button>
+            </div>
+          </>
+        );
+
+      case 'admin':
+      case 'manager':
+      case 'qrchecker':
+        return (
+          <div className="h-14 sm:h-16 flex items-center">
+            <motion.button
+              onClick={handleMyDashboard}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 sm:px-12 py-3 sm:py-4 rounded-full text-base sm:text-xl font-bold shadow-xl border border-blue-500/20 transition-all duration-300 min-w-[200px] sm:min-w-[250px]"
+              whileHover={{
+                scale: 1.02,
+                boxShadow: "0 20px 40px rgba(59,130,246,0.3)",
+                y: -2,
+              }}
+              whileTap={{ scale: 0.98 }}
+              animate={{
+                boxShadow: [
+                  "0 10px 30px rgba(59,130,246,0.2)",
+                  "0 15px 35px rgba(147,51,234,0.25)",
+                  "0 10px 30px rgba(59,130,246,0.2)",
+                ],
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <span className="text-sm sm:text-base md:text-lg">
+                🏠 My Dashboard
+              </span>
+            </motion.button>
+          </div>
+        );
+
+      default:
+        // Fallback for authenticated users without role yet
+        return (
+          <div className="h-14 sm:h-16 flex items-center">
+            <motion.button
+              onClick={handleMyDashboard}
+              className="bg-slate-600/50 backdrop-blur-xl text-white px-8 sm:px-12 py-3 sm:py-4 rounded-full text-base sm:text-xl font-semibold border border-slate-500/50 hover:border-slate-400/50 hover:bg-slate-500/50 transition-all duration-300 min-w-[200px] sm:min-w-[250px]"
+              whileHover={{ scale: 1.02, y: -1 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              🔄 Loading Dashboard...
+            </motion.button>
+          </div>
+        );
+    }
+  };
 
   return (
     <section className="min-h-screen pt-32 sm:pt-40 md:pt-48 pb-8 sm:pb-16 relative">
@@ -151,29 +269,12 @@ const Hero = memo(({ event }) => {
               </div>
             </motion.div>
 
-            {/* CTA Buttons - Fixed dimensions */}
+            {/* CTA Buttons - Role-based rendering */}
             <motion.div
               variants={itemVariants}
               className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 items-center lg:items-start"
             >
-              {/* Primary Buy Tickets Button */}
-              <div className="h-14 sm:h-16 flex items-center">
-                <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-8 sm:px-8 py-3 sm:py-4">
-                  🎟️ Book Your Tickets Now
-                </PrimaryButton>
-              </div>
-
-              {/* Secondary Sign In Button - Only show if not authenticated */}
-              {!user && (
-                <div className="h-14 sm:h-16 flex items-center">
-                  <GoogleSignInButton
-                    className="w-auto sm:w-auto text-base sm:text-xl px-10 sm:px-12 py-3 sm:py-4"
-                    showTextOnMobile={true}
-                  >
-                    📱 Sign In with Google
-                  </GoogleSignInButton>
-                </div>
-              )}
+              {renderActionButtons()}
             </motion.div>
           </motion.div>
 

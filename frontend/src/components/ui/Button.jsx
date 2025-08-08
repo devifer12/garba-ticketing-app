@@ -240,9 +240,7 @@ const GoogleSignInButton = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.7 }}
           className="text-slate-400 text-xs text-center hidden lg:block"
-        >
-          Click to sign in with your Google account
-        </motion.div>
+        />
       )}
     </div>
   );
