@@ -49,15 +49,15 @@ const QrCheckerDashboard = () => {
       if (response.data.success) {
         const ticket = response.data.ticket;
 
-        // Check ticket status - IMPORTANT: Check for "used" status first
+        // Double-check ticket status on frontend as well
         if (ticket.status === "used") {
-          const entryTime = ticket.entryTime 
+          const entryTime = ticket.entryTime
             ? new Date(ticket.entryTime).toLocaleString()
             : "Unknown";
-            
+
           showScanResult({
             type: "error",
-            title: "❌ Already Scanned",
+            title: "❌ Already Used",
             message: "This ticket has already been used",
             details: `Previously scanned on: ${entryTime}`,
             ticket: ticket,
@@ -78,10 +78,10 @@ const QrCheckerDashboard = () => {
           return;
         }
 
-        // Mark ticket as used
+        // Mark ticket as used for valid active tickets
         if (ticket.status === "active") {
           const markResponse = await ticketAPI.markTicketAsUsed(trimmedQR);
-          
+
           if (markResponse.data.success) {
             showScanResult({
               type: "success",
@@ -96,38 +96,31 @@ const QrCheckerDashboard = () => {
           }
         }
       } else {
-        // Invalid ticket - QR not found in system
+        // This should not happen if verify-qr is working correctly
         showScanResult({
           type: "error",
           title: "❌ Invalid Ticket",
           message: "QR code not recognized",
-          details: "This QR code is not a valid ticket or doesn't exist in our system",
+          details:
+            "This QR code is not a valid ticket or doesn't exist in our system",
         });
         updateStats("invalidCodes");
       }
     } catch (error) {
       console.error("QR verification error:", error);
-      
-      // Handle specific error responses properly
+
+      // Handle specific error responses properly based on errorType
+      const errorData = error.response?.data;
+      const errorType = errorData?.errorType;
+
       if (error.response?.status === 404) {
-        showScanResult({
-          type: "error",
-          title: "❌ Ticket Not Found",
-          message: "This ticket doesn't exist",
-          details: "The QR code doesn't match any ticket in our system",
-        });
-        updateStats("invalidCodes");
-      } else if (error.response?.status === 400) {
-        // Check if it's a duplicate scan error from backend
-        const errorMessage = error.response?.data?.message || "";
-        if (errorMessage.toLowerCase().includes("already") || errorMessage.toLowerCase().includes("used")) {
+        if (errorType === "TICKET_NOT_FOUND") {
           showScanResult({
             type: "error",
-            title: "❌ Already Scanned",
-            message: "This ticket has already been used",
-            details: "This ticket was previously scanned and marked as used",
+            title: "❌ Ticket Not Found",
+            message: "This ticket doesn't exist",
+            details: "The QR code doesn't match any ticket in our system",
           });
-          updateStats("alreadyUsed");
         } else {
           showScanResult({
             type: "error",
@@ -135,9 +128,46 @@ const QrCheckerDashboard = () => {
             message: "QR code format is incorrect",
             details: "Please scan a valid ticket QR code",
           });
+        }
+        updateStats("invalidCodes");
+      } else if (error.response?.status === 400) {
+        // Check the specific error type for 400 errors
+        if (errorType === "ALREADY_USED") {
+          const ticket = errorData.ticket;
+          const entryTime = ticket?.usedAt
+            ? new Date(ticket.usedAt).toLocaleString()
+            : "Unknown";
+
+          showScanResult({
+            type: "error",
+            title: "❌ Already Used",
+            message: "This ticket has already been used",
+            details: `Previously used on: ${entryTime}`,
+            ticket: ticket,
+          });
+          updateStats("alreadyUsed");
+        } else if (errorType === "TICKET_CANCELLED") {
+          showScanResult({
+            type: "error",
+            title: "❌ Ticket Cancelled",
+            message: "This ticket has been cancelled",
+            details: "This ticket is no longer valid for entry",
+          });
+          updateStats("invalidCodes");
+        } else {
+          // Generic 400 error
+          showScanResult({
+            type: "error",
+            title: "❌ Invalid Request",
+            message: errorData?.error || "Invalid QR code",
+            details: "Please try scanning again",
+          });
           updateStats("invalidCodes");
         }
-      } else if (error.code === "NETWORK_ERROR" || error.message.includes("Network Error")) {
+      } else if (
+        error.code === "NETWORK_ERROR" ||
+        error.message.includes("Network Error")
+      ) {
         showScanResult({
           type: "error",
           title: "🌐 Network Error",
@@ -149,7 +179,7 @@ const QrCheckerDashboard = () => {
           type: "error",
           title: "⚠️ Verification Failed",
           message: "Unable to verify ticket",
-          details: error.response?.data?.message || "Please try again",
+          details: errorData?.error || "Please try again",
         });
       }
     } finally {
@@ -175,12 +205,16 @@ const QrCheckerDashboard = () => {
   };
 
   const updateStats = (type) => {
-    setStats(prev => ({
+    setStats((prev) => ({
       ...prev,
-      totalScanned: type === "totalScanned" ? prev.totalScanned + 1 : prev.totalScanned,
-      validEntries: type === "validEntries" ? prev.validEntries + 1 : prev.validEntries,
-      alreadyUsed: type === "alreadyUsed" ? prev.alreadyUsed + 1 : prev.alreadyUsed,
-      invalidCodes: type === "invalidCodes" ? prev.invalidCodes + 1 : prev.invalidCodes,
+      totalScanned:
+        type === "totalScanned" ? prev.totalScanned + 1 : prev.totalScanned,
+      validEntries:
+        type === "validEntries" ? prev.validEntries + 1 : prev.validEntries,
+      alreadyUsed:
+        type === "alreadyUsed" ? prev.alreadyUsed + 1 : prev.alreadyUsed,
+      invalidCodes:
+        type === "invalidCodes" ? prev.invalidCodes + 1 : prev.invalidCodes,
     }));
   };
 
@@ -206,8 +240,7 @@ const QrCheckerDashboard = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="max-w-6xl mx-auto space-y-8 p-4"
-    >
+      className="max-w-6xl mx-auto space-y-8 p-4">
       {/* Scan Result Overlay */}
       <AnimatePresence>
         {showResult && scanResult && (
@@ -215,8 +248,7 @@ const QrCheckerDashboard = () => {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          >
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <motion.div
               className={`max-w-md w-full rounded-2xl p-8 text-center border-2 ${
                 scanResult.type === "success"
@@ -224,8 +256,7 @@ const QrCheckerDashboard = () => {
                   : "bg-red-900/90 border-red-500/50"
               } backdrop-blur-xl shadow-2xl`}
               initial={{ y: 50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-            >
+              animate={{ y: 0, opacity: 1 }}>
               <motion.div
                 className="text-8xl mb-6"
                 initial={{ scale: 0, rotate: -180 }}
@@ -234,8 +265,7 @@ const QrCheckerDashboard = () => {
                   type: "spring",
                   stiffness: 200,
                   damping: 10,
-                }}
-              >
+                }}>
                 {scanResult.type === "success" ? "✅" : "❌"}
               </motion.div>
 
@@ -243,15 +273,21 @@ const QrCheckerDashboard = () => {
                 {scanResult.title}
               </h2>
 
-              <p className={`text-xl font-semibold mb-2 ${
-                scanResult.type === "success" ? "text-green-200" : "text-red-200"
-              }`}>
+              <p
+                className={`text-xl font-semibold mb-2 ${
+                  scanResult.type === "success"
+                    ? "text-green-200"
+                    : "text-red-200"
+                }`}>
                 {scanResult.message}
               </p>
 
-              <p className={`text-sm mb-4 ${
-                scanResult.type === "success" ? "text-green-300" : "text-red-300"
-              }`}>
+              <p
+                className={`text-sm mb-4 ${
+                  scanResult.type === "success"
+                    ? "text-green-300"
+                    : "text-red-300"
+                }`}>
                 {scanResult.details}
               </p>
 
@@ -279,8 +315,7 @@ const QrCheckerDashboard = () => {
           className="text-center mb-8"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-        >
+          transition={{ delay: 0.2 }}>
           <motion.div
             className="text-6xl mb-4"
             animate={{
@@ -291,8 +326,7 @@ const QrCheckerDashboard = () => {
               duration: 2,
               repeat: Infinity,
               repeatType: "reverse",
-            }}
-          >
+            }}>
             📱
           </motion.div>
 
@@ -304,7 +338,7 @@ const QrCheckerDashboard = () => {
             <h2 className="text-2xl font-bold text-white mb-4">
               Ticket Verification Station
             </h2>
-            
+
             {/* User Info */}
             {(user || backendUser) && (
               <div className="flex items-center justify-center gap-4 mt-6">
@@ -335,16 +369,35 @@ const QrCheckerDashboard = () => {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { icon: "📊", title: "Total Scanned", value: stats.totalScanned, color: "blue" },
-            { icon: "✅", title: "Valid Entries", value: stats.validEntries, color: "green" },
-            { icon: "🔄", title: "Already Used", value: stats.alreadyUsed, color: "yellow" },
-            { icon: "❌", title: "Invalid", value: stats.invalidCodes, color: "red" },
+            {
+              icon: "📊",
+              title: "Total Scanned",
+              value: stats.totalScanned,
+              color: "blue",
+            },
+            {
+              icon: "✅",
+              title: "Valid Entries",
+              value: stats.validEntries,
+              color: "green",
+            },
+            {
+              icon: "🔄",
+              title: "Already Used",
+              value: stats.alreadyUsed,
+              color: "yellow",
+            },
+            {
+              icon: "❌",
+              title: "Invalid",
+              value: stats.invalidCodes,
+              color: "red",
+            },
           ].map((stat, index) => (
             <motion.div
               key={index}
               className={`bg-slate-700/50 backdrop-blur-xl rounded-xl p-4 border border-slate-600/30 text-center`}
-              whileHover={{ scale: 1.02 }}
-            >
+              whileHover={{ scale: 1.02 }}>
               <div className="text-2xl mb-2">{stat.icon}</div>
               <h3 className="text-slate-300 font-medium text-sm mb-1">
                 {stat.title}
@@ -373,27 +426,28 @@ const QrCheckerDashboard = () => {
                   : "bg-green-600 hover:bg-green-700 text-white"
               }`}
               whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
+              whileTap={{ scale: 0.98 }}>
               {cameraActive ? "🛑 Stop Camera" : "▶️ Start Camera"}
             </motion.button>
 
-            <div className={`p-4 rounded-lg border ${
-              cameraActive 
-                ? "bg-green-900/20 border-green-700/30" 
-                : "bg-slate-700/30 border-slate-600/30"
-            }`}>
+            <div
+              className={`p-4 rounded-lg border ${
+                cameraActive
+                  ? "bg-green-900/20 border-green-700/30"
+                  : "bg-slate-700/30 border-slate-600/30"
+              }`}>
               <div className="flex items-center gap-2 mb-2">
-                <div className={`w-3 h-3 rounded-full ${
-                  cameraActive ? "bg-green-400" : "bg-slate-400"
-                }`}></div>
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    cameraActive ? "bg-green-400" : "bg-slate-400"
+                  }`}></div>
                 <span className="text-white font-medium">
                   {cameraActive ? "Camera Active" : "Camera Inactive"}
                 </span>
               </div>
               <p className="text-slate-400 text-sm">
-                {cameraActive 
-                  ? "Point camera at QR codes to scan tickets" 
+                {cameraActive
+                  ? "Point camera at QR codes to scan tickets"
                   : "Click 'Start Camera' to begin scanning"}
               </p>
             </div>
@@ -402,7 +456,9 @@ const QrCheckerDashboard = () => {
               <div className="p-4 bg-blue-900/20 border border-blue-700/30 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-blue-300 font-medium">Processing ticket...</span>
+                  <span className="text-blue-300 font-medium">
+                    Processing ticket...
+                  </span>
                 </div>
               </div>
             )}
@@ -442,8 +498,7 @@ const QrCheckerDashboard = () => {
           onClick={resetStats}
           className="px-6 py-3 bg-slate-600/50 hover:bg-slate-600/70 text-slate-300 rounded-lg transition-all"
           whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
+          whileTap={{ scale: 0.98 }}>
           Reset Statistics
         </motion.button>
       </div>

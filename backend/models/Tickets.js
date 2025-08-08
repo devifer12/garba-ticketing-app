@@ -280,6 +280,7 @@ ticketSchema.pre("save", async function (next) {
 });
 
 // Static method to find ticket by QR code
+// Updated static method to find ticket by QR code in Ticket model
 ticketSchema.statics.findByQRCode = async function (qrCode) {
   if (process.env.NODE_ENV === "development") {
     console.log(
@@ -297,11 +298,14 @@ ticketSchema.statics.findByQRCode = async function (qrCode) {
     let ticket = await this.findOne({ qrCode: qrCode }).populate(
       "user",
       "name email role",
+    ).populate(
+      "scannedBy", 
+      "name email role"
     );
 
     if (ticket) {
       if (process.env.NODE_ENV === "development") {
-        console.log("✅ Found ticket by exact QR match");
+        console.log("✅ Found ticket by exact QR match, status:", ticket.status);
       }
       return ticket;
     }
@@ -312,15 +316,18 @@ ticketSchema.statics.findByQRCode = async function (qrCode) {
         $regex: `^${qrCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
         $options: "i",
       },
-    }).populate("user", "name email role");
+    }).populate("user", "name email role").populate("scannedBy", "name email role");
 
     if (ticket) {
       if (process.env.NODE_ENV === "development") {
-        console.log("✅ Found ticket by case-insensitive QR match");
+        console.log("✅ Found ticket by case-insensitive QR match, status:", ticket.status);
       }
       return ticket;
     }
 
+    if (process.env.NODE_ENV === "development") {
+      console.log("❌ No ticket found for QR code");
+    }
     return null;
   } catch (error) {
     console.error(

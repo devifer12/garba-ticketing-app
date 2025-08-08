@@ -309,15 +309,6 @@ const QRScanner = ({ onScan, onError, isActive = false, isProcessing = false, cl
         </div>
       </div>
 
-      {/* Debug Info (remove in production) */}
-      <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2">
-        <div className="text-white text-xs">
-          <div>Active: {isActive ? 'Yes' : 'No'}</div>
-          <div>Scanner: {scannerRef.current ? 'Init' : 'None'}</div>
-          <div>Processing: {isProcessing ? 'Yes' : 'No'}</div>
-        </div>
-      </div>
-
       {/* Instructions */}
       <div className="absolute bottom-4 left-4 right-4">
         <div className="bg-black/70 backdrop-blur-sm rounded-lg p-3 text-center">

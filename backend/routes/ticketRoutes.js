@@ -608,45 +608,72 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: "QR code is required",
+        errorType: "MISSING_QR_CODE"
       });
     }
 
-    // Validate QR code format
-    const isValidFormat = Ticket.isValidQRCode(qrCode);
-
-    if (!isValidFormat) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid QR code format",
-      });
-    }
-
-    // Find ticket by QR code
-    const ticket = await Ticket.findOne({ qrCode: qrCode })
-      .populate("user", "name email role")
-      .populate("scannedBy", "name email");
+    // First, try to find the ticket in the database (regardless of status)
+    const ticket = await Ticket.findByQRCode(qrCode);
 
     if (!ticket) {
+      // Only after confirming the ticket doesn't exist, validate format
+      const isValidFormat = Ticket.isValidQRCode(qrCode);
+      
       return res.status(404).json({
         success: false,
-        error: "Ticket not found",
+        error: isValidFormat ? "Ticket not found" : "Invalid QR code format",
+        errorType: isValidFormat ? "TICKET_NOT_FOUND" : "INVALID_FORMAT"
       });
     }
 
-    // Check ticket status
+    // Now check the ticket status - MOST IMPORTANT: Check for "used" status first
     if (ticket.status === "used") {
       return res.status(400).json({
         success: false,
         error: "This ticket has already been used",
+        errorType: "ALREADY_USED",
         ticket: {
           ticketId: ticket.ticketId,
           usedAt: ticket.entryTime,
           scannedAt: ticket.scannedAt,
+          user: {
+            name: ticket.user.name,
+            email: ticket.user.email,
+          },
+          scannedBy: ticket.scannedBy ? {
+            name: ticket.scannedBy.name,
+            email: ticket.scannedBy.email,
+          } : null
         },
       });
     }
 
-    // Return ticket information for verification
+    if (ticket.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        error: "This ticket has been cancelled",
+        errorType: "TICKET_CANCELLED",
+        ticket: {
+          ticketId: ticket.ticketId,
+          cancelledAt: ticket.cancelledAt,
+          cancellationReason: ticket.cancellationReason,
+        },
+      });
+    }
+
+    if (ticket.status !== "active") {
+      return res.status(400).json({
+        success: false,
+        error: `Ticket status is ${ticket.status}`,
+        errorType: "INVALID_STATUS",
+        ticket: {
+          ticketId: ticket.ticketId,
+          status: ticket.status,
+        },
+      });
+    }
+
+    // Return ticket information for verification (valid active ticket)
     res.status(200).json({
       success: true,
       message: "Valid ticket found",
@@ -665,6 +692,7 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
         hasEntered: ticket.hasEntered,
       },
     });
+
   } catch (error) {
     console.error(
       "QR verification error:",
@@ -673,13 +701,13 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to verify QR code",
-      details:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
+      errorType: "VERIFICATION_ERROR",
+      details: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
 
-// Mark ticket as used (for checkers)
+// Updated mark-used endpoint
 router.post("/mark-used", verifyToken, async (req, res) => {
   try {
     const { qrCode } = req.body;
@@ -695,6 +723,7 @@ router.post("/mark-used", verifyToken, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: "QR code is required",
+        errorType: "MISSING_QR_CODE"
       });
     }
 
@@ -704,6 +733,7 @@ router.post("/mark-used", verifyToken, async (req, res) => {
       return res.status(404).json({
         success: false,
         error: "Checker not found",
+        errorType: "CHECKER_NOT_FOUND"
       });
     }
 
@@ -712,32 +742,49 @@ router.post("/mark-used", verifyToken, async (req, res) => {
       return res.status(403).json({
         success: false,
         error: "Insufficient permissions to mark tickets as used",
+        errorType: "INSUFFICIENT_PERMISSIONS"
       });
     }
 
-    // Find ticket by QR code
-    const ticket = await Ticket.findOne({ qrCode: qrCode }).populate(
-      "user",
-      "name email"
-    );
+    // Find ticket by QR code using the static method
+    const ticket = await Ticket.findByQRCode(qrCode);
 
     if (!ticket) {
       return res.status(404).json({
         success: false,
         error: "Ticket not found",
+        errorType: "TICKET_NOT_FOUND"
       });
     }
 
-    // Check if ticket is already used
+    // Check if ticket is already used - IMPORTANT: Clear error message
     if (ticket.status === "used") {
       return res.status(400).json({
         success: false,
-        error: "Ticket has already been used",
+        error: "This ticket has already been used",
+        errorType: "ALREADY_USED",
         ticket: {
           ticketId: ticket.ticketId,
           usedAt: ticket.entryTime,
-          scannedBy: ticket.scannedBy,
+          scannedAt: ticket.scannedAt,
+          user: {
+            name: ticket.user.name,
+            email: ticket.user.email,
+          },
+          scannedBy: ticket.scannedBy ? {
+            name: ticket.scannedBy.name,
+            email: ticket.scannedBy.email,
+          } : null
         },
+      });
+    }
+
+    // Check if ticket is cancelled
+    if (ticket.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        error: "This ticket has been cancelled and cannot be used",
+        errorType: "TICKET_CANCELLED"
       });
     }
 
@@ -771,8 +818,8 @@ router.post("/mark-used", verifyToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to mark ticket as used",
-      details:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
+      errorType: "MARK_USED_ERROR",
+      details: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
