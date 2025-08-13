@@ -15,6 +15,7 @@ import ErrorBoundary from "./components/ui/ErrorBoundary";
 import { AuthProvider } from "./context/AuthContext";
 import { eventAPI } from "./services/api";
 import { logBundleSize, monitorMemoryUsage } from "./utils/performance";
+import { Analytics } from "@vercel/analytics/next"
 
 // Scroll to top component
 const ScrollToTop = () => {
@@ -123,6 +124,9 @@ function App() {
               <Route path="/terms-of-service" element={<TermsOfService />} />
             </Routes>
 
+            {/* Vercel Analytics */}
+            <Analytics />
+            
             {/* Global Error Notification */}
             <ErrorNotification />
 
