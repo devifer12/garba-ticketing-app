@@ -260,7 +260,10 @@ const EventDetails = ({ event }) => {
           variants={itemVariants}
           className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-6 sm:mb-10 px-4 min-h-[80px]">
           {/* Primary Buy Tickets Button */}
-          <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-7 sm:px-8 py-3 sm:py-4">
+          <PrimaryButton 
+            className="w-auto sm:w-auto text-base sm:text-xl px-7 sm:px-8 py-3 sm:py-4"
+            showPurchaseModal={true}
+          >
             🎟️ Book Your Tickets Now
           </PrimaryButton>
 

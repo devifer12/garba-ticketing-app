@@ -1,18 +1,38 @@
+import React from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { eventAPI } from "../../services/api";
 
 const PrimaryButton = ({
   children,
   onClick,
   className = "cursor-pointer",
   disabled = false,
+  showPurchaseModal = false,
   ...props
 }) => {
-  const { user, signInWithGoogle, loading } = useAuth();
+  const { user, loading } = useAuth();
   const [localLoading, setLocalLoading] = useState(false);
+  const [event, setEvent] = useState(null);
+  const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
+
+  // Fetch event data when component mounts if showPurchaseModal is true
+  React.useEffect(() => {
+    if (showPurchaseModal) {
+      const fetchEvent = async () => {
+        try {
+          const response = await eventAPI.getCurrentEvent();
+          setEvent(response.data.data);
+        } catch (error) {
+          console.error("Failed to fetch event:", error);
+        }
+      };
+      fetchEvent();
+    }
+  }, [showPurchaseModal]);
 
   const handleClick = async (e) => {
     e.preventDefault();
@@ -24,15 +44,19 @@ const PrimaryButton = ({
       return;
     }
 
+    // If this button should show purchase modal, show it regardless of auth status
+    if (showPurchaseModal) {
+      setShowModal(true);
+      return;
+    }
+
     try {
       setLocalLoading(true);
 
       // Check if user is authenticated
       if (!user) {
         console.log('User not authenticated, prompting sign-in...');
-        // Prompt user to sign in
-        await signInWithGoogle();
-        // After successful sign-in, redirect to dashboard
+        // For non-purchase buttons, redirect to dashboard which will handle auth
         navigate('/dashboard');
       } else {
         console.log('User authenticated, redirecting to dashboard...');
@@ -49,34 +73,45 @@ const PrimaryButton = ({
   const isLoading = loading || localLoading;
 
   return (
-    <motion.button
-      className={`bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 px-4 sm:px-6 md:px-8 py-3 sm:py-4 rounded-full text-base sm:text-lg md:text-xl font-bold shadow-xl border border-navratri-orange/20 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px] sm:min-w-[250px] ${className}`}
-      whileHover={!disabled && !isLoading ? {
-        scale: 1.02,
-        boxShadow: "0 20px 40px rgba(255,165,0,0.3)",
-        y: -2,
-      } : {}}
-      whileTap={!disabled && !isLoading ? { scale: 0.98 } : {}}
-      animate={!disabled && !isLoading ? {
-        boxShadow: [
-          "0 10px 30px rgba(255,165,0,0.2)",
-          "0 15px 35px rgba(255,215,0,0.25)",
-          "0 10px 30px rgba(255,165,0,0.2)",
-        ],
-      } : {}}
-      transition={{ duration: 2, repeat: Infinity }}
-      onClick={handleClick}
-      disabled={disabled || isLoading}
-      {...props}>
-      {isLoading ? (
-        <div className="flex items-center justify-center gap-2">
-          <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-sm sm:text-base">Loading...</span>
-        </div>
-      ) : (
-        <span className="text-sm sm:text-base md:text-lg">{children}</span>
+    <>
+      <motion.button
+        className={`bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 px-4 sm:px-6 md:px-8 py-3 sm:py-4 rounded-full text-base sm:text-lg md:text-xl font-bold shadow-xl border border-navratri-orange/20 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px] sm:min-w-[250px] ${className}`}
+        whileHover={!disabled && !isLoading ? {
+          scale: 1.02,
+          boxShadow: "0 20px 40px rgba(255,165,0,0.3)",
+          y: -2,
+        } : {}}
+        whileTap={!disabled && !isLoading ? { scale: 0.98 } : {}}
+        animate={!disabled && !isLoading ? {
+          boxShadow: [
+            "0 10px 30px rgba(255,165,0,0.2)",
+            "0 15px 35px rgba(255,215,0,0.25)",
+            "0 10px 30px rgba(255,165,0,0.2)",
+          ],
+        } : {}}
+        transition={{ duration: 2, repeat: Infinity }}
+        onClick={handleClick}
+        disabled={disabled || isLoading}
+        {...props}>
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2">
+            <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm sm:text-base">Loading...</span>
+          </div>
+        ) : (
+          <span className="text-sm sm:text-base md:text-lg">{children}</span>
+        )}
+      </motion.button>
+
+      {/* Purchase Modal */}
+      {showModal && event && (
+        <PurchaseTicketModal
+          event={event}
+          onClose={() => setShowModal(false)}
+          requireAuth={true}
+        />
       )}
-    </motion.button>
+    </>
   );
 };
 
@@ -245,5 +280,8 @@ const GoogleSignInButton = ({
     </div>
   );
 };
+
+// Import PurchaseTicketModal at the top level to avoid circular imports
+const PurchaseTicketModal = React.lazy(() => import("../dashboard/tickets/PurchaseTicketModal"));
 
 export { PrimaryButton, GoogleSignInButton };

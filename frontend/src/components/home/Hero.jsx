@@ -101,7 +101,10 @@ const Hero = memo(({ event }) => {
       return (
         <>
           <div className="h-14 sm:h-16 flex items-center">
-            <PrimaryButton className="w-auto sm:w-auto text-base sm:text-xl px-8 sm:px-8 py-3 sm:py-4">
+            <PrimaryButton 
+              className="w-auto sm:w-auto text-base sm:text-xl px-8 sm:px-8 py-3 sm:py-4"
+              showPurchaseModal={true}
+            >
               🎟️ Book Your Tickets Now
             </PrimaryButton>
           </div>

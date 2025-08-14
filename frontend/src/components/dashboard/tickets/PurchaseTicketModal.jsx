@@ -1,14 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { paymentAPI } from "../../../services/api";
 import { toast } from "react-toastify";
-import {Link} from "react-router-dom"; 
+import { Link } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext";
+import { GoogleSignInButton } from "../../ui/Button";
 
-const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
+const PurchaseTicketModal = ({ 
+  event, 
+  onClose, 
+  onPurchase, 
+  purchasing,
+  requireAuth = false 
+}) => {
+  const { user, signInWithGoogle, loading: authLoading } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [showConfirm, setShowConfirm] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false); // New state variable for internal processing
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
+  const [proceedToPayment, setProceedToPayment] = useState(false);
+
+  // Effect to handle automatic payment after sign-in
+  useEffect(() => {
+    if (proceedToPayment && user && !showAuthPrompt) {
+      // Reset the flag and proceed to payment
+      setProceedToPayment(false);
+      handlePurchase();
+    }
+  }, [user, proceedToPayment, showAuthPrompt]);
 
   // Calculate price based on quantity (tiered pricing)
   const calculatePrice = (qty) => {
@@ -35,7 +56,29 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
     setQuantity(newQuantity);
   };
 
- const handlePurchase = async () => {
+  const handleSignInAndPurchase = async () => {
+    try {
+      setSigningIn(true);
+      await signInWithGoogle();
+      // Set flag to proceed to payment after sign-in
+      setProceedToPayment(true);
+      setShowAuthPrompt(false);
+    } catch (error) {
+      console.error("Sign-in failed:", error);
+      toast.error("Sign-in failed. Please try again.");
+      setProceedToPayment(false);
+    } finally {
+      setSigningIn(false);
+    }
+  };
+
+  const handlePurchase = async () => {
+    // Check if authentication is required and user is not authenticated
+    if (requireAuth && !user) {
+      setShowAuthPrompt(true);
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const orderData = {
@@ -92,8 +135,8 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
             });
           },
           prefill: {
-            name: event.user?.name || "",
-            email: event.user?.email || "",
+            name: user?.displayName || "",
+            email: user?.email || "",
           },
           theme: {
             color: "#ff6500",
@@ -116,7 +159,14 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
     } finally {
       setIsProcessing(false);
     }
-    setShowConfirm(false);
+  };
+
+  const handleContinueToPurchase = () => {
+    if (requireAuth && !user) {
+      setShowAuthPrompt(true);
+    } else {
+      setShowConfirm(true);
+    }
   };
 
   if (!event) return null;
@@ -129,7 +179,77 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
         exit={{ opacity: 0, scale: 0.95 }}
         className="bg-slate-800/90 backdrop-blur-xl border border-slate-600/30 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
       >
-        {!showConfirm ? (
+        {showAuthPrompt ? (
+          // Authentication Prompt
+          <div className="p-4 sm:p-6 md:p-8">
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="text-3xl sm:text-4xl mb-3">🔐</div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
+                Sign In Required
+              </h2>
+              <p className="text-slate-400 text-sm sm:text-base">
+                Please sign in to complete your ticket purchase
+              </p>
+            </div>
+
+            {/* Order Summary */}
+            <div className="bg-slate-700/50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 space-y-2 sm:space-y-3">
+              <div className="flex justify-between text-sm sm:text-base">
+                <span className="text-slate-400">Event:</span>
+                <span className="text-white font-medium">{event.name}</span>
+              </div>
+              <div className="flex justify-between text-sm sm:text-base">
+                <span className="text-slate-400">Quantity:</span>
+                <span className="text-white font-medium">{quantity} ticket(s)</span>
+              </div>
+              <div className="border-t border-slate-600/50 pt-2">
+                <div className="flex justify-between">
+                  <span className="text-slate-300 font-medium text-sm sm:text-base">
+                    Total Amount:
+                  </span>
+                  <span className="text-white font-bold text-xl sm:text-2xl">
+                    ₹{totalAmount}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Sign In Information */}
+            <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+              <h4 className="text-blue-300 font-medium mb-2 text-sm sm:text-base">
+                🔒 Secure Sign-In Process:
+              </h4>
+              <ul className="text-blue-200 text-xs sm:text-sm space-y-1">
+                <li>• Quick Google Sign-In (no password required)</li>
+                <li>• Your tickets will be linked to your account</li>
+                <li>• Easy access to tickets anytime</li>
+                <li>• Secure payment processing</li>
+              </ul>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-3">
+              <GoogleSignInButton
+                onClick={handleSignInAndPurchase}
+                disabled={signingIn || authLoading}
+                className="w-full justify-center"
+                variant="primary"
+              >
+                {signingIn ? "Signing in..." : "Sign In & Pay Now"}
+              </GoogleSignInButton>
+
+              <motion.button
+                onClick={() => setShowAuthPrompt(false)}
+                disabled={signingIn || authLoading}
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-all disabled:opacity-50 text-sm sm:text-base"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Back to Ticket Selection
+              </motion.button>
+            </div>
+          </div>
+        ) : !showConfirm ? (
           // Purchase Form
           <div className="p-4 sm:p-6 md:p-8">
             <div className="text-center mb-4 sm:mb-6">
@@ -283,13 +403,13 @@ const PurchaseTicketModal = ({ event, onClose, onPurchase, purchasing }) => {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <motion.button
-                onClick={() => setShowConfirm(true)}
+                onClick={handleContinueToPurchase}
                 disabled={isProcessing || quantity === 0 || !agreedToTerms}
                 className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-navratri-orange to-navratri-yellow text-slate-900 font-bold rounded-lg shadow-lg hover:shadow-navratri-orange/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Continue to Purchase
+                {requireAuth && !user ? "Continue to Purchase" : "Continue to Purchase"}
               </motion.button>
 
               <motion.button
