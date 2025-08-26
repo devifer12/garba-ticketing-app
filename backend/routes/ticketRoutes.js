@@ -1173,6 +1173,7 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
       quantity = 1,
       paymentDone = false,
       notes = "",
+      ticketNames = [],
     } = req.body;
 
     console.log("🎫 Manual ticket issuance request:", {
@@ -1181,6 +1182,7 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
       userEmail,
       quantity,
       paymentDone,
+      ticketNames: ticketNames ? ticketNames.length : 0,
       issuedBy: req.user.uid,
     });
 
@@ -1277,6 +1279,30 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
       }
     }
 
+    // Process and validate ticket names
+    let processedTicketNames = new Array(quantity).fill(undefined);
+    
+    // Convert single string or number to array if needed
+    if (typeof ticketNames === 'string' || typeof ticketNames === 'number') {
+      ticketNames = [ticketNames.toString()];
+    }
+    
+    // Process valid names
+    if (Array.isArray(ticketNames)) {
+      ticketNames.forEach((name, index) => {
+        if (index < quantity && name && name.toString().trim()) {
+          processedTicketNames[index] = name.toString().trim();
+        }
+      });
+    }
+
+    console.log("📝 Ticket names processed:", {
+      rawTicketNames: ticketNames,
+      processedNames: processedTicketNames,
+      quantity: quantity,
+      targetUserName: targetUser.name
+    });
+
     // Get event details
     const event = await Event.findOne();
     if (!event) {
@@ -1305,7 +1331,21 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
       const ticketPromise = (async () => {
         const qrCode = Ticket.generateQRCode();
         const qrCodeImage = await generateQRCodeImage(qrCode);
+        
+        // Determine the ticket holder name
+        let ticketHolderName;
+        
+        if (processedTicketNames[i]) {
+          // If a specific name was provided for this ticket index, use it
+          ticketHolderName = processedTicketNames[i];
+          console.log(`Using provided name for ticket ${i + 1}: ${ticketHolderName}`);
+        } else {
+          // If no specific name was provided for this ticket, use the main user name
+          ticketHolderName = targetUser.name;
+          console.log(`Using default name for ticket ${i + 1}: ${ticketHolderName}`);
+        }
 
+        console.log(`Creating ticket ${i + 1}/${quantity} for: ${ticketHolderName}`);
         const ticket = new Ticket({
           user: targetUser._id,
           eventName: event.name,
@@ -1325,7 +1365,8 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
             issuedByAdmin: true,
             isCancellable: false,
             paymentDone: paymentDone,
-            isNewUser: !userId, // Flag to indicate if this was a new user
+            isNewUser: !userId,
+            ticketHolderName: ticketHolderName, // Store the specific name for this ticket
             issuedBy: {
               userId: issuingUser._id,
               name: issuingUser.name,
@@ -1337,6 +1378,7 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
             notes: notes,
             deviceInfo: req.headers["user-agent"] || "",
             ipAddress: req.ip || req.connection.remoteAddress || "",
+            originalUserName: targetUser.name, // Store original user name for reference
           },
         });
 
@@ -1449,10 +1491,13 @@ router.post("/admin/generate-pdf", verifyToken, isManager, async (req, res) => {
       });
     }
 
-    // Find tickets
+    // Find tickets with complete metadata, explicitly select metadata field
     const tickets = await Ticket.find({
       _id: { $in: ticketIds },
-    }).populate("user", "name email");
+    })
+    .select('user qrCode qrCodeImage eventName price status metadata')
+    .populate("user", "name email")
+    .lean();  // Using lean() for better performance
 
     if (tickets.length === 0) {
       return res.status(404).json({
@@ -1497,6 +1542,27 @@ router.post("/admin/generate-pdf", verifyToken, isManager, async (req, res) => {
         doc.addPage();
       }
 
+      // Get the ticket holder name with proper fallback logic
+      let ticketHolderName;
+      
+      if (ticket?.metadata?.ticketHolderName) {
+        // If there's a specific ticket holder name in metadata, use it
+        ticketHolderName = ticket.metadata.ticketHolderName;
+      } else {
+        // Otherwise fall back to the user's name
+        ticketHolderName = ticket?.user?.name || "Guest";
+      }
+      
+      // Log detailed information about name resolution
+      console.log('Ticket details for PDF generation:', {
+        ticketId: ticket._id,
+        metadataHolderName: ticket?.metadata?.ticketHolderName,
+        metadataOriginalName: ticket?.metadata?.originalUserName,
+        userName: ticket?.user?.name,
+        finalName: ticketHolderName,
+        hasMetadata: !!ticket.metadata,
+        metadata: ticket.metadata
+      });
       // Main container with a light background and padding
       const containerWidth = doc.page.width - 40;
       const containerHeight = doc.page.height - 40;
@@ -1586,6 +1652,7 @@ router.post("/admin/generate-pdf", verifyToken, isManager, async (req, res) => {
 
       // Set base Y position for the details
       let baseY = doc.y;
+      
 
       doc
         .fill("#333333")
@@ -1598,7 +1665,7 @@ router.post("/admin/generate-pdf", verifyToken, isManager, async (req, res) => {
       doc
         .fill("#E75B00")
         .font("NotoSansSymbols")
-        .text(ticket.user.name, valueX, baseY)
+        .text(ticketHolderName, valueX, baseY)
         .text(event.venue, valueX, baseY + lineSpacing, {
           width: doc.page.width - valueX - 40,
           align: "left",

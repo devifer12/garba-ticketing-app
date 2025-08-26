@@ -109,18 +109,17 @@ const ticketSchema = new mongoose.Schema(
 
     // Additional metadata
     metadata: {
-      purchaseMethod: {
-        type: String,
-        default: "online",
-      },
-      deviceInfo: {
-        type: String,
-        default: "",
-      },
-      ipAddress: {
-        type: String,
-        default: "",
-      },
+      type: Object,
+      default: () => ({
+        purchaseMethod: "online",
+        deviceInfo: "",
+        ipAddress: "",
+        ticketHolderName: "",
+        quantity: 1,
+        totalAmount: 0,
+        notes: "",
+        originalUserName: ""
+      })
     },
   },
   {

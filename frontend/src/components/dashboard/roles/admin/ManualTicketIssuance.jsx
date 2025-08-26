@@ -17,6 +17,8 @@ const ManualTicketIssuance = ({ userRole }) => {
     name: "",
     email: "",
   });
+  const [ticketNames, setTicketNames] = useState([]);
+  const [showNameFields, setShowNameFields] = useState(false);
   const [formData, setFormData] = useState({
     quantity: 1,
     paymentDone: false,
@@ -85,6 +87,29 @@ const ManualTicketIssuance = ({ userRole }) => {
       ...prev,
       [field]: value
     }));
+    
+    // When quantity changes, adjust ticket names array
+    if (field === 'quantity') {
+      const newQuantity = parseInt(value) || 1;
+      // Reset individual names when quantity changes
+      if (showNameFields) {
+        setTicketNames(Array(newQuantity).fill(""));
+      }
+    }
+  };
+
+  const handleTicketNameChange = (index, name) => {
+    setTicketNames(prev => {
+      const newNames = [...prev];
+      newNames[index] = name;
+      return newNames;
+    });
+  };
+
+  const addMoreNames = () => {
+    setShowNameFields(true);
+    // Initialize ticket names array with empty strings
+    setTicketNames(Array(formData.quantity).fill(""));
   };
 
   const calculateTotalAmount = () => {
@@ -137,6 +162,7 @@ const ManualTicketIssuance = ({ userRole }) => {
         quantity: parseInt(formData.quantity),
         paymentDone: formData.paymentDone,
         notes: formData.notes.trim(),
+        ticketNames: showNameFields ? ticketNames.filter(name => name.trim()) : [],
       };
 
       const response = await adminAPI.issueManualTickets(ticketData);
@@ -196,6 +222,8 @@ const ManualTicketIssuance = ({ userRole }) => {
       paymentDone: false,
       notes: "",
     });
+    setTicketNames([]);
+    setShowNameFields(false);
     setIssuedTickets(null);
     setShowSuccessModal(false);
   };
@@ -464,6 +492,60 @@ const ManualTicketIssuance = ({ userRole }) => {
                   +
                 </motion.button>
               </div>
+              
+              {/* Option to add individual names */}
+              {formData.quantity > 1 && !showNameFields && (
+                <div className="text-center">
+                  <motion.button
+                    onClick={addMoreNames}
+                    className="px-4 py-2 bg-blue-600/50 hover:bg-blue-600/70 text-blue-300 rounded-lg transition-all text-sm"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    + Add different names for each ticket?
+                  </motion.button>
+                </div>
+              )}
+
+              {/* Individual Ticket Names */}
+              {showNameFields && formData.quantity > 1 && (
+                <div className="space-y-4">
+                  <div className="bg-blue-900/20 border border-blue-700/30 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-blue-300 font-medium">Individual Ticket Names</h4>
+                      <button
+                        onClick={() => {
+                          setShowNameFields(false);
+                          setTicketNames([]);
+                        }}
+                        className="text-blue-400 hover:text-blue-300 text-sm"
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                    <p className="text-blue-200 text-sm mb-4">
+                      Enter individual names for each ticket. Leave blank to use "{selectedUser?.name || newUserData.name}" for that ticket.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {Array.from({ length: formData.quantity }, (_, index) => (
+                        <div key={index}>
+                          <label className="block text-blue-300 text-sm mb-1">
+                            Ticket #{index + 1} Name
+                          </label>
+                          <input
+                            type="text"
+                            placeholder={`Name for ticket ${index + 1} (default: ${selectedUser?.name || newUserData.name})`}
+                            value={ticketNames[index] || ""}
+                            onChange={(e) => handleTicketNameChange(index, e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/30 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-sm"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Pricing Information */}
@@ -547,7 +629,13 @@ const ManualTicketIssuance = ({ userRole }) => {
             <div className="flex flex-col sm:flex-row gap-4 pt-6">
               <motion.button
                 onClick={() => setShowConfirm(true)}
-                disabled={(!selectedUser && !isNewUser) || !formData.quantity || issuing || (isNewUser && (!newUserData.name.trim() || !newUserData.email.trim()))}
+                disabled={
+                  (!selectedUser && !isNewUser) || 
+                  !formData.quantity || 
+                  issuing || 
+                  (isNewUser && (!newUserData.name.trim() || !newUserData.email.trim())) ||
+                  (!isNewUser && !selectedUser)
+                }
                 className="flex-1 px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl shadow-lg hover:shadow-orange-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -607,6 +695,21 @@ const ManualTicketIssuance = ({ userRole }) => {
                   {formData.paymentDone ? '✅ Received' : '⏳ Pending'}
                 </span>
               </div>
+              {showNameFields && ticketNames.some(name => name.trim()) && (
+                <div>
+                  <span className="text-slate-400">Individual Names:</span>
+                  <div className="mt-2 space-y-1">
+                    {Array.from({ length: formData.quantity }, (_, index) => {
+                      const ticketName = ticketNames[index]?.trim() || (selectedUser?.name || newUserData.name);
+                      return (
+                        <div key={index} className="text-white bg-slate-600/30 rounded p-2 text-sm">
+                          Ticket #{index + 1}: <span className="font-medium">{ticketName}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {formData.notes && (
                 <div>
                   <span className="text-slate-400">Notes:</span>
