@@ -608,7 +608,7 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: "QR code is required",
-        errorType: "MISSING_QR_CODE"
+        errorType: "MISSING_QR_CODE",
       });
     }
 
@@ -618,11 +618,11 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
     if (!ticket) {
       // Only after confirming the ticket doesn't exist, validate format
       const isValidFormat = Ticket.isValidQRCode(qrCode);
-      
+
       return res.status(404).json({
         success: false,
         error: isValidFormat ? "Ticket not found" : "Invalid QR code format",
-        errorType: isValidFormat ? "TICKET_NOT_FOUND" : "INVALID_FORMAT"
+        errorType: isValidFormat ? "TICKET_NOT_FOUND" : "INVALID_FORMAT",
       });
     }
 
@@ -640,10 +640,12 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
             name: ticket.user.name,
             email: ticket.user.email,
           },
-          scannedBy: ticket.scannedBy ? {
-            name: ticket.scannedBy.name,
-            email: ticket.scannedBy.email,
-          } : null
+          scannedBy: ticket.scannedBy
+            ? {
+                name: ticket.scannedBy.name,
+                email: ticket.scannedBy.email,
+              }
+            : null,
         },
       });
     }
@@ -692,7 +694,6 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
         hasEntered: ticket.hasEntered,
       },
     });
-
   } catch (error) {
     console.error(
       "QR verification error:",
@@ -702,7 +703,8 @@ router.post("/verify-qr", verifyToken, async (req, res) => {
       success: false,
       error: "Failed to verify QR code",
       errorType: "VERIFICATION_ERROR",
-      details: process.env.NODE_ENV === "development" ? error.message : undefined,
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
@@ -723,7 +725,7 @@ router.post("/mark-used", verifyToken, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: "QR code is required",
-        errorType: "MISSING_QR_CODE"
+        errorType: "MISSING_QR_CODE",
       });
     }
 
@@ -733,7 +735,7 @@ router.post("/mark-used", verifyToken, async (req, res) => {
       return res.status(404).json({
         success: false,
         error: "Checker not found",
-        errorType: "CHECKER_NOT_FOUND"
+        errorType: "CHECKER_NOT_FOUND",
       });
     }
 
@@ -742,7 +744,7 @@ router.post("/mark-used", verifyToken, async (req, res) => {
       return res.status(403).json({
         success: false,
         error: "Insufficient permissions to mark tickets as used",
-        errorType: "INSUFFICIENT_PERMISSIONS"
+        errorType: "INSUFFICIENT_PERMISSIONS",
       });
     }
 
@@ -753,7 +755,7 @@ router.post("/mark-used", verifyToken, async (req, res) => {
       return res.status(404).json({
         success: false,
         error: "Ticket not found",
-        errorType: "TICKET_NOT_FOUND"
+        errorType: "TICKET_NOT_FOUND",
       });
     }
 
@@ -771,10 +773,12 @@ router.post("/mark-used", verifyToken, async (req, res) => {
             name: ticket.user.name,
             email: ticket.user.email,
           },
-          scannedBy: ticket.scannedBy ? {
-            name: ticket.scannedBy.name,
-            email: ticket.scannedBy.email,
-          } : null
+          scannedBy: ticket.scannedBy
+            ? {
+                name: ticket.scannedBy.name,
+                email: ticket.scannedBy.email,
+              }
+            : null,
         },
       });
     }
@@ -784,7 +788,7 @@ router.post("/mark-used", verifyToken, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: "This ticket has been cancelled and cannot be used",
-        errorType: "TICKET_CANCELLED"
+        errorType: "TICKET_CANCELLED",
       });
     }
 
@@ -819,7 +823,8 @@ router.post("/mark-used", verifyToken, async (req, res) => {
       success: false,
       error: "Failed to mark ticket as used",
       errorType: "MARK_USED_ERROR",
-      details: process.env.NODE_ENV === "development" ? error.message : undefined,
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
@@ -1281,12 +1286,12 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
 
     // Process and validate ticket names
     let processedTicketNames = new Array(quantity).fill(undefined);
-    
+
     // Convert single string or number to array if needed
-    if (typeof ticketNames === 'string' || typeof ticketNames === 'number') {
+    if (typeof ticketNames === "string" || typeof ticketNames === "number") {
       ticketNames = [ticketNames.toString()];
     }
-    
+
     // Process valid names
     if (Array.isArray(ticketNames)) {
       ticketNames.forEach((name, index) => {
@@ -1300,7 +1305,7 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
       rawTicketNames: ticketNames,
       processedNames: processedTicketNames,
       quantity: quantity,
-      targetUserName: targetUser.name
+      targetUserName: targetUser.name,
     });
 
     // Get event details
@@ -1331,21 +1336,27 @@ router.post("/admin/issue-manual", verifyToken, isManager, async (req, res) => {
       const ticketPromise = (async () => {
         const qrCode = Ticket.generateQRCode();
         const qrCodeImage = await generateQRCodeImage(qrCode);
-        
+
         // Determine the ticket holder name
         let ticketHolderName;
-        
+
         if (processedTicketNames[i]) {
           // If a specific name was provided for this ticket index, use it
           ticketHolderName = processedTicketNames[i];
-          console.log(`Using provided name for ticket ${i + 1}: ${ticketHolderName}`);
+          console.log(
+            `Using provided name for ticket ${i + 1}: ${ticketHolderName}`
+          );
         } else {
           // If no specific name was provided for this ticket, use the main user name
           ticketHolderName = targetUser.name;
-          console.log(`Using default name for ticket ${i + 1}: ${ticketHolderName}`);
+          console.log(
+            `Using default name for ticket ${i + 1}: ${ticketHolderName}`
+          );
         }
 
-        console.log(`Creating ticket ${i + 1}/${quantity} for: ${ticketHolderName}`);
+        console.log(
+          `Creating ticket ${i + 1}/${quantity} for: ${ticketHolderName}`
+        );
         const ticket = new Ticket({
           user: targetUser._id,
           eventName: event.name,
@@ -1495,9 +1506,9 @@ router.post("/admin/generate-pdf", verifyToken, isManager, async (req, res) => {
     const tickets = await Ticket.find({
       _id: { $in: ticketIds },
     })
-    .select('user qrCode qrCodeImage eventName price status metadata')
-    .populate("user", "name email")
-    .lean();  // Using lean() for better performance
+      .select("user qrCode qrCodeImage eventName price status metadata")
+      .populate("user", "name email")
+      .lean(); // Using lean() for better performance
 
     if (tickets.length === 0) {
       return res.status(404).json({
@@ -1544,7 +1555,7 @@ router.post("/admin/generate-pdf", verifyToken, isManager, async (req, res) => {
 
       // Get the ticket holder name with proper fallback logic
       let ticketHolderName;
-      
+
       if (ticket?.metadata?.ticketHolderName) {
         // If there's a specific ticket holder name in metadata, use it
         ticketHolderName = ticket.metadata.ticketHolderName;
@@ -1552,16 +1563,16 @@ router.post("/admin/generate-pdf", verifyToken, isManager, async (req, res) => {
         // Otherwise fall back to the user's name
         ticketHolderName = ticket?.user?.name || "Guest";
       }
-      
+
       // Log detailed information about name resolution
-      console.log('Ticket details for PDF generation:', {
+      console.log("Ticket details for PDF generation:", {
         ticketId: ticket._id,
         metadataHolderName: ticket?.metadata?.ticketHolderName,
         metadataOriginalName: ticket?.metadata?.originalUserName,
         userName: ticket?.user?.name,
         finalName: ticketHolderName,
         hasMetadata: !!ticket.metadata,
-        metadata: ticket.metadata
+        metadata: ticket.metadata,
       });
       // Main container with a light background and padding
       const containerWidth = doc.page.width - 40;
@@ -1587,11 +1598,9 @@ router.post("/admin/generate-pdf", verifyToken, isManager, async (req, res) => {
           }),
           { align: "center" }
         );
-      doc
-        .fontSize(10)
-        .text(`Time: ${event.startTime} - ${event.endTime}`, {
-          align: "center",
-        });
+      doc.fontSize(10).text(`Time: ${event.startTime} - ${event.endTime}`, {
+        align: "center",
+      });
 
       // Dashed separator
       doc
@@ -1652,7 +1661,6 @@ router.post("/admin/generate-pdf", verifyToken, isManager, async (req, res) => {
 
       // Set base Y position for the details
       let baseY = doc.y;
-      
 
       doc
         .fill("#333333")
@@ -1673,7 +1681,7 @@ router.post("/admin/generate-pdf", verifyToken, isManager, async (req, res) => {
         .text(`₹${ticket.price}`, valueX, baseY + lineSpacing * 2);
 
       // Dashed separator
-      doc.y = baseY + (lineSpacing * 3) + 20; // move cursor below details
+      doc.y = baseY + lineSpacing * 3 + 20; // move cursor below details
       doc
         .strokeColor("#E75B00")
         .lineWidth(1)
@@ -1757,5 +1765,336 @@ router.post("/admin/generate-pdf", verifyToken, isManager, async (req, res) => {
     });
   }
 });
+
+router.post(
+  "/admin/generate-separate-pdfs",
+  verifyToken,
+  isManager,
+  async (req, res) => {
+    try {
+      const { ticketIds } = req.body;
+
+      if (!ticketIds || !Array.isArray(ticketIds) || ticketIds.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Ticket IDs array is required",
+        });
+      }
+
+      // Find tickets with complete metadata
+      const tickets = await Ticket.find({
+        _id: { $in: ticketIds },
+      })
+        .select("user qrCode qrCodeImage eventName price status metadata")
+        .populate("user", "name email")
+        .lean();
+
+      if (tickets.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "No tickets found",
+        });
+      }
+
+      // Get event details
+      const event = await Event.findOne();
+      if (!event) {
+        return res.status(404).json({
+          success: false,
+          error: "Event not found",
+        });
+      }
+
+      // Load custom fonts
+      const notoSansSymbolsPath = require("path").resolve(
+        __dirname,
+        "../assets/NotoSansSymbols-VariableFont_wght.ttf"
+      );
+
+      // Create a ZIP file
+      const archiver = require("archiver");
+      const archive = archiver("zip", {
+        zlib: { level: 9 }, // compression level
+      });
+
+      // Set response headers for ZIP download
+      const timestamp = Date.now();
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="garba-tickets-${timestamp}.zip"`
+      );
+
+      // Pipe archive to response
+      archive.pipe(res);
+
+      // Generate individual PDFs for each ticket
+      const pdfPromises = tickets.map(async (ticket, index) => {
+        return new Promise((resolve, reject) => {
+          try {
+            // Get the ticket holder name with proper fallback logic
+            let ticketHolderName;
+
+            if (ticket?.metadata?.ticketHolderName) {
+              ticketHolderName = ticket.metadata.ticketHolderName;
+            } else {
+              ticketHolderName = ticket?.user?.name || "Guest";
+            }
+
+            // Sanitize filename (remove special characters and spaces)
+            const sanitizedName = ticketHolderName
+              .replace(/[^a-zA-Z0-9\s]/g, "") // Remove special characters
+              .replace(/\s+/g, "-") // Replace spaces with hyphens
+              .toLowerCase();
+
+            const filename = `garba-ticket-${sanitizedName}-${timestamp}-${
+              index + 1
+            }.pdf`;
+
+            console.log("Generating PDF for ticket:", {
+              ticketId: ticket._id,
+              ticketHolderName,
+              sanitizedName,
+              filename,
+            });
+
+            // Create individual PDF
+            const doc = new PDFDocument({ margin: 20 });
+
+            // Buffer to collect PDF data
+            const buffers = [];
+            doc.on("data", buffers.push.bind(buffers));
+            doc.on("end", () => {
+              const pdfBuffer = Buffer.concat(buffers);
+              resolve({
+                filename,
+                buffer: pdfBuffer,
+              });
+            });
+            doc.on("error", reject);
+
+            // Register custom font
+            doc.registerFont("NotoSansSymbols", notoSansSymbolsPath);
+
+            // Generate PDF content (same as existing logic)
+            generateSingleTicketPDF(doc, ticket, event, ticketHolderName);
+
+            // Finalize PDF
+            doc.end();
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
+
+      // Wait for all PDFs to be generated
+      const pdfResults = await Promise.all(pdfPromises);
+
+      // Add each PDF to the ZIP archive
+      pdfResults.forEach(({ filename, buffer }) => {
+        archive.append(buffer, { name: filename });
+      });
+
+      // Listen for archive events
+      archive.on("error", (err) => {
+        console.error("Archive error:", err);
+        throw err;
+      });
+
+      archive.on("end", () => {
+        console.log("Archive wrote %d bytes", archive.pointer());
+      });
+
+      // Finalize the archive
+      await archive.finalize();
+
+      console.log(
+        `✅ Generated ${tickets.length} separate PDF tickets in ZIP file`
+      );
+    } catch (error) {
+      console.error("❌ Separate PDF generation error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to generate separate PDFs",
+        details:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
+  }
+);
+
+// Helper function to generate single ticket PDF content
+const generateSingleTicketPDF = (doc, ticket, event, ticketHolderName) => {
+  // Main container with a light background and padding
+  const containerWidth = doc.page.width - 40;
+  const containerHeight = doc.page.height - 40;
+  doc.rect(20, 20, containerWidth, containerHeight).fill("#FFF5EE");
+
+  // Event Header Section
+  doc
+    .fill("#E75B00")
+    .fontSize(22)
+    .font("NotoSansSymbols")
+    .text("Garba Rass", { align: "center", continued: false });
+
+  doc
+    .fill("#333333")
+    .fontSize(12)
+    .text(
+      new Date(event.date).toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      { align: "center" }
+    );
+  doc.fontSize(10).text(`Time: ${event.startTime} - ${event.endTime}`, {
+    align: "center",
+  });
+
+  // Dashed separator
+  doc
+    .strokeColor("#E75B00")
+    .lineWidth(1)
+    .dash(5, { space: 5 })
+    .moveTo(40, doc.y + 15)
+    .lineTo(doc.page.width - 40, doc.y + 15)
+    .stroke()
+    .undash();
+
+  // Your Entry Pass Section
+  doc.y += 25;
+  doc.fill("#E75B00").fontSize(16).text("Your Entry Pass", { align: "center" });
+  doc
+    .fill("#333333")
+    .fontSize(9)
+    .text("Present this QR code at the venue entrance", {
+      align: "center",
+    });
+
+  // QR Code Section
+  const qrCodeWidth = 150;
+  const qrCodeStartX = (doc.page.width - qrCodeWidth) / 2;
+  const qrCodeStartY = doc.y + 10;
+
+  if (ticket.qrCodeImage) {
+    try {
+      const base64Data = ticket.qrCodeImage.replace(
+        /^data:image\/[a-z]+;base64,/,
+        ""
+      );
+      const qrBuffer = Buffer.from(base64Data, "base64");
+      doc.image(qrBuffer, qrCodeStartX, qrCodeStartY, {
+        width: qrCodeWidth,
+        height: qrCodeWidth,
+      });
+    } catch (qrError) {
+      console.error("Failed to add QR code to PDF:", qrError);
+      doc.text("QR Code: " + ticket.qrCode, { align: "center" });
+    }
+  }
+
+  doc.y = qrCodeStartY + qrCodeWidth + 10;
+  doc
+    .fontSize(10)
+    .fill("#E75B00")
+    .text("Scan this code for quick entry", { align: "center" });
+
+  // Ticket Details Section
+  doc.y += 20;
+  const detailsX = 40;
+  const valueX = 140;
+  const lineSpacing = 15;
+
+  let baseY = doc.y;
+
+  doc
+    .fill("#333333")
+    .fontSize(12)
+    .font("NotoSansSymbols")
+    .text("Name:", detailsX, baseY)
+    .text("Venue:", detailsX, baseY + lineSpacing)
+    .text("Price Paid:", detailsX, baseY + lineSpacing * 2);
+
+  doc
+    .fill("#E75B00")
+    .font("NotoSansSymbols")
+    .text(ticketHolderName, valueX, baseY)
+    .text(event.venue, valueX, baseY + lineSpacing, {
+      width: doc.page.width - valueX - 40,
+      align: "left",
+    })
+    .text(`₹${ticket.price}`, valueX, baseY + lineSpacing * 2);
+
+  // Dashed separator
+  doc.y = baseY + lineSpacing * 3 + 20;
+  doc
+    .strokeColor("#E75B00")
+    .lineWidth(1)
+    .dash(5, { space: 5 })
+    .moveTo(40, doc.y)
+    .lineTo(doc.page.width - 40, doc.y)
+    .stroke()
+    .undash();
+
+  // Important Instructions Section
+  doc.y += 10;
+  doc.fill("#E75B00").fontSize(14).text("Important Instructions:", detailsX);
+  doc.y += 5;
+  doc
+    .fill("#333333")
+    .fontSize(9)
+    .text(
+      "• Arrive at the venue 30 minutes before the event starts",
+      detailsX,
+      doc.y
+    )
+    .text(
+      "• Present this QR code at the entrance for scanning",
+      detailsX,
+      doc.y + 6
+    )
+    .text(
+      "• Keep this ticket safe and do not share with others",
+      detailsX,
+      doc.y + 6
+    )
+    .text(
+      "• Entry is subject to venue capacity and safety guidelines",
+      detailsX,
+      doc.y + 2
+    )
+    .text("• No outside food or beverages allowed", detailsX, doc.y + 6)
+    .text(
+      "• Follow the dress code: Traditional Indian attire preferred",
+      detailsX,
+      doc.y + 6
+    );
+
+  // Dashed separator
+  doc.y += 75;
+  doc
+    .strokeColor("#E75B00")
+    .lineWidth(1)
+    .dash(5, { space: 5 })
+    .moveTo(40, doc.y)
+    .lineTo(doc.page.width - 40, doc.y)
+    .stroke()
+    .undash();
+
+  // Footer
+  doc.y += 15;
+  doc
+    .fill("#E75B00")
+    .fontSize(10)
+    .text("Thank you for choosing Garba Rass!", { align: "center" });
+  doc
+    .fill("#888888")
+    .fontSize(8)
+    .text("For support, contact us at heet.m.jain@gmail.com", {
+      align: "center",
+    });
+};
 
 module.exports = router;

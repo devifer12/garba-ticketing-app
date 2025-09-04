@@ -32,7 +32,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error),
+  (error) => Promise.reject(error)
 );
 
 // Optimized response interceptor with retry logic
@@ -104,7 +104,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(enhanceError(error));
-  },
+  }
 );
 
 const enhanceError = (error) => {
@@ -189,9 +189,19 @@ export const adminAPI = {
   issueManualTickets: (ticketData) =>
     api.post(`${API_ENDPOINTS.TICKETS.BASE}/admin/issue-manual`, ticketData),
   generateTicketPDF: (ticketIds) =>
-    api.post(`${API_ENDPOINTS.TICKETS.BASE}/admin/generate-pdf`, { ticketIds }, {
-      responseType: 'blob'
-    }),
+    api.post(
+      `${API_ENDPOINTS.TICKETS.BASE}/admin/generate-pdf`,
+      { ticketIds },
+      {
+        responseType: "blob",
+      }
+    ),
+  generateSeparateTicketPDFs: (ticketIds) =>
+    api.post(
+      `${API_ENDPOINTS.TICKETS.BASE}/admin/generate-separate-pdfs`,
+      { ticketIds },
+      { responseType: "blob" }
+    ),
   getDashboardAnalytics: () => api.get(API_ENDPOINTS.ADMIN.ANALYTICS),
   getTicketManagement: (params) =>
     api.get(API_ENDPOINTS.ADMIN.TICKET_MANAGEMENT, { params }),
